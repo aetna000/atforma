@@ -17,6 +17,10 @@ Source: *Atforma product summary and action plan* (2026-11-05). Principles: [con
 
 Delivery handoff and progressive estimates: [009 Consulting delivery](009-consulting-delivery/spec.md).
 
+Personalised architect and skills design: [010 AtMem-backed architect](010-personalised-architect/spec.md).
+
+Next integration priority: **006 + 010** — real AtMem context, scoped Memory dashboard, then reviewed specialist skills and tool routing. Runtime implementation is pending; external sources in 010 are discovery candidates only.
+
 ## Build order
 
 1. **002** — one versioned project file: requirements, assumptions, open questions and decisions with history. Everything else reads it.

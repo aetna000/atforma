@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-05
 
-**Status**: Draft
+**Status**: Draft — expanded user-context, skills and dashboard design in [010](../010-personalised-architect/spec.md)
 
 **Input**: Product summary — AtMem as a headless memory and governance engine; "Atforma … must report relevant changes"; default policies for duplicates, contradictions and expiry; user-defined policies with preview and audit; lifecycle with supersession; example: a change in cloud region supersedes the earlier decision and retains history. Action 5 — "Prototype a decision-change event and reviewable policy, then test that retrieval returns the current decision and its history."
 
