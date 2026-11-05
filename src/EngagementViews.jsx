@@ -127,231 +127,39 @@ export function DiscoverView({ project, onChange, topics, open = true, onToggle 
   );
 }
 
-export function OptionsView({ project, onChange, onShowDesign, onRecommend }) {
-  const a = project.assessment || defaultAssessment();
-  const set = (patch) => onChange({ ...project, assessment: { ...a, ...patch } });
-  const best = OPTIONS.map((o) => [o, optionScore(a, o)])
-    .filter(([, s]) => s != null)
-    .sort((x, y) => y[1] - x[1])[0]?.[0];
-  return (
-    <section className="doc" aria-label="Options">
-      <header className="doc-head">
-        <h2>Cloud options</h2>
-        <p className="muted">Score 1–5, higher is better. Your judgement, not vendor quotes.</p>
-      </header>
-      <div className="options-wrap">
-        <table className="options">
-          <thead>
-            <tr>
-              <th>Criterion</th>
-              <th>Weight</th>
-              {OPTIONS.map((o) => (
-                <th key={o} className={best === o ? "best" : ""}>
-                  {OPTION_NAMES[o]}
-                  {o !== "current" && (
-                    <button className="link small" onClick={() => onShowDesign(o)}>
-                      Show design
-                    </button>
-                  )}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {CRITERIA.map((c) => (
-              <tr key={c.id}>
-                <th title={c.hint}>
-                  {c.label}
-                  <small className="muted">{c.hint}</small>
-                </th>
-                <td>
-                  <select
-                    aria-label={`${c.label} weight`}
-                    value={a.weights[c.id]}
-                    onChange={(e) => set({ weights: { ...a.weights, [c.id]: Number(e.target.value) } })}
-                  >
-                    {[0, 1, 2, 3, 4, 5].map((w) => (
-                      <option key={w} value={w}>
-                        ×{w}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                {OPTIONS.map((o) => (
-                  <td key={o}>
-                    <select
-                      aria-label={`${OPTION_NAMES[o]} ${c.label}`}
-                      value={a.scores[o][c.id] ?? ""}
-                      onChange={(e) =>
-                        set({
-                          scores: { ...a.scores, [o]: { ...a.scores[o], [c.id]: e.target.value ? Number(e.target.value) : null } },
-                        })
-                      }
-                    >
-                      <option value="">—</option>
-                      {[1, 2, 3, 4, 5].map((v) => (
-                        <option key={v} value={v}>
-                          {v}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                ))}
-              </tr>
-            ))}
-            <tr className="total">
-              <th>Weighted</th>
-              <td />
-              {OPTIONS.map((o) => (
-                <td key={o} className={best === o ? "best" : ""}>
-                  {optionScore(a, o) ?? "—"}
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <th>Notes</th>
-              <td />
-              {OPTIONS.map((o) => (
-                <td key={o}>
-                  {area({
-                    "aria-label": `${OPTION_NAMES[o]} notes`,
-                    placeholder: o === "current" ? "How it works today" : "Assumptions, gaps",
-                    value: a.notes[o],
-                    onChange: (e) => set({ notes: { ...a.notes, [o]: e.target.value } }),
-                  })}
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <th />
-              <td />
-              {OPTIONS.map((o) => (
-                <td key={o}>
-                  <button className="btn" disabled={optionScore(a, o) == null} onClick={() => onRecommend(o)}>
-                    Recommend
-                  </button>
-                </td>
-              ))}
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-  );
+export function OptionsView({ project, onDiscuss }) {
+  const notes = project.assessment?.notes || {};
+  const ready = Object.values(notes).some(Boolean);
+  return <section className="doc" aria-label="Options">
+    <header className="doc-head"><h2>Cloud options</h2><p className="muted">Atforma builds this comparison from your diagram and our conversation.</p></header>
+    <button className="btn" onClick={() => onDiscuss('Help me compare AWS, Azure, Google Cloud and IBM for this design. Ask one useful question about my priorities, then refine the comparison from my answer. Populate optionAssessment when enough is known. Keep the diagram unchanged.')}>Discuss cloud options</button>
+    {!ready && <p className="muted">We’ll clarify what matters to you and explain the tradeoffs here as we go.</p>}
+    {['current','aws','azure','gcp','ibm'].filter(id => notes[id]).map(id => <article className="consultation-summary" key={id}>
+      <h3>{OPTION_NAMES[id]}</h3><p>{notes[id].replace(/^Atforma proposal — confirm: /,'')}</p>
+      <button className="link" onClick={() => onDiscuss(`Explain how ${OPTION_NAMES[id]} fits our design and the main tradeoff. Ask one question to help me decide; keep this as a discussion until I explicitly choose.`)}>Discuss this option</button>
+    </article>)}
+  </section>;
 }
 
-function Revise({ onRevise }) {
-  const [open, setOpen] = React.useState(false),
-    [reason, setReason] = React.useState("");
-  if (!open)
-    return (
-      <button className="btn ghost" onClick={() => setOpen(true)}>
-        Revise
-      </button>
-    );
-  return (
-    <div className="revise">
-      <input autoFocus aria-label="Reason for change" placeholder="Why is this changing?" value={reason} onChange={(e) => setReason(e.target.value)} />
-      <button className="btn primary" disabled={!reason.trim()} onClick={() => onRevise(reason)}>
-        Save revision
-      </button>
-      <button className="btn ghost" onClick={() => setOpen(false)}>
-        Cancel
-      </button>
-    </div>
-  );
-}
-
-export function DecisionsView({ project, onChange, onError }) {
-  const decisions = project.decisions || [];
-  const set = (id, patch) => onChange({ ...project, decisions: decisions.map((d) => (d.id === id ? { ...d, ...patch } : d)) });
-  // Superseded records are history: shown under the current decision, never edited.
-  const current = decisions.filter((d) => d.status !== "Superseded");
-  return (
-    <section className="doc" aria-label="Decisions">
-      <header className="doc-head row-between">
-        <div>
-          <h2>Decisions</h2>
-          <p className="muted">Each decision has an owner before build begins. Changes are revisions; history is kept.</p>
-        </div>
-        <button className="btn" onClick={() => onChange({ ...project, decisions: [...decisions, newDecision(project)] })}>
-          <Plus size={14} /> New decision
-        </button>
-      </header>
-      {!decisions.length && <p className="muted">Applied proposals and recommendations are recorded here automatically.</p>}
-      {current.map((d) => {
-        const history = decisionHistory(decisions, d.subject).filter((h) => h.id !== d.id);
-        return (
-          <article key={d.id} className={`adr status-${d.status.toLowerCase()}`}>
-            <div className="adr-head">
-              <span className="adr-id">{d.id.toUpperCase()}</span>
-              <input aria-label="Decision title" placeholder="Title" value={d.title} onChange={(e) => set(d.id, { title: e.target.value })} />
-              <input
-                aria-label="Decision owner"
-                className={d.owner ? "" : "missing"}
-                placeholder="Owner"
-                value={d.owner}
-                onChange={(e) => set(d.id, { owner: e.target.value })}
-              />
-              <select aria-label="Decision status" value={d.status} onChange={(e) => set(d.id, { status: e.target.value })}>
-                {STATUSES.filter((s) => s !== "Superseded").map((s) => (
-                  <option key={s}>{s}</option>
-                ))}
-              </select>
-              <button
-                className="icon"
-                aria-label="Delete decision"
-                disabled={history.length > 0}
-                title={history.length ? "Decisions with history can't be deleted" : ""}
-                onClick={() => onChange({ ...project, decisions: decisions.filter((x) => x.id !== d.id) })}
-              >
-                <Trash2 size={14} />
-              </button>
-            </div>
-            <div className="adr-meta">
-              <label className="inline">
-                Subject
-                <input aria-label="Decision subject" className="mono" value={d.subject} disabled={history.length > 0} onChange={(e) => set(d.id, { subject: e.target.value })} />
-              </label>
-              {d.reason && <span className="muted small">Changed because: {d.reason}</span>}
-              {d.status === "Accepted" && (
-                <Revise
-                  onRevise={(reason) => {
-                    try {
-                      onChange(reviseDecision(project, d.id, {}, reason));
-                    } catch (error) {
-                      onError(error.message);
-                    }
-                  }}
-                />
-              )}
-            </div>
-            <div className="adr-body">
-              {["context", "options", "decision", "consequences"].map((k) => (
-                <label key={k} className="field">
-                  {k[0].toUpperCase() + k.slice(1)}
-                  {area({ "aria-label": `Decision ${k}`, value: d[k], onChange: (e) => set(d.id, { [k]: e.target.value }) })}
-                </label>
-              ))}
-            </div>
-            {history.length > 0 && (
-              <details className="history">
-                <summary>History · {history.length} earlier</summary>
-                <ol>
-                  {history.map((h) => (
-                    <li key={h.id}>
-                      <span className="adr-id">{h.id.toUpperCase()}</span> {h.date} · {h.decision || h.title}
-                      {h.reason && <span className="muted"> — changed because {h.reason}</span>}
-                    </li>
-                  ))}
-                </ol>
-              </details>
-            )}
-          </article>
-        );
-      })}
-    </section>
-  );
+export function DecisionsView({ project, onDiscuss }) {
+  const all = project.decisions || [];
+  const choices = all.filter(d => !d.subject?.startsWith('design.'));
+  const current = choices.filter(d => d.status !== 'Superseded');
+  const sketches = all.filter(d => d.subject?.startsWith('design.'));
+  const labels = {'platform.cloud':'Cloud provider','cloud.region':'Region','infrastructure.tool':'Infrastructure tool'};
+  return <section className="doc" aria-label="Decisions">
+    <header className="doc-head"><h2>Choices we’ve made</h2><p className="muted">Atforma records your choices and explains why they fit. You can revisit them in chat.</p></header>
+    <button className="btn" onClick={() => onDiscuss('Review our current design and explicit choices. Explain the next choice we need to make and ask me one useful question. Do not treat a sketch or a suggestion as an accepted decision.')}>Discuss the next choice</button>
+    {!current.length && <p className="muted">No choices confirmed yet. We’ll work through them together as the design develops.</p>}
+    {current.map(d => <article className="consultation-summary" key={d.id}>
+      <h3>{labels[d.subject] || d.title}</h3><p>{OPTION_NAMES[d.decision] || d.decision || 'Still being discussed'}</p>
+      <small className="muted">{d.status === 'Accepted' ? 'Confirmed in our conversation' : 'Proposed — still to discuss'}</small>
+      {d.context && <p>{d.context}</p>}{d.consequences && <p>{d.consequences}</p>}
+      <button className="link" onClick={() => onDiscuss(`Let’s revisit our choice about ${labels[d.subject] || d.title}: ${d.decision}. Explain the tradeoff and ask what I would like to change before updating it.`)}>Revisit in chat</button>
+      {choices.some(h => h.subject===d.subject && h.status==='Superseded') && <details className="extra"><summary>Earlier choices</summary>{choices.filter(h => h.subject===d.subject && h.status==='Superseded').map(h=><p key={h.id}>{h.decision} {h.reason && `— ${h.reason}`}</p>)}</details>}
+    </article>)}
+    {!!sketches.length && <details className="extra"><summary>Diagram change history</summary>{sketches.map(d=><p key={d.id}>{d.title} · {d.decision}</p>)}</details>}
+  </section>;
 }
 
 export function BuildCard({ project, run, onChange, onOpen, environment, onEnvironment, onPlan, onPulumi, onPack }) {
@@ -468,7 +276,7 @@ export function RequirementsView({ project, onDiscuss }) {
   const names = Object.fromEntries(project.nodes.map(n => [n.id, n.data.label]));
   const requirements = (list) => <ul className="requirements-summary">{list.map(r => <li key={r.id}>
     <p>{r.statement}</p>
-    <small className="muted">{r.source === 'agent' ? 'Proposed from the diagram' : 'From our conversation'}{r.measure ? ` · ${r.measure.metric} ${r.measure.op} ${r.measure.target}${r.measure.unit || ''}` : ''}{r.links?.length ? ` · ${r.links.map(id => names[id] || 'earlier component').join(', ')}` : ''}</small>
+    <small className="muted">{r.source === 'agent' ? 'Proposed from the design and conversation' : 'From our conversation'}{r.measure ? ` · ${r.measure.metric} ${r.measure.op} ${r.measure.target}${r.measure.unit || ''}` : ''}{r.links?.length ? ` · ${r.links.map(id => names[id] || 'earlier component').join(', ')}` : ''}</small>
     <button className="link small" onClick={() => onDiscuss(`Let's discuss requirement ${r.id}: ${r.statement}. Help me clarify it with one question and update the working requirement from my answer.`)}>Discuss</button>
   </li>)}</ul>;
   return <section className="doc" aria-label="Requirements">

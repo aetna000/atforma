@@ -85,3 +85,5 @@ The browser stores projects locally; there is no workspace account service or cr
 ## Provenance and commercialisation
 
 See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), [the merge manifest](docs/merge-manifest.json), [source audit](docs/SOURCE_AUDIT.md), [local architecture](docs/LOCAL_ARCHITECTURE.md), and [Claude Opus 5.5's design review](docs/CLAUDE_5_5_DESIGN_REVIEW.md). Imported upstream licences are preserved; no vendor branding assets are bundled. Original product code has no public open-source licence grant. The product is not commercially cleared by this preliminary engineering inventory.
+
+Options and Design choices are read-only conversational outputs. The architect receives the active view, authors structured requirement proposals from the chat and graph, and refreshes cloud comparisons as answers arrive. Confirmed requirements are preserved; diagram revisions are retained separately from actual choices.

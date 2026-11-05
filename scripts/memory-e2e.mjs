@@ -39,8 +39,12 @@ await page.getByRole('tab',{name:'Skills',exact:true}).click();await page.getByR
 await chat('What do you remember about my preferences and our region?');assert.match(await page.locator('.msg.assistant').last().innerText(),/Explain concisely/);assert.match(await page.locator('.msg.assistant').last().innerText(),/ap-southeast-2/);
 await chat('Use AWS in Melbourne instead.');await page.waitForTimeout(1000);
 await openMemory();await page.getByRole('tab',{name:'This project',exact:true}).click();await page.getByText(/ap-southeast-4/).first().waitFor();assert.match(await page.getByRole('dialog').innerText(),/Earlier value/);await page.getByRole('button',{name:'Close dialog',exact:true}).click();
-await page.getByRole('tab',{name:'Options',exact:true}).click();await page.waitForFunction(()=>document.querySelectorAll('.options textarea').length&&[...document.querySelectorAll('.options textarea')].every(x=>x.value));await finished();
+await page.getByRole('tab',{name:'Options',exact:true}).click();await page.getByRole('region',{name:'Options',exact:true}).getByRole('heading',{name:'IBM',exact:true}).waitFor();await finished();
 for(const cloud of ['AWS','Azure','Google Cloud','IBM'])assert.ok((await page.getByRole('region',{name:'Options',exact:true}).innerText()).includes(cloud));
+assert.equal(await page.getByRole('region',{name:'Options',exact:true}).locator('input,select,textarea').count(),0);
+await page.getByRole('tab',{name:'Design choices',exact:true}).click();
+assert.equal(await page.getByRole('region',{name:'Decisions',exact:true}).locator('input,select,textarea').count(),0);
+await page.getByRole('heading',{name:'Cloud provider',exact:true}).waitFor();
 await tab('Estimate');await page.waitForFunction(()=>[...document.querySelectorAll('.msg.assistant')].at(-1)?.textContent.includes('questions'));await finished();
 assert.equal(await page.getByLabel('Data stored').isVisible(),false,'no forced estimate-input form');
 await chat('Plan for 3,000 tokens per request.');assert.equal((await project()).estimate.usage.tokens_per_request,3000);

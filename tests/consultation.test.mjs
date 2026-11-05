@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {withDerived} from '../src/derive.mjs';
-import {applyDecisionUpdates} from '../src/consultation.mjs';
+import {applyDecisionUpdates,applyRequirementDrafts} from '../src/consultation.mjs';
 import {applyPriceQuotes,storageNodes} from '../src/pricing.mjs';
 import {estimate,setPrice} from '../src/estimate.mjs';
 const node=(id,label,provider='tools',kind='source')=>({id,type:'resource',position:{x:0,y:0},data:{label,description:label,provider,kind,config:{region:{aws:'ap-southeast-2',azure:'australiaeast',gcp:'australia-southeast1',ibm:'au-syd'}[provider]||'To be selected',classification:'Internal'}}});
@@ -31,4 +31,12 @@ test('editing a retrieved rate clears its vendor provenance and tier claim',()=>
  const p={...project(),estimate:{prices:{files:{price:.02,source:'Azure Retail Prices API',url:'https://prices.azure.com/test',tierLimit:51200,note:'Verified public tier',currency:'USD'}}}};
  const changed=setPrice(p,'files',{price:.03}).estimate.prices.files;
  assert.equal(changed.source,'entered by you');assert.equal(changed.url,undefined);assert.equal(changed.tierLimit,undefined);
+});
+
+test('model requirements replace fallback labels, link real components and preserve confirmed answers',()=>{
+ let p=withDerived(project());
+ const draft={id:'ai-access',statement:'Enforce document access permissions before retrieval.',kind:'nonfunctional',category:'security',priority:'must',links:['files','missing']};
+ p=withDerived(applyRequirementDrafts(p,[draft]));assert.equal(p.needs.length,1);assert.deepEqual(p.needs[0].links,['files']);assert.equal(p.needs[0].source,'agent');assert.equal(p.needs[0].status,'open');
+ p.needs[0]={...p.needs[0],source:'user',statement:'Only HR can retrieve documents'};
+ p=withDerived(applyRequirementDrafts(p,[draft]));assert.equal(p.needs[0].statement,'Only HR can retrieve documents');
 });

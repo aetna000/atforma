@@ -758,3 +758,5 @@ label.inline input { width: 60px; }
 .requirements-summary li { margin: 1rem 0; }
 .requirements-summary li > p { margin-bottom: .3rem; }
 .requirements-summary li > .link { margin-left: .75rem; }
+
+.consultation-summary { padding: 1rem 0; border-bottom: 1px solid var(--border, #334155); }

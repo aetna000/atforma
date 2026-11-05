@@ -83,7 +83,7 @@ import { MemoryPanel, ContextUsed } from "./MemoryPanel.jsx";
 import { defaultAssessment } from "./engagement.mjs";
 import { setUsage } from "./estimate.mjs";
 import { applyPriceQuotes, fetchStoragePrices, storageNodes } from "./pricing.mjs";
-import { applyDecisionUpdates } from "./consultation.mjs";
+import { applyDecisionUpdates, applyRequirementDrafts } from "./consultation.mjs";
 import { deliveryPack } from "./delivery.mjs";
 import { terraformSketch } from "./terraform.mjs";
 import { WORKFLOWS, conceptSignature, essentialsKnown, nextQuestion, opening, progress, sketch, understand } from "./discovery.mjs";
@@ -1081,7 +1081,7 @@ function App() {
       const edits = canvasChanges(projectRef.current);
       seen.current = structuredClone(projectRef.current);
       const result = await requestArchitect({
-        extra: edits.length ? [{ type: "discovery", id: "canvas-changes", text: `Since your last reply the user ${edits.join("; ")}. Build on these changes.` }] : [],
+        extra: [{type:"discovery",id:"active-view",text:`The user is working in ${mode === "design" ? designView : mode}. Focus help on this view using the shared diagram and conversation; ask one useful question and update the relevant working outputs.`}, ...(edits.length ? [{ type: "discovery", id: "canvas-changes", text: `Since your last reply the user ${edits.join("; ")}. Build on these changes.` }] : [])],
         session,
         connection,
         message: spoken ? `${message}\n\n(Dictated by voice: interpret obvious speech-recognition errors, e.g. "rang" for "RAG".)` : message,
@@ -1095,8 +1095,8 @@ function App() {
         const p = projectRef.current, a = p.assessment || defaultAssessment();
         const scores = structuredClone(a.scores), notes = { ...a.notes };
         for (const option of result.optionAssessment) {
-          scores[option.provider] = { ...option.scores, ...Object.fromEntries(Object.entries(scores[option.provider]).filter(([,v]) => v != null)) };
-          if (!notes[option.provider]?.trim()) notes[option.provider] = `Atforma proposal — confirm: ${option.rationale}`;
+          scores[option.provider] = option.scores;
+          notes[option.provider] = `Atforma proposal — confirm: ${option.rationale}`;
         }
         updateEngagement({ ...p, assessment: { ...a, scores, notes } });
         signals.push("cloud comparison updated");
@@ -1121,6 +1121,7 @@ function App() {
         if (drawLive) applyProposal(proposal, { live: true });
         else setPending(proposal);
       }
+      if (result.requirementDrafts?.length) updateEngagement(applyRequirementDrafts(projectRef.current,result.requirementDrafts));
     } catch (error) {
       setMessages((m) => [
         ...m,
@@ -1875,21 +1876,20 @@ function App() {
               ["board", "Board"],
               ["requirements", "Requirements"],
               ["options", "Options"],
-              ["decisions", "Decisions"],
+              ["decisions", "Design choices"],
             ].map(([id, label]) => (
               <button key={id} role="tab" aria-selected={designView === id} className={designView === id ? "on" : ""} onClick={() => setDesignView(id)}>
                 {label}
-                {id === "decisions" && project.decisions?.length ? ` ${project.decisions.filter((d) => d.status !== "Superseded").length}` : ""}
               </button>
             ))}
           </div>
         )}
 
         {mode === "design" && designView === "options" && (
-          <OptionsView project={project} onChange={updateEngagement} onShowDesign={showDesign} onRecommend={recommend} />
+          <OptionsView project={project} onDiscuss={(question) => { setChatOpen(true); send(question, "workflow"); }} />
         )}
         {mode === "design" && designView === "decisions" && (
-          <DecisionsView project={project} onChange={updateEngagement} onError={notify} />
+          <DecisionsView project={project} onDiscuss={(question) => { setChatOpen(true); send(question, "workflow"); }} />
         )}
         {mode === "design" && designView === "requirements" && (
           <RequirementsView project={project} onDiscuss={(question) => { setChatOpen(true); send(question, "workflow"); }} />

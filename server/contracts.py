@@ -102,6 +102,21 @@ class RequirementUpdate(Strict):
     statement:str=Field(min_length=1,max_length=1000)
     sourceText:str=Field(min_length=1,max_length=500)
 
+class RequirementTarget(Strict):
+    metric:str=Field(min_length=1,max_length=150)
+    op:Literal['>=','<=','==']
+    target:float=Field(allow_inf_nan=False)
+    unit:str=Field(default='',max_length=40)
+
+class RequirementDraft(Strict):
+    id:str=Field(pattern=r'^ai-[A-Za-z0-9-]{1,55}$')
+    statement:str=Field(min_length=1,max_length=1000)
+    kind:Literal['functional','nonfunctional']
+    category:Literal['security','reliability','availability','scalability','performance','maintainability','cost','compliance','other']
+    priority:Literal['must','should','could']='should'
+    links:list[str]=Field(default_factory=list,max_length=50)
+    measure:RequirementTarget|None=None
+
 class DecisionUpdate(Strict):
     subject:Literal['platform.cloud','cloud.region','infrastructure.tool']
     value:str=Field(min_length=1,max_length=100)
@@ -114,6 +129,7 @@ class ArchitectResponse(Strict):
     toolRequests:list[ToolRequest]|None=Field(default=None,max_length=3)
     optionAssessment:list[OptionAssessment]|None=Field(default=None,max_length=5)
     usageUpdates:list[UsageUpdate]|None=Field(default=None,max_length=6)
+    requirementDrafts:list[RequirementDraft]|None=Field(default=None,max_length=20)
     requirementUpdates:list[RequirementUpdate]|None=Field(default=None,max_length=10)
     decisionUpdates:list[DecisionUpdate]|None=Field(default=None,max_length=3)
 

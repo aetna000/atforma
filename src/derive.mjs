@@ -17,5 +17,5 @@ export function deriveRequirements(project) {
 export function withDerived(project){
  const mine=(project.needs||[]).filter(r=>!(r.source==='agent'&&r.id.startsWith('drv-')));
  const excluded=new Set([...(project.extensions?.dismissedRequirements||[]),...mine.map(r=>r.id)]);
- return {...project,needs:[...mine,...deriveRequirements(project).filter(r=>!excluded.has(r.id))].slice(0,300)};
+ return {...project,needs:[...mine,...(mine.some(r=>r.id.startsWith("ai-")) ? [] : deriveRequirements(project)).filter(r=>!excluded.has(r.id))].slice(0,300)};
 }
