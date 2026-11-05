@@ -1128,6 +1128,7 @@ function App() {
         else setPending(proposal);
       }
       if (!["document","preview"].includes(origin) && result.requirementDrafts?.length) updateEngagement(applyRequirementDrafts(projectRef.current,result.requirementDrafts));
+      return true;
     } catch (error) {
       setMessages((m) => [
         ...m,
@@ -1424,7 +1425,7 @@ function App() {
   const guidance = useMemo(()=>journey(project),[project]);
   useEffect(()=>{
     if(!guidance.availableModes.includes(mode)){setMode(guidance.mode);setDesignView(guidance.view);}
-    if(guidance.id==='scope' && ['options','decisions'].includes(designView))setDesignView('requirements');
+    if(guidance.id==='scope' && !project.extensions?.journey?.scope && ['options','decisions'].includes(designView))setDesignView('requirements');
   },[guidance.id,mode,designView]);
   function followJourney(next=guidance){
     if(busy||agentBusy)return;
@@ -1432,6 +1433,21 @@ function App() {
     consultationAttempts.current.add(`${projectRef.current.id}:${projectRef.current.revision}:${next.mode}:${next.view}`);
     setMode(next.mode);setDesignView(next.view);if(next.mode==='review')setReviewView('findings');
     send(next.prompt,'workflow',next);
+  }
+  function visitJourney(id){
+    if(busy||agentBusy||pending)return;
+    if(id==='scope'){setMode('design');setDesignView('requirements');return;}
+    if(id==='cloud'){setMode('design');setDesignView('options');return;}
+    if(id==='location'){
+      setChatOpen(true);setMode('design');setDesignView('board');
+      send('Let’s revisit country and data residency for our chosen cloud. Summarise what we have agreed, then ask one useful question about where users and data should be. Keep the diagram unchanged until we agree a change.','workflow',{mode:'design',view:'board'});return;
+    }
+    setMode(id==='architecture'?'design':id==='delivery'?'deploy':id);setDesignView('board');
+  }
+  async function chooseCloud(provider){
+    if(busy||agentBusy||pending)return;
+    const ok=await send(`Use ${OPTION_NAMES[provider]} for this project.`,"chat",{mode:"design",view:"options"});
+    if(ok){setMode('design');setDesignView('board');setChatOpen(true);}
   }
   function continueJourney(){
     if(!guidance.checkpoint||busy||agentBusy)return;
@@ -1596,7 +1612,11 @@ function App() {
           ...(guidance.availableModes.includes('review')?[['review','Review']]:[]),
           ...(guidance.availableModes.includes('estimate')?[['estimate','Costs']]:[]),
           ...(guidance.availableModes.includes('deploy')?[['delivery','Delivery draft']]:[])
-        ].map(([id,label],i)=><li key={id} aria-current={(guidance.id==='idea'?'scope':guidance.id)===id?'step':undefined}><span>{i+1}</span>{label}</li>)}</ol>
+        ].map(([id,label],i)=>{
+          const current=guidance.id==='idea'?'scope':guidance.id;
+          const reached=['scope','cloud','location','architecture','review','estimate','delivery'].indexOf(id)<=['scope','cloud','location','architecture','review','estimate','delivery'].indexOf(current);
+          return <li key={id} aria-current={current===id?'step':undefined}><button type="button" disabled={!reached||busy||agentBusy||!!pending} onClick={()=>visitJourney(id)} aria-label={`Go to ${label}`}><span>{i+1}</span>{label}</button></li>;
+        })}</ol>
         <div className="journey-current"><div><strong>{guidance.title}</strong><p>{guidance.reason}</p></div>
           <div className="journey-actions">
             <button className="btn primary" disabled={busy||agentBusy||!!pending} onClick={()=>guidance.checkpoint?continueJourney():followJourney()}>{guidance.checkpoint?guidance.continueLabel+' →':guidance.action}</button>
@@ -1853,7 +1873,7 @@ function App() {
             {[
               ["findings", "Findings"],
               ["test", "Test run"],
-            ].filter(([id])=>!["options","decisions"].includes(id) || !["idea","scope"].includes(guidance.id)).map(([id, label]) => (
+            ].filter(([id])=>!["options","decisions"].includes(id) || !["idea","scope"].includes(guidance.id) || !!project.extensions?.journey?.scope).map(([id, label]) => (
               <button key={id} role="tab" aria-selected={reviewView === id} className={reviewView === id ? "on" : ""} onClick={() => setReviewView(id)}>
                 {label}
               </button>
@@ -1902,7 +1922,7 @@ function App() {
               ["requirements", "Requirements"],
               ["options", "Options"],
               ["decisions", "Design choices"],
-            ].filter(([id])=>!["options","decisions"].includes(id) || !["idea","scope"].includes(guidance.id)).map(([id, label]) => (
+            ].filter(([id])=>!["options","decisions"].includes(id) || !["idea","scope"].includes(guidance.id) || !!project.extensions?.journey?.scope).map(([id, label]) => (
               <button key={id} role="tab" aria-selected={designView === id} className={designView === id ? "on" : ""} onClick={() => setDesignView(id)}>
                 {label}
               </button>
@@ -1911,7 +1931,7 @@ function App() {
         )}
 
         {mode === "design" && designView === "options" && (
-          <OptionsView project={project} onChoose={provider=>{setChatOpen(true);send(`Use ${OPTION_NAMES[provider]} for this project.`,"chat",{mode:"design",view:"options"});}} onPreview={(provider)=>{setDesignView("board");setLevel("flow");setChatOpen(true);send(`Preview a concrete ${OPTION_NAMES[provider]} implementation of our working scope, using actual named services in data.service and explicit connections. Keep existing systems and comments. Use the known country/residency constraints, or leave region undecided and ask the country question. This is an alternative preview, not a cloud choice or deployment. Return a graph proposal and explain key integration assumptions.`,"preview",{mode:"design",view:"board"});}} onDiscuss={(question) => { setChatOpen(true); send(question, "workflow"); }} />
+          <OptionsView project={project} busy={busy||agentBusy||!!pending} onChoose={chooseCloud} onContinue={()=>{setChatOpen(true);setMode("design");setDesignView("board");followJourney();}} onPreview={(provider)=>{setDesignView("board");setLevel("flow");setChatOpen(true);send(`Preview a concrete ${OPTION_NAMES[provider]} implementation of our working scope, using actual named services in data.service and explicit connections. Keep existing systems and comments. Use the known country/residency constraints, or leave region undecided and ask the country question. This is an alternative preview, not a cloud choice or deployment. Return a graph proposal and explain key integration assumptions.`,"preview",{mode:"design",view:"board"});}} onDiscuss={(question) => { setChatOpen(true); send(question, "workflow"); }} />
         )}
         {mode === "design" && designView === "decisions" && (
           <DecisionsView project={project} onDiscuss={(question) => { setChatOpen(true); send(question, "workflow"); }} />

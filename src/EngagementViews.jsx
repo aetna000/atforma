@@ -129,17 +129,19 @@ export function DiscoverView({ project, onChange, topics, open = true, onToggle 
   );
 }
 
-export function OptionsView({ project, onDiscuss, onPreview, onChoose }) {
+export function OptionsView({ project, onDiscuss, onPreview, onChoose, onContinue, busy }) {
   const notes = project.assessment?.notes || {};
   const ready = Object.values(notes).some(Boolean);
+  const selected = [...(project.decisions||[])].reverse().find(d=>d.subject==='platform.cloud'&&d.status==='Accepted')?.decision;
   return <section className="doc" aria-label="Options">
-    <header className="doc-head"><h2>Cloud options</h2><p className="muted">Atforma builds this comparison from your diagram and our conversation.</p></header>
+    <header className="doc-head"><h2>Cloud options</h2><p className="muted">Compare the approaches below, then choose a cloud to continue. Next we’ll discuss country and data residency.</p></header>
     <button className="btn" onClick={() => onDiscuss('Help me compare AWS, Azure, Google Cloud and IBM for this design. Ask one useful question about my priorities, then refine the comparison from my answer. Populate optionAssessment when enough is known. Keep the diagram unchanged.')}>Discuss cloud options</button>
+    {selected && <p className="cloud-selection" role="status"><strong>Selected: {OPTION_NAMES[selected]}</strong> · You can change your choice below. <button className="btn primary" disabled={busy} onClick={onContinue}>Continue with {OPTION_NAMES[selected]} →</button></p>}
     {!ready && <p className="muted">We’ll clarify what matters to you and explain the tradeoffs here as we go.</p>}
     {['current','aws','azure','gcp','ibm'].filter(id => notes[id]).map(id => <article className="consultation-summary" key={id}>
-      <h3>{OPTION_NAMES[id]}</h3><p>{notes[id].replace(/^Atforma proposal — confirm: /,'')}</p>
+      <h3>{OPTION_NAMES[id]}{selected===id ? " · Selected" : ""}</h3><p>{notes[id].replace(/^Atforma proposal — confirm: /,'')}</p>
       <button className="link" onClick={() => onDiscuss(`Explain how ${OPTION_NAMES[id]} fits our design and the main tradeoff. Ask one question to help me decide; keep this as a discussion until I explicitly choose.`)}>Discuss this option</button>
-      {id!=="current" && <><button className="link" onClick={()=>onPreview(id)}>Preview service architecture</button><button className="btn" onClick={()=>onChoose(id)}>Choose {OPTION_NAMES[id]}</button></>}
+      {id!=="current" && <><button className="link" onClick={()=>onPreview(id)}>Preview service architecture</button><button className="btn primary" disabled={busy||selected===id} onClick={()=>onChoose(id)}>{selected===id ? `${OPTION_NAMES[id]} selected` : `Choose ${OPTION_NAMES[id]} & continue →`}</button></>}
     </article>)}
   </section>;
 }

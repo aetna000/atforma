@@ -69,8 +69,14 @@ assert.equal(JSON.stringify((await project()).nodes),beforePreview,'a cloud opti
 await page.screenshot({path:`${out}/cloud-service-preview.png`});
 await page.getByRole('complementary',{name:'Chat'}).getByRole('button',{name:'Dismiss',exact:true}).click();
 await page.getByRole('tab',{name:'Options',exact:true}).click();
-await page.getByRole('button',{name:'Choose AWS',exact:true}).click();await finished();
-await page.getByRole('button',{name:'Discuss country and residency',exact:true}).click();await finished();
+await page.getByRole('button',{name:'Choose AWS & continue →',exact:true}).click();await finished();
+await page.getByRole('button',{name:'Discuss country and residency',exact:true}).waitFor();
+const beforeBack=JSON.stringify((await project()).nodes);
+await page.getByRole('button',{name:'Go to Cloud options',exact:true}).click();
+await page.getByRole('button',{name:'Continue with AWS →',exact:true}).waitFor();
+assert.equal(JSON.stringify((await project()).nodes),beforeBack,'returning to options preserves the diagram');
+await page.screenshot({path:`${out}/cloud-options-selected.png`});
+await page.getByRole('button',{name:'Continue with AWS →',exact:true}).click();await finished();
 await chat('Use AWS in Sydney for this project.');
 assert.ok((await project()).nodes.filter(n=>n.data.kind!=='note').every(n=>n.data.service&&n.data.provider==='aws'));
 assert.equal(await page.locator('.modes').getByRole('tab',{name:'Estimate',exact:true}).count(),0);

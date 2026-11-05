@@ -830,3 +830,9 @@ label.inline input { width: 60px; }
 .journey-actions .btn, .journey-actions .link { font-size:12px; }
 .consultation-summary > button { margin-right:14px; margin-top:8px; }
 @media(max-width:900px){.app { grid-template-rows:auto auto 60vh auto; }.journey-wizard{padding:12px;}.journey-current{align-items:flex-start;flex-direction:column;gap:12px;}.journey-actions{flex-wrap:wrap;}.journey-steps{gap:8px 14px;}}
+
+.journey-steps li button { display:flex; align-items:center; gap:7px; padding:3px 5px; border:0; background:none; color:inherit; font:inherit; border-radius:5px; cursor:pointer; }
+.journey-steps li button:disabled { cursor:default; }
+.journey-steps li button:not(:disabled):hover { background:var(--line); text-decoration:underline; }
+.journey-steps li button:focus-visible { outline:2px solid var(--action); outline-offset:3px; }
+.cloud-selection { display:flex; flex-wrap:wrap; gap:10px; align-items:center; padding:14px; border:1px solid var(--line); border-radius:8px; }
