@@ -2,6 +2,8 @@
 
 The main consultation moves from sketch/document to cloud choice, country/residency, named service architecture, risk review, cost estimate and delivery draft. Later views and delivery export actions remain hidden until the relevant working-draft checkpoint. The current next step is passed to the model on every turn. Navigation alone does not mark a stage complete.
 
+The always-visible journey strip above the workspace highlights the current stage, explains its purpose and exposes the primary next action even when chat is closed. **Continue to cloud options** works from the board as well as Requirements. Each cloud comparison has a **Choose** action that sends the explicit selection into the consultation; country/residency is the next interview step. Service previews remain separate from provider selection.
+
 Project-scoped compact change fingerprints invalidate downstream checkpoints when confirmed scope, service selection, placement, connections or costs change. Requirements, comments, cloud previews and undo/redo keep their existing behavior. A preview is a complete candidate graph but does not modify the active board until applied; previewing a cloud does not record an accepted cloud choice.
 
 Service mapping checks the selected provider against a bounded local name catalogue, region/global-placement fields and labelled connections. This detects generic or unmapped blocks. It does not query cloud inventories, validate regional service/model availability, verify IAM or networking, or prove integrations work. These remain explicit review/engineering tasks. The native Terraform exporter still covers S3 foundations only; no cloud deployment tool exists.

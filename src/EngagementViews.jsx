@@ -129,7 +129,7 @@ export function DiscoverView({ project, onChange, topics, open = true, onToggle 
   );
 }
 
-export function OptionsView({ project, onDiscuss, onPreview }) {
+export function OptionsView({ project, onDiscuss, onPreview, onChoose }) {
   const notes = project.assessment?.notes || {};
   const ready = Object.values(notes).some(Boolean);
   return <section className="doc" aria-label="Options">
@@ -139,7 +139,7 @@ export function OptionsView({ project, onDiscuss, onPreview }) {
     {['current','aws','azure','gcp','ibm'].filter(id => notes[id]).map(id => <article className="consultation-summary" key={id}>
       <h3>{OPTION_NAMES[id]}</h3><p>{notes[id].replace(/^Atforma proposal — confirm: /,'')}</p>
       <button className="link" onClick={() => onDiscuss(`Explain how ${OPTION_NAMES[id]} fits our design and the main tradeoff. Ask one question to help me decide; keep this as a discussion until I explicitly choose.`)}>Discuss this option</button>
-      {id!=="current" && <button className="link" onClick={()=>onPreview(id)}>Preview service architecture</button>}
+      {id!=="current" && <><button className="link" onClick={()=>onPreview(id)}>Preview service architecture</button><button className="btn" onClick={()=>onChoose(id)}>Choose {OPTION_NAMES[id]}</button></>}
     </article>)}
   </section>;
 }

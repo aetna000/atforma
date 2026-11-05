@@ -17,6 +17,7 @@ const chat=async(text)=>{await finished();const count=await page.locator('.msg.a
 const tab=async(name)=>{await finished();await page.locator('.modes').getByRole('tab',{name:new RegExp('^'+name)}).click();};
 const openMemory=async()=>{await finished();await page.getByRole('button',{name:'More',exact:true}).click();await page.getByRole('menuitem',{name:'AtMem dashboard',exact:true}).click();await page.getByRole('heading',{name:'AtMem dashboard'}).waitFor();await page.getByRole('button',{name:/^Turn memory (off|on)$/}).waitFor();};
 assert.equal((await project()).nodes.length,0,'no default blocks');
+await page.getByRole('region',{name:'Architecture journey',exact:true}).waitFor();
 assert.deepEqual(await page.locator('.modes [role=tab]').allInnerTexts(),['Design'],'later stages are hidden at the start');
 await chat('I want an internal assistant so staff can ask questions about our HR policy documents.');
 assert.equal((await project()).nodes.filter(n=>n.data.kind!=='note').length,3);
@@ -26,6 +27,9 @@ await page.locator('.react-flow__pane').click({button:'right',position:{x:220,y:
 await page.getByRole('menuitem',{name:'Add comment here',exact:true}).click();await page.getByLabel('Comment',{exact:true}).fill('Keep all data in Australia.');await page.getByLabel('Your message').click();
 await page.waitForFunction(()=>document.querySelector('.msg.working'));await finished();
 assert.ok((await project()).nodes.some(n=>n.data.kind==='note'&&/Australia/.test(n.data.label)));
+await page.getByRole('button',{name:'Hide chat',exact:true}).click();
+await page.getByRole('button',{name:'Continue to cloud options →',exact:true}).waitFor();
+await page.getByRole('button',{name:'Show chat',exact:true}).click();
 await page.screenshot({path:`${out}/canvas-comments.png`});
 await page.getByRole('tab',{name:'Requirements',exact:true}).click();const req=page.getByRole('region',{name:'Requirements',exact:true});
 assert.equal(await req.locator('input,select,textarea').count(),0,'no requirements form');assert.match(await req.textContent(),/Company policy documents/);
@@ -55,7 +59,7 @@ await req.getByText('Feedback history',{exact:true}).click();
 await req.getByText('Revision applied',{exact:true}).waitFor();
 assert.deepEqual((await project()).extensions.requirementNumbers,originalNumbers);
 await page.screenshot({path:`${out}/requirements-conversation.png`});
-await page.getByRole('button',{name:'Explore cloud solutions with this scope →',exact:true}).click();
+await page.getByRole('button',{name:'Continue to cloud options →',exact:true}).click();
 await page.getByRole('region',{name:'Options',exact:true}).getByRole('heading',{name:'IBM',exact:true}).waitFor();await finished();
 assert.equal(await page.locator('.modes').getByRole('tab',{name:'Estimate',exact:true}).count(),0);
 const beforePreview=JSON.stringify((await project()).nodes);
@@ -64,7 +68,8 @@ await page.getByRole('complementary',{name:'Chat'}).getByRole('button',{name:'Di
 assert.equal(JSON.stringify((await project()).nodes),beforePreview,'a cloud option preview must not replace the working board');
 await page.screenshot({path:`${out}/cloud-service-preview.png`});
 await page.getByRole('complementary',{name:'Chat'}).getByRole('button',{name:'Dismiss',exact:true}).click();
-await chat('Use AWS for this project.');
+await page.getByRole('tab',{name:'Options',exact:true}).click();
+await page.getByRole('button',{name:'Choose AWS',exact:true}).click();await finished();
 await page.getByRole('button',{name:'Discuss country and residency',exact:true}).click();await finished();
 await chat('Use AWS in Sydney for this project.');
 assert.ok((await project()).nodes.filter(n=>n.data.kind!=='note').every(n=>n.data.service&&n.data.provider==='aws'));

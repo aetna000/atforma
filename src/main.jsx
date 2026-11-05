@@ -1590,6 +1590,20 @@ function App() {
         )}
       </header>
 
+      <section className="journey-wizard" aria-label="Architecture journey">
+        <ol className="journey-steps">{[
+          ['scope','Sketch & document'],['cloud','Cloud options'],['location','Country & region'],['architecture','Cloud architecture'],
+          ...(guidance.availableModes.includes('review')?[['review','Review']]:[]),
+          ...(guidance.availableModes.includes('estimate')?[['estimate','Costs']]:[]),
+          ...(guidance.availableModes.includes('deploy')?[['delivery','Delivery draft']]:[])
+        ].map(([id,label],i)=><li key={id} aria-current={(guidance.id==='idea'?'scope':guidance.id)===id?'step':undefined}><span>{i+1}</span>{label}</li>)}</ol>
+        <div className="journey-current"><div><strong>{guidance.title}</strong><p>{guidance.reason}</p></div>
+          <div className="journey-actions">
+            <button className="btn primary" disabled={busy||agentBusy||!!pending} onClick={()=>guidance.checkpoint?continueJourney():followJourney()}>{guidance.checkpoint?guidance.continueLabel+' →':guidance.action}</button>
+            {guidance.checkpoint&&<button className="link" disabled={busy||agentBusy} onClick={()=>followJourney()}>{guidance.action}</button>}
+          </div>
+        </div>
+      </section>
       <main
         id="canvas"
         className={`canvas level-${level}`}
@@ -1897,7 +1911,7 @@ function App() {
         )}
 
         {mode === "design" && designView === "options" && (
-          <OptionsView project={project} onPreview={(provider)=>{setDesignView("board");setLevel("flow");setChatOpen(true);send(`Preview a concrete ${OPTION_NAMES[provider]} implementation of our working scope, using actual named services in data.service and explicit connections. Keep existing systems and comments. Use the known country/residency constraints, or leave region undecided and ask the country question. This is an alternative preview, not a cloud choice or deployment. Return a graph proposal and explain key integration assumptions.`,"preview",{mode:"design",view:"board"});}} onDiscuss={(question) => { setChatOpen(true); send(question, "workflow"); }} />
+          <OptionsView project={project} onChoose={provider=>{setChatOpen(true);send(`Use ${OPTION_NAMES[provider]} for this project.`,"chat",{mode:"design",view:"options"});}} onPreview={(provider)=>{setDesignView("board");setLevel("flow");setChatOpen(true);send(`Preview a concrete ${OPTION_NAMES[provider]} implementation of our working scope, using actual named services in data.service and explicit connections. Keep existing systems and comments. Use the known country/residency constraints, or leave region undecided and ask the country question. This is an alternative preview, not a cloud choice or deployment. Return a graph proposal and explain key integration assumptions.`,"preview",{mode:"design",view:"board"});}} onDiscuss={(question) => { setChatOpen(true); send(question, "workflow"); }} />
         )}
         {mode === "design" && designView === "decisions" && (
           <DecisionsView project={project} onDiscuss={(question) => { setChatOpen(true); send(question, "workflow"); }} />
@@ -2024,11 +2038,6 @@ function App() {
             )}
             <div ref={chatEnd} />
           </div>
-          <section className="journey-guide" aria-label="Your next step">
-            <small>Next step · {guidance.title}</small><p>{guidance.reason}</p>
-            <button className="btn primary" disabled={busy||agentBusy} onClick={()=>followJourney()}>{guidance.action}</button>
-            {guidance.checkpoint && mode===guidance.mode && designView===guidance.view && <button className="link journey-continue" disabled={busy||agentBusy||!!pending} onClick={continueJourney}>{guidance.continueLabel} →</button>}
-          </section>
           <div className="prompts">
             {mode === "design" && brief(project) && ask && (
               <>

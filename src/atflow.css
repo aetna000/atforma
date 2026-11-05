@@ -814,3 +814,19 @@ label.inline input { width: 60px; }
 .journey-guide p { font-size:12px; line-height:1.5; margin:6px 0 10px; }
 .journey-guide .btn { width:100%; font-size:12px; padding:7px 10px; }
 .journey-continue { display:block; margin-top:8px; font-size:12px; text-align:left; }
+
+/* Journey stays visible above the workspace, even with chat closed. */
+.app { grid-template-rows:52px auto minmax(0,1fr); }
+.journey-wizard { grid-column:1 / -1; padding:12px 22px; background:var(--paper); border-bottom:1px solid var(--line); min-width:0; }
+.journey-steps { display:flex; align-items:center; flex-wrap:wrap; gap:10px 22px; list-style:none; padding:0; margin:0 0 12px; }
+.journey-steps li { display:flex; align-items:center; gap:7px; color:var(--ink-2); font-size:12px; }
+.journey-steps li span { width:22px; height:22px; display:grid; place-items:center; border:1px solid var(--line); border-radius:50%; }
+.journey-steps li[aria-current=step] { color:var(--ink); font-weight:700; }
+.journey-steps li[aria-current=step] span { background:var(--action); color:#fff; border-color:var(--action); }
+.journey-current { display:flex; align-items:center; justify-content:space-between; gap:24px; }
+.journey-current strong { font-size:14px; }
+.journey-current p { margin:4px 0 0; color:var(--ink-2); font-size:12px; line-height:1.5; }
+.journey-actions { display:flex; align-items:center; gap:14px; flex-shrink:0; }
+.journey-actions .btn, .journey-actions .link { font-size:12px; }
+.consultation-summary > button { margin-right:14px; margin-top:8px; }
+@media(max-width:900px){.app { grid-template-rows:auto auto 60vh auto; }.journey-wizard{padding:12px;}.journey-current{align-items:flex-start;flex-direction:column;gap:12px;}.journey-actions{flex-wrap:wrap;}.journey-steps{gap:8px 14px;}}

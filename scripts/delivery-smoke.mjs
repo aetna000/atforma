@@ -25,7 +25,7 @@ await page.getByText('Project opened.',{exact:true}).waitFor();
 const state=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('atforma-workspace-v3')));
 const tab=(name)=>page.locator('.modes').getByRole('tab',{name}).click();
 await page.getByRole('tab',{name:'Requirements',exact:true}).click();
-await page.getByRole('button',{name:'Explore cloud solutions with this scope →',exact:true}).click();
+await page.getByRole('button',{name:'Continue to cloud options →',exact:true}).click();
 await page.waitForFunction(()=>!document.querySelector('.msg.working'));
 await page.getByRole('button',{name:'Review this cloud design →',exact:true}).click();
 await page.waitForFunction(()=>!document.querySelector('.msg.working'));
