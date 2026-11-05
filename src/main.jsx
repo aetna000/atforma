@@ -1621,6 +1621,10 @@ function App() {
           <div className="journey-actions">
             <button className="btn primary" disabled={busy||agentBusy||!!pending} onClick={()=>guidance.checkpoint?continueJourney():followJourney()}>{guidance.checkpoint?guidance.continueLabel+' →':guidance.action}</button>
             {guidance.checkpoint&&<button className="link" disabled={busy||agentBusy} onClick={()=>followJourney()}>{guidance.action}</button>}
+            {["architecture","review","estimate","delivery"].includes(guidance.id)&&<>
+              <button className="btn" onClick={exportPack} title="Download the current architecture, requirements and infrastructure draft as a ZIP">Download</button>
+              <button className="btn" disabled title="Cloud deployment is under development">Deploy (under development)</button>
+            </>}
           </div>
         </div>
       </section>

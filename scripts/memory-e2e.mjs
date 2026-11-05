@@ -79,6 +79,13 @@ await page.screenshot({path:`${out}/cloud-options-selected.png`});
 await page.getByRole('button',{name:'Continue with AWS →',exact:true}).click();await finished();
 await chat('Use AWS in Sydney for this project.');
 assert.ok((await project()).nodes.filter(n=>n.data.kind!=='note').every(n=>n.data.service&&n.data.provider==='aws'));
+const journeyActions=page.getByRole('region',{name:'Architecture journey',exact:true});
+assert.equal(await journeyActions.getByRole('button',{name:'Deploy (under development)',exact:true}).isDisabled(),true);
+const architectureDownload=page.waitForEvent('download');
+await journeyActions.getByRole('button',{name:'Download',exact:true}).click();
+assert.match((await architectureDownload).suggestedFilename(),/-delivery\.zip$/);
+await page.screenshot({path:`${out}/architecture-actions.png`});
+
 assert.equal(await page.locator('.modes').getByRole('tab',{name:'Estimate',exact:true}).count(),0);
 await page.waitForTimeout(1000);assert.equal((await project()).provider,'aws');assert.ok((await project()).decisions.some(d=>d.subject==='cloud.region'&&d.status==='Accepted'));
 await openMemory();await page.getByRole('tab',{name:'This project',exact:true}).click();await page.getByText(/ap-southeast-2/).first().waitFor();

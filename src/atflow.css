@@ -836,3 +836,6 @@ label.inline input { width: 60px; }
 .journey-steps li button:not(:disabled):hover { background:var(--line); text-decoration:underline; }
 .journey-steps li button:focus-visible { outline:2px solid var(--action); outline-offset:3px; }
 .cloud-selection { display:flex; flex-wrap:wrap; gap:10px; align-items:center; padding:14px; border:1px solid var(--line); border-radius:8px; }
+
+.journey-actions { flex-wrap:wrap; justify-content:flex-end; flex-shrink:1; }
+@media(max-width:900px){.journey-actions{justify-content:flex-start;}}
