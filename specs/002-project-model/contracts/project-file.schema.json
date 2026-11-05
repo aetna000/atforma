@@ -42,6 +42,8 @@
           "priority": { "enum": ["must", "should", "could"] },
           "status": { "enum": ["open", "met", "at-risk", "not-met"] },
           "source": { "enum": ["user", "agent", "import"] },
+          "rationale": { "type": "string", "maxLength": 1000 },
+          "basis": { "type": "string", "maxLength": 1000 },
           "links": { "type": "array", "items": { "type": "string" } },
           "measure": {
             "type": "object",

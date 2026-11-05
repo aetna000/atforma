@@ -1,13 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {withDerived} from '../src/derive.mjs';
-import {applyDecisionUpdates,applyRequirementDrafts} from '../src/consultation.mjs';
+import {applyDecisionUpdates,applyRequirementDrafts,proposeCommentRevisions,resolveCommentRevision} from '../src/consultation.mjs';
 import {applyPriceQuotes,storageNodes} from '../src/pricing.mjs';
 import {estimate,setPrice} from '../src/estimate.mjs';
 const node=(id,label,provider='tools',kind='source')=>({id,type:'resource',position:{x:0,y:0},data:{label,description:label,provider,kind,config:{region:{aws:'ap-southeast-2',azure:'australiaeast',gcp:'australia-southeast1',ibm:'au-syd'}[provider]||'To be selected',classification:'Internal'}}});
 const project=()=>({version:1,revision:1,name:'HR assistant',provider:'tools',nodes:[node('files','Policy files'),node('agent','Answers policy questions','tools','agent')],edges:[]});
 test('derive a small grounded set without arbitrary SLA targets or company policy claims',()=>{
- const p=withDerived(project());assert.ok(p.needs.length>0&&p.needs.length<10);assert.ok(p.needs.some(r=>r.kind==='functional'));assert.ok(p.needs.every(r=>r.source==='agent'&&r.status==='open'));assert.ok(p.needs.every(r=>!r.measure));assert.ok(!JSON.stringify(p).includes('99.5'));
+ const p=withDerived(project());assert.ok(p.needs.length>0&&p.needs.length<10);assert.ok(p.needs.length<=2);assert.ok(p.needs.every(r=>r.rationale&&r.basis));assert.ok(p.needs.every(r=>r.source==='agent'&&r.status==='open'));assert.ok(p.needs.every(r=>!r.measure));assert.ok(!JSON.stringify(p).includes('99.5'));
  const empty=withDerived({...p,nodes:[]});assert.equal(empty.needs.length,0);
 });
 test('confirmed conversation requirements and dismissed proposals survive diagram edits',()=>{
@@ -49,4 +49,18 @@ test('requirement numbers remain stable across revisions, reorder and saved proj
  assert.ok(p.extensions.requirementNumbers['ai-audit']>previousMax);
  assert.deepEqual(fromProjectFile(toProjectFile(p)).project.extensions.requirementNumbers,p.extensions.requirementNumbers);
  const {recordsSection}=await import("../src/pack.mjs");assert.ok(recordsSection(p).includes(`REQ-${String(p.extensions.requirementNumbers["ai-audit"]).padStart(3,"0")}`));
+});
+
+test('feedback proposals require acceptance, preserve history and reject stale or removed comments',()=>{
+ let p=withDerived(project());const id=p.needs[0].id,before=p.needs[0].statement;
+ const comment={id:'c1',requirementId:id,text:'Only managers',status:'open'};
+ p.extensions.requirementComments=[comment];const snapshot=structuredClone(p);
+ const updates=[{id,statement:'Only managers may access documents',sourceText:comment.text,rationale:'Limit access to the named group'}];
+ let proposed=proposeCommentRevisions(p,snapshot,updates);
+ assert.equal(proposed.needs[0].statement,before);assert.equal(proposed.extensions.requirementComments[0].status,'proposed');
+ const dismissed=resolveCommentRevision(proposed,'c1',false);assert.equal(dismissed.needs[0].statement,before);assert.equal(dismissed.extensions.requirementComments[0].status,'dismissed');
+ const applied=resolveCommentRevision(proposed,'c1',true);assert.equal(applied.needs[0].statement,updates[0].statement);assert.equal(applied.extensions.requirementComments[0].before,before);assert.equal(applied.extensions.requirementComments[0].status,'reviewed');
+ proposed.needs[0]={...proposed.needs[0],statement:'Newer user choice'};
+ const stale=resolveCommentRevision(proposed,'c1',true);assert.equal(stale.needs[0].statement,'Newer user choice');assert.equal(stale.extensions.requirementComments[0].status,'open');
+ const removed={...p,extensions:{...p.extensions,requirementComments:[]}};assert.equal(proposeCommentRevisions(removed,snapshot,updates).extensions.requirementComments.length,0);
 });

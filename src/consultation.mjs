@@ -26,3 +26,27 @@ export function applyRequirementDrafts(project, drafts) {
  }
  return {...project,needs};
 }
+
+// Document feedback creates a reviewable proposal; only explicit acceptance edits text.
+export function proposeCommentRevisions(project, snapshot, updates) {
+ const comments=(project.extensions?.requirementComments||[]).map(c=>{
+  const sent=snapshot.extensions?.requirementComments?.find(x=>x.id===c.id && x.text===c.text);
+  const update=updates.find(u=>u.id===c.requirementId && u.sourceText===c.text);
+  const before=snapshot.needs?.find(r=>r.id===c.requirementId)?.statement;
+  const current=project.needs?.find(r=>r.id===c.requirementId)?.statement;
+  if(!sent || !update || c.status!=='open' || before!==current || !before)return c;
+  if(update.statement===before)return {...c,reviewMessage:'The suggested wording is unchanged. Discuss this comment to clarify what should change.'};
+  return {...c,status:'proposed',before,after:update.statement,explanation:update.rationale || 'Suggested wording based on your comment. Review it before applying.'};
+ });
+ return {...project,extensions:{...project.extensions,requirementComments:comments}};
+}
+export function resolveCommentRevision(project,commentId,accept) {
+ const comments=project.extensions?.requirementComments || [];
+ const c=comments.find(x=>x.id===commentId);
+ if(!c || c.status!=='proposed')return project;
+ const r=project.needs.find(x=>x.id===c.requirementId);
+ const stale=!r || r.statement!==c.before;
+ const status=!accept?'dismissed':stale?'open':'reviewed';
+ return {...project,needs:accept&&!stale?project.needs.map(x=>x.id===r.id?{...x,statement:c.after,source:'user',basis:`Accepted revision from your feedback: ${c.text}`}:x):project.needs,
+  extensions:{...project.extensions,requirementComments:comments.map(x=>x.id===c.id?{...x,status,...(stale?{reviewMessage:'This requirement changed. Review your comment again against the current wording.'}:{})}:x)}};
+}

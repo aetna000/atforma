@@ -98,6 +98,7 @@ class UsageUpdate(Strict):
     sourceText:str=Field(min_length=1,max_length=500)
 
 class RequirementUpdate(Strict):
+    rationale:str=Field(default='',max_length=1000)
     id:str=Field(min_length=1,max_length=60)
     statement:str=Field(min_length=1,max_length=1000)
     sourceText:str=Field(min_length=1,max_length=500)
@@ -109,6 +110,8 @@ class RequirementTarget(Strict):
     unit:str=Field(default='',max_length=40)
 
 class RequirementDraft(Strict):
+    rationale:str=Field(default='',max_length=1000)
+    basis:str=Field(default='',max_length=1000)
     id:str=Field(pattern=r'^ai-[A-Za-z0-9-]{1,55}$')
     statement:str=Field(min_length=1,max_length=1000)
     kind:Literal['functional','nonfunctional']

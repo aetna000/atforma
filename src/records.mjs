@@ -55,6 +55,8 @@ export function cleanRequirement(r) {
     kind: pick(r?.kind, REQUIREMENT_KINDS, "functional"),
     category: pick(r?.category, CATEGORIES, "other"),
     statement: text(r?.statement, 1000),
+    ...(r?.rationale ? {rationale:text(r.rationale,1000)} : {}),
+    ...(r?.basis ? {basis:text(r.basis,1000)} : {}),
     priority: pick(r?.priority, PRIORITIES, "should"),
     status: pick(r?.status, REQUIREMENT_STATUSES, "open"),
     source: pick(r?.source, SOURCES, "user"),

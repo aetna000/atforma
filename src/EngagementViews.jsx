@@ -1,3 +1,4 @@
+import { resolveCommentRevision } from "./consultation.mjs";
 // Consultant views: Discover (qualify), Options and Decisions (design), Build card.
 import React from "react";
 import { requirementNumber } from "./derive.mjs";
@@ -272,17 +273,30 @@ export function MeasuresEditor({ measures = [], disabled, onChange }) {
   );
 }
 
-function RequirementComments({ requirement, comments, onSave, onRemove, target, number }) {
+function RequirementComments({ requirement, comments, onSave, onRemove, target, number, onReview, onResolve, reviewing, onDiscuss }) {
   const [open,setOpen]=React.useState(false), [text,setText]=React.useState(''), [quote,setQuote]=React.useState('');
   const editor=React.useRef(null);
   React.useEffect(()=>{if(target?.id===requirement.id){setQuote(target.quote);setOpen(true);}},[target,requirement.id]);
   React.useEffect(()=>{if(open){editor.current?.focus();editor.current?.scrollIntoView({block:'nearest'});}},[open,target]);
+  const save=review=>{onSave(text.trim(),quote,review);setText('');setOpen(false);};
   return <aside className="requirement-comments" aria-label={`Comments on ${requirement.id}`}>
-    {comments.map(c=><div className="requirement-comment" key={c.id}><>{c.selectedText && <blockquote>{c.selectedText}</blockquote>}</><p>{c.text}</p><small>{c.status==='reviewed'?'Used in revision':'Awaiting review'}</small><button className="link" onClick={()=>onRemove(c.id)} aria-label={`Remove comment ${c.id}`}>Remove</button></div>)}
-    {!open ? <button className="requirement-add-comment" onClick={()=>{setQuote('');setOpen(true);}}>+ Add comment to {number}</button> : <div className="comment-composer">
-      <>{quote && <blockquote>{quote}</blockquote>}</>
-      <textarea ref={editor} aria-label={`Comment on ${requirement.id}`} value={text} maxLength={700} onChange={e=>setText(e.target.value)} placeholder="What should we clarify or change?" autoFocus />
-      <button className="btn" disabled={!text.trim()} onClick={()=>{onSave(text.trim(),quote);setText('');setOpen(false);}}>Save comment</button>
+    {comments.filter(c=>!['reviewed','dismissed'].includes(c.status)).map(c=><div className="requirement-comment" key={c.id}>
+      <strong>Your feedback on {number}</strong>{c.selectedText && <blockquote>{c.selectedText}</blockquote>}<p>{c.text}</p>
+      {c.status==='proposed' ? <div className="requirement-revision">
+        <h5>Suggested revision — not applied yet</h5><p className="revision-label">Current wording</p><p>{c.before}</p>
+        <p className="revision-label">Proposed wording</p><p className="revision-after">{c.after}</p><p>{c.explanation}</p>
+        <button className="requirement-add-comment" onClick={()=>onResolve(c.id,true)}>Apply this revision</button>
+        <button className="link" onClick={()=>onResolve(c.id,false)}>Keep current wording</button>
+      </div> : <><p className="comment-status">{c.reviewMessage || 'Saved feedback. Ask Atforma to suggest wording, then review the change here.'}</p><button className="requirement-add-comment" disabled={reviewing} onClick={()=>onReview([c])}>{reviewing?'Preparing suggestions…':'Suggest a revision'}</button><button className="link" onClick={()=>onDiscuss(`Help me clarify my feedback on ${number} (${requirement.id}): ${c.text}. Ask one question before proposing a change.`)}>Discuss feedback</button></>}
+      <button className="link" onClick={()=>onRemove(c.id)} aria-label={`Remove comment ${c.id}`}>Remove</button>
+    </div>)}
+    {comments.some(c=>['reviewed','dismissed'].includes(c.status)) && <details className="comment-history"><summary>Feedback history</summary>{comments.filter(c=>['reviewed','dismissed'].includes(c.status)).map(c=><div key={c.id}><p>{c.text}</p><small>{c.status==='reviewed'?'Revision applied':'Original wording kept'}</small>{c.after&&<p>{c.after}</p>}</div>)}</details>}
+    {!open ? <button className="requirement-add-comment" onClick={()=>{setQuote('');setOpen(true);}}>Comment or request a change</button> : <div className="comment-composer">
+      <strong>Feedback on {number}</strong>{quote && <blockquote>{quote}</blockquote>}
+      <textarea ref={editor} aria-label={`Comment on ${requirement.id}`} value={text} maxLength={500} onChange={e=>setText(e.target.value)} placeholder="What doesn’t fit, what’s missing, or what would you like explained?" />
+      <p className="comment-status">Atforma will suggest new wording below. You decide whether to apply it.</p>
+      <button className="btn" disabled={!text.trim()||reviewing} onClick={()=>save(true)}>Suggest a revision</button>
+      <button className="link" disabled={!text.trim()} onClick={()=>save(false)}>Save for later</button>
       <button className="link" onClick={()=>{setOpen(false);setText('');}}>Cancel</button>
     </div>}
   </aside>;
@@ -308,14 +322,14 @@ export function RequirementsView({ project, onDiscuss, onChange, onReview, revie
   }
   const needs = project.needs || [];
   const comments = project.extensions?.requirementComments || [];
-  const pending = comments.filter(c=>c.status!=='reviewed' && needs.some(r=>r.id===c.requirementId));
+  const pending = comments.filter(c=>c.status==='open' && needs.some(r=>r.id===c.requirementId));
   const saveComments = value => onChange({...project,extensions:{...project.extensions,requirementComments:value}});
 
   const names = Object.fromEntries(project.nodes.map(n => [n.id, n.data.label]));
-  const titles = {functional:'Functional requirements',security:'Security and access',compliance:'Data governance and compliance',availability:'Availability and recovery',reliability:'Reliability',performance:'Performance',scalability:'Capacity and growth',maintainability:'Operations and maintainability',cost:'Cost constraints',other:'Quality requirements'};
+  const titles = {suggested:'Suggestions still to discuss',functional:'Functional requirements',security:'Security and access',compliance:'Data governance and compliance',availability:'Availability and recovery',reliability:'Reliability',performance:'Performance',scalability:'Capacity and growth',maintainability:'Operations and maintainability',cost:'Cost constraints',other:'Quality requirements'};
   const groups = new Map();
   for (const r of needs) {
-    const key = r.kind === 'functional' ? 'functional' : r.category || 'other';
+    const key = r.source==='agent' ? 'suggested' : r.kind === 'functional' ? 'functional' : r.category || 'other';
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(r);
   }
@@ -323,7 +337,7 @@ export function RequirementsView({ project, onDiscuss, onChange, onReview, revie
   const purpose = project.brief?.application || project.requirements;
   return <section className="doc requirements-document" aria-label="Requirements">
     <div className="requirements-actions"><button className="btn" onClick={() => onDiscuss('Summarise where we have reached from the current board and our discussion. Distinguish what I have confirmed from your proposals and unresolved questions. Then ask ONE useful question to develop the requirements further, and update the summary as we discuss.')}>Let’s discuss more in chat</button>
-      {!!pending.length && <button className="btn" disabled={reviewing} onClick={()=>onReview(pending.slice(0,6))}>{reviewing?'Reviewing comments…':'Review comments and revise'} ({Math.min(6,pending.length)})</button>}
+      {!!pending.length && <button className="btn" disabled={reviewing} onClick={()=>onReview(pending.slice(0,6))}>{reviewing?'Reviewing comments…':'Suggest revisions for saved feedback'} ({Math.min(6,pending.length)})</button>}
     </div>
     {commentMenu && <div className="ctx-menu requirement-text-menu" role="menu" aria-label="Selected text actions" style={{left:commentMenu.x,top:commentMenu.y}} onPointerDown={e=>e.stopPropagation()}>
       <button role="menuitem" ref={node=>node?.focus({preventScroll:true})} onClick={()=>{setCommentTarget({...commentMenu,nonce:Date.now()});setCommentMenu(null);}}>Comment on selected text</button>
@@ -339,17 +353,19 @@ export function RequirementsView({ project, onDiscuss, onChange, onReview, revie
       <section className="requirements-chapter"><h3>Purpose and scope</h3>
         <p>{purpose || 'We are developing the scope together. Describe the outcome you want in chat, and this document will grow with the design.'}</p>
       </section>
-      {[...groups].map(([key,rows])=><section className="requirements-chapter" key={key}>
-        <h3>{titles[key] || 'Additional requirements'}</h3>
+      {[...groups].sort(([a],[b])=>(a==='suggested')-(b==='suggested')).map(([key,rows])=>{const Tag=key==='suggested'?'details':'section';return <Tag className="requirements-chapter" key={key}>
+        {key==='suggested'?<summary>Suggestions still to discuss ({rows.length})</summary>:<h3>{titles[key] || 'Additional requirements'}</h3>}
+        {key==='suggested'&&<p className="document-meta">These are early considerations, not agreed requirements. We’ll discuss the most relevant ones as the design develops.</p>}
         {rows.map(r=><div className="requirement-paragraph" key={r.id}>
           <h4 className="requirement-number">{requirementNumber(project,r.id)}</h4>
           <p className="requirement-text" onContextMenu={event=>textMenu(event,r)}>{r.statement}</p>
           {r.measure && <p className="acceptance-target">Acceptance target: {r.measure.metric} {r.measure.op} {r.measure.target} {r.measure.unit || ''}.</p>}
           <p className="document-meta">{r.source === 'agent' ? 'Proposed for discussion' : 'Recorded from our discussion'}{r.links?.length ? ` · Related design: ${r.links.map(id=>names[id] || 'earlier component').join(', ')}` : ''}</p>
-          <RequirementComments target={commentTarget} number={requirementNumber(project,r.id)} requirement={r} comments={comments.filter(c=>c.requirementId===r.id)} onSave={(text,selectedText)=>saveComments([...comments,{id:crypto.randomUUID(),requirementId:r.id,text,selectedText,statement:r.statement,status:'open',createdAt:new Date().toISOString()}])} onRemove={id=>saveComments(comments.filter(c=>c.id!==id))} />
+          <div className="requirement-reason"><p><strong>Why this matters.</strong> {r.rationale || 'The reason for this requirement has not yet been documented. Let’s establish how it supports your goal before treating it as agreed scope.'}</p>{r.basis&&<p className="document-meta">Basis: {r.basis}</p>}<button className="link document-discuss" onClick={()=>onDiscuss(`Explain why ${requirementNumber(project,r.id)} (${r.id}) is needed: ${r.statement}. Use the actual board and discussion as evidence, distinguish assumptions, explain the consequence of leaving it out, and ask whether it fits my needs.`)}>Explain why we need this</button></div>
+          <RequirementComments onReview={onReview} reviewing={reviewing} onDiscuss={onDiscuss} onResolve={(id,accept)=>onChange(resolveCommentRevision(project,id,accept))} target={commentTarget} number={requirementNumber(project,r.id)} requirement={r} comments={comments.filter(c=>c.requirementId===r.id)} onSave={(text,selectedText,review)=>{const comment={id:crypto.randomUUID(),requirementId:r.id,text,selectedText,statement:r.statement,status:'open',createdAt:new Date().toISOString()};saveComments([...comments,comment]);if(review)onReview([comment]);}} onRemove={id=>saveComments(comments.filter(c=>c.id!==id))} />
         </div>)}
         <button className="link document-discuss" onClick={()=>onDiscuss(`Let's discuss the ${titles[key] || key} section of our requirements document further. Current requirements: ${rows.map(r=>`${r.id}: ${r.statement}`).join('; ')}. Ask one useful question and refine the document from my answer.`)}>Discuss this section further in chat</button>
-      </section>)}
+      </Tag>;})}
       {!needs.length && <section className="requirements-chapter"><h3>Requirements to develop</h3><p>As we discuss the idea and shape the board, Atforma will summarise the functional requirements, constraints and acceptance targets here.</p></section>}
       {!!project.assumptions?.length && <section className="requirements-chapter"><h3>Assumptions to validate</h3>{project.assumptions.map(a=><p key={a.id}>{a.statement}</p>)}</section>}
       {!!questions.length && <section className="requirements-chapter"><h3>Open questions</h3>{questions.map(q=><p key={q.id}>{q.question}</p>)}<button className="link document-discuss" onClick={()=>onDiscuss(`Help resolve the open questions in our requirements document, one at a time. Start with the question that most affects the design.`)}>Let’s work through these in chat</button></section>}

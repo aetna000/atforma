@@ -33,7 +33,7 @@ class FixtureArchitect:
         if request.origin=='document':
             import re
             match=re.search(r'Requirement (\S+)(?: \(selected text: .*?\))? — comment: (.+)',request.message)
-            return ArchitectResponse(message='I updated the requirement from your comment. What else should we clarify?',requirementUpdates=[RequirementUpdate(id=match[1],statement='Only HR managers may retrieve policy documents.',sourceText=match[2])])
+            return ArchitectResponse(message='I proposed new wording from your comment; review it in the document. What else should we clarify?',requirementUpdates=[RequirementUpdate(id=match[1],statement='Only HR managers may retrieve policy documents.',sourceText=match[2])])
         if request.origin=='canvas':
             return ArchitectResponse(message='I can see your edits and comments in our shared diagram. Which of these constraints matters most for the first release?')
         if request.stage=='estimate' and not runtime.get('toolResults'):

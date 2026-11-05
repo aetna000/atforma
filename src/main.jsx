@@ -83,7 +83,7 @@ import { MemoryPanel, ContextUsed } from "./MemoryPanel.jsx";
 import { defaultAssessment } from "./engagement.mjs";
 import { setUsage } from "./estimate.mjs";
 import { applyPriceQuotes, fetchStoragePrices, storageNodes } from "./pricing.mjs";
-import { applyDecisionUpdates, applyRequirementDrafts } from "./consultation.mjs";
+import { applyDecisionUpdates, applyRequirementDrafts, proposeCommentRevisions } from "./consultation.mjs";
 import { deliveryPack } from "./delivery.mjs";
 import { terraformSketch } from "./terraform.mjs";
 import { WORKFLOWS, conceptSignature, essentialsKnown, nextQuestion, opening, progress, sketch, understand } from "./discovery.mjs";
@@ -1091,7 +1091,7 @@ function App() {
         origin,
         signal: controller.signal,
       });
-      if (result.optionAssessment?.length) {
+      if (origin !== "document" && result.optionAssessment?.length) {
         const p = projectRef.current, a = p.assessment || defaultAssessment();
         const scores = structuredClone(a.scores), notes = { ...a.notes };
         for (const option of result.optionAssessment) {
@@ -1101,29 +1101,32 @@ function App() {
         updateEngagement({ ...p, assessment: { ...a, scores, notes } });
         signals.push("cloud comparison updated");
       }
-      if (result.usageUpdates?.length) {
+      if (origin !== "document" && result.usageUpdates?.length) {
         let next = projectRef.current;
         for (const update of result.usageUpdates) if (message.includes(update.sourceText)) next = setUsage(next, update.key, update.value);
         updateEngagement(next);
       }
-      if (result.requirementUpdates?.length) {
+      if (origin === "document" && result.requirementUpdates?.length) {
+        updateEngagement(proposeCommentRevisions(projectRef.current,was,result.requirementUpdates));
+        signals.push("suggested wording ready to review in Requirements");
+      } else if (result.requirementUpdates?.length) {
         const p = projectRef.current;
         const updates = new Map(result.requirementUpdates.filter(u => message.includes(u.sourceText)).map(u => [u.id,u]));
         const applicable = new Map([...updates].filter(([id]) => was.needs?.find(r=>r.id===id)?.statement === p.needs?.find(r=>r.id===id)?.statement));
-        updateEngagement({ ...p, needs: (p.needs || []).map(r => applicable.has(r.id) ? { ...r, statement: applicable.get(r.id).statement, source: "user" } : r),
+        updateEngagement({ ...p, needs: (p.needs || []).map(r => applicable.has(r.id) ? { ...r, statement: applicable.get(r.id).statement, source: "user", basis:`User statement: ${applicable.get(r.id).sourceText}`, ...(applicable.get(r.id).rationale?{rationale:applicable.get(r.id).rationale}:{}) } : r),
           extensions: {...p.extensions,requirementComments:(p.extensions?.requirementComments || []).map(c=> applicable.has(c.requirementId) && applicable.get(c.requirementId).sourceText === c.text ? {...c,status:'reviewed',revisedStatement:applicable.get(c.requirementId).statement} : c)} });
         signals.push("requirements refined from your answer");
       }
-      if (result.decisionUpdates?.length) updateEngagement(applyDecisionUpdates(projectRef.current,result.decisionUpdates,message));
-      if (result.priceQuotes?.length) updateEngagement(applyPriceQuotes(projectRef.current, result.priceQuotes));
+      if (origin !== "document" && result.decisionUpdates?.length) updateEngagement(applyDecisionUpdates(projectRef.current,result.decisionUpdates,message));
+      if (origin !== "document" && result.priceQuotes?.length) updateEngagement(applyPriceQuotes(projectRef.current, result.priceQuotes));
       setMessages((m) => [...m, { role: "assistant", text: result.message, live: true, signals, contextUsed: result.contextUsed }]);
-      if (result.proposal) {
+      if (result.proposal && origin !== "document") {
         const proposal = { ...result.proposal, next: validateImport(result.proposal.next) };
         // "Draw as we talk": the design evolves with the conversation; each step is undoable.
         if (drawLive) applyProposal(proposal, { live: true });
         else setPending(proposal);
       }
-      if (result.requirementDrafts?.length) updateEngagement(applyRequirementDrafts(projectRef.current,result.requirementDrafts));
+      if (origin !== "document" && result.requirementDrafts?.length) updateEngagement(applyRequirementDrafts(projectRef.current,result.requirementDrafts));
     } catch (error) {
       setMessages((m) => [
         ...m,
@@ -1894,7 +1897,7 @@ function App() {
           <DecisionsView project={project} onDiscuss={(question) => { setChatOpen(true); send(question, "workflow"); }} />
         )}
         {mode === "design" && designView === "requirements" && (
-          <RequirementsView project={project} onChange={updateEngagement} reviewing={agentBusy} onReview={(comments)=>{setChatOpen(true);send("Review these user comments on the requirements document. Return requirementUpdates for the existing IDs where the feedback is clear, quoting the user's comment exactly in sourceText. Preserve other requirements and the diagram. Ask one question if a comment is ambiguous.\n" + comments.map(c=>`Requirement ${c.requirementId}${c.selectedText ? ` (selected text: ${c.selectedText.slice(0,300)})` : ""} — comment: ${c.text}`).join("\n"), "document");}} onDiscuss={(question) => { setChatOpen(true); send(question, "workflow"); }} />
+          <RequirementsView project={project} onChange={updateEngagement} reviewing={agentBusy} onReview={(comments)=>{setChatOpen(true);send("Propose revisions for these user comments on the requirements document. The document will remain unchanged until the user applies each suggestion. Explain the proposed change; never say you have already changed the document. Return requirementUpdates for the existing IDs where the feedback is clear, quoting the user's comment exactly in sourceText. Preserve other requirements and the diagram. Ask one question if a comment is ambiguous.\n" + comments.map(c=>`Requirement ${c.requirementId}${c.selectedText ? ` (selected text: ${c.selectedText.slice(0,300)})` : ""} — comment: ${c.text}`).join("\n"), "document");}} onDiscuss={(question) => { setChatOpen(true); send(question, "workflow"); }} />
         )}
       </main>
 
