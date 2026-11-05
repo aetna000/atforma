@@ -4,6 +4,11 @@ AtForma helps you design, and eventually deploy, an AI solution that fits your e
 
 The architect's know-how lives in [`agent-skills/`](agent-skills): a discovery skill (what to ask, in what order, in plain language, and what to assume when unsure) and workflow skills (knowledge assistant, document processing, prediction, agentic automation). The connected model uses them alongside a small reviewed specialist registry for architecture, security, FinOps, DevOps and all four clouds.
 
+## Installation and training
+
+- [Install, start and troubleshoot AtForma](docs/INSTALLATION.md).
+- [Hands-on training: your first AI architecture](docs/TRAINING.md).
+
 ## Start
 
 Prerequisites: Node 22.12+ and Python 3.11+. Current local verification uses Node 26 and Python 3.14.
