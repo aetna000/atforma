@@ -99,10 +99,10 @@ export function fromProjectFile(raw) {
   refuseCredentials(raw, "Import");
   if (raw.format === undefined && raw.version === 1)
     return { project: validateImport(raw), migrated: true, from: "workbench v1" };
-  if (raw.format !== FORMAT) throw Error("Not an Atforma project file.");
+  if (raw.format !== FORMAT) throw Error("Not an AtForma project file.");
   const [major] = String(raw.formatVersion || "").split(".").map(Number);
   if (major !== 2)
-    throw Error(`This file is format ${raw.formatVersion}; this version of Atforma reads ${FORMAT_VERSION}. Update Atforma to open it.`);
+    throw Error(`This file is format ${raw.formatVersion}; this version of AtForma reads ${FORMAT_VERSION}. Update AtForma to open it.`);
   const meta = raw.meta || {},
     design = raw.design || {},
     discovery = raw.discovery || {};

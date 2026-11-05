@@ -1,4 +1,4 @@
-// Review, Estimate and Deploy steps of the Atforma journey.
+// Review, Estimate and Deploy steps of the AtForma journey.
 import React from "react";
 import { ATTRIBUTES, acceptRisk, blockers } from "./review.mjs";
 import { DISCLAIMER, INPUTS, setPrice, setUsage } from "./estimate.mjs";
@@ -223,7 +223,7 @@ export function DeployView({ project, findings, environment, onEnvironment, onPl
     <section className="doc" aria-label="Deploy">
       <header className="doc-head">
         <h2>Deploy</h2>
-        <p className="muted">A reviewable plan and document. Atforma never provisions anything on its own.</p>
+        <p className="muted">A reviewable plan and document. AtForma never provisions anything on its own.</p>
       </header>
       <div className="ready no">
         <strong>{block.length ? "Not ready for deployment" : "No automated review blockers"}</strong>

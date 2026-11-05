@@ -42,7 +42,7 @@ export function specificationPdf(markdown,fontData,diagramImage=null){
     else line(text.replace(/^[-*] /,'• ').replace(/^_([\s\S]+)_$/,'$1'));
   }
   const count=doc.getNumberOfPages();
-  for(let i=1;i<=count;i++){doc.setPage(i);doc.setFontSize(8);doc.setTextColor('#627080');doc.text('Atforma · Working specification',20,287);doc.text(`${i} / ${count}`,190,287,{align:'right'});}
+  for(let i=1;i<=count;i++){doc.setPage(i);doc.setFontSize(8);doc.setTextColor('#627080');doc.text('AtForma · Working specification',20,287);doc.text(`${i} / ${count}`,190,287,{align:'right'});}
   return new Uint8Array(doc.output('arraybuffer'));
 }
 function wrap(ctx,text,width){
@@ -83,10 +83,10 @@ async function pngOf({svg,width,height}){
     const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));if(!blob)throw Error('Diagram PNG could not be generated.');return new Uint8Array(await blob.arrayBuffer());
   }finally{URL.revokeObjectURL(url);}
 }
-export async function visualFiles(project,markdown){
+export async function visualFiles(project,markdown,implementationMarkdown){
   const data=await font(),diagram=diagramSvg(project),png=await pngOf(diagram);
   const doc=pdf(data,{orientation:diagram.width>=diagram.height?'landscape':'portrait',unit:'mm',format:'a3'});
   const width=doc.internal.pageSize.getWidth()-20,height=doc.internal.pageSize.getHeight()-20,scale=Math.min(width/diagram.width,height/diagram.height);
   doc.addImage(png,'PNG',10+(width-diagram.width*scale)/2,10,diagram.width*scale,diagram.height*scale);
-  return {'specification.pdf':specificationPdf(markdown,data,{png,width:diagram.width,height:diagram.height}),'diagram.svg':diagram.svg,'diagram.png':png,'diagram.pdf':new Uint8Array(doc.output('arraybuffer'))};
+  return {...(implementationMarkdown?{'spec-kit/implementation-spec.pdf':specificationPdf(implementationMarkdown,data)}:{}),'specification.pdf':specificationPdf(markdown,data,{png,width:diagram.width,height:diagram.height}),'diagram.svg':diagram.svg,'diagram.png':png,'diagram.pdf':new Uint8Array(doc.output('arraybuffer'))};
 }

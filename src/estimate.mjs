@@ -1,6 +1,6 @@
 // Monthly run-cost estimate. See specs/004-cost-estimate.
 // Every line is quantity (from usage inputs) × unit price (entered with a source).
-// No prices ship with Atforma; a missing input or price leaves the estimate incomplete.
+// No prices ship with AtForma; a missing input or price leaves the estimate incomplete.
 import { roleOf } from "./review.mjs";
 
 export const DISCLAIMER = "Estimate — not a bill or guarantee.";

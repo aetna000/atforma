@@ -22,6 +22,7 @@ await page.route('**/api/pricing/*',r=>r.fulfill({json:{available:false,reason:'
 let validationCalls=0;await page.route('**/api/terraform/validate',r=>{validationCalls++;return r.fulfill({json:validationCalls===1?{status:'passed',message:'Configuration schema passed. No cloud plan was run.',checks:[{name:'Terraform schema validation',passed:true,output:'Fixture validation result'}]}:{status:'unavailable',message:'Terraform is not installed. No CLI validation was run.',checks:[]}});});
 await page.goto('http://127.0.0.1:5174');
 await page.locator('input[type=file]').setInputFiles(`${out}/input.atforma.json`);
+assert.equal(await page.locator('.journey-actions .primary').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(31, 119, 124)');
 await page.getByText('Project opened.',{exact:true}).waitFor();
 const state=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('atforma-workspace-v3')));
 const tab=(name)=>page.locator('.modes').getByRole('tab',{name}).click();
@@ -62,14 +63,15 @@ await page.getByText('S3 foundation generated',{exact:false}).first().waitFor();
 let dl=page.waitForEvent('download');await page.getByRole('button',{name:'Download delivery pack',exact:true}).click();let file=await dl.catch(async error=>{console.error(await page.locator('body').innerText(),errors);await page.screenshot({path:`${out}/export-failure.png`});throw error;});await file.saveAs(`${out}/pack.zip`);
 const zip=unzipSync(fs.readFileSync(`${out}/pack.zip`)),read=(n)=>strFromU8(zip[n]);
 const manifest=JSON.parse(read('manifest.json')),costs=JSON.parse(read('estimate.json'));
-for(const name of ['specification.pdf','diagram.pdf','diagram.svg','diagram.png']){
+for(const name of ['specification.pdf','diagram.pdf','diagram.svg','diagram.png','spec-kit/implementation-spec.pdf']){
  assert.ok(zip[name]?.length>100,`${name} must have content`);
  assert.ok(manifest.files.includes(name),`${name} must be in the manifest`);
- fs.writeFileSync(`${out}/${name}`,zip[name]);
+ fs.mkdirSync(`${out}/${name.split('/').slice(0,-1).join('/')}`,{recursive:true});fs.writeFileSync(`${out}/${name}`,zip[name]);
 }
 assert.equal(read('specification.pdf').slice(0,5),'%PDF-');assert.equal(read('diagram.pdf').slice(0,5),'%PDF-');
 assert.deepEqual([...zip['diagram.png'].slice(0,8)],[137,80,78,71,13,10,26,10]);
 assert.match(read('diagram.svg'),/Amazon S3/);
+assert.match(read('START_HERE.md'),/coding agent/);assert.match(read('spec-kit/tasks.md'),/Implement AWS Lambda/);const kit=JSON.parse(read('spec-kit/tasks.json'));assert.equal(kit.snapshotId,manifest.snapshotId);assert.ok(kit.tasks.every(t=>t.status==='todo'));assert.match(read('spec-kit/implementation-spec.pdf').slice(0,5),/%PDF-/);
 
 assert.equal(manifest.designRevision,4);assert.equal(costs.cloud.expected,11.6);assert.equal(costs.consulting.expected,10000);assert.match(read('specification.md'),/Answer staff policy questions/);assert.match(read('handoff.md'),/Confirm data retention/);assert.equal(Object.keys(JSON.parse(read('terraform/main.tf.json')).resource.aws_s3_bucket).length,1);
 assert.deepEqual(JSON.parse(read('project.atforma.json')).estimate.details.length,5);

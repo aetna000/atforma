@@ -1,4 +1,4 @@
-/** Atforma's initial Pulumi interchange. Does not execute infrastructure commands. */
+/** AtForma's initial Pulumi interchange. Does not execute infrastructure commands. */
 export function importPulumiSnapshot(raw) {
   const deployment = raw?.deployment || raw;
   if (
@@ -84,7 +84,7 @@ export function pulumiScaffold(project, environment = "staging") {
   }));
   return {
     "Pulumi.yaml":
-      "name: atforma-design\nruntime: nodejs\ndescription: Atforma architecture scaffold; no cloud resource implementations\n",
+      "name: atforma-design\nruntime: nodejs\ndescription: AtForma architecture scaffold; no cloud resource implementations\n",
     "package.json": JSON.stringify(
       {
         name: "atforma-design",
@@ -110,7 +110,7 @@ export function pulumiScaffold(project, environment = "staging") {
       null,
       2,
     ),
-    "index.ts": `import * as pulumi from '@pulumi/pulumi';\n\n// Atforma revision ${project.revision}; ${environment}.\n// These metadata components are NOT cloud resources.\n// Implement reviewed provider-native resources before any infrastructure deployment.\nconst design = ${JSON.stringify(graph, null, 2)};\nconst blocks = new Map<string, pulumi.ComponentResource>();\nconst remaining = new Map(design.map(block => [block.id, block]));\nwhile (remaining.size) {\n  let progress = false;\n  for (const [id, block] of remaining) {\n    if (block.dependsOn.every(parent => blocks.has(parent))) {\n      blocks.set(id, new pulumi.ComponentResource('atforma:design:Block', id, { label: block.name, provider: block.provider, kind: block.kind }, { protect: true, dependsOn: block.dependsOn.map(parent => blocks.get(parent)!) }));\n      remaining.delete(id); progress = true;\n    }\n  }\n  if (!progress) throw new Error('Design contains cycles or missing dependencies');\n}\nexport const designRevision = ${project.revision};\nexport const environment = ${JSON.stringify(environment)};\nexport const cloudResourcesImplemented = false;\n`,
-    "README.md": `# Atforma Pulumi scaffold\n\nDesign revision ${project.revision}; environment ${environment}.\n\nThis scaffold registers metadata ComponentResources only. It does not provision cloud resources, create network connections, enforce IAM, or implement AI inference. Wire dependencies express ordering only. Do not treat a successful preview of this scaffold as cloud validation.\n\nNext: implement provider-specific resource constructors and configuration, review costs/permissions, then run Pulumi preview in a separately configured staging stack.\n\nPulumi import brings existing resources into management; refresh updates recorded state from cloud reality. Neither automatically reconstructs an arbitrary application graph or edits its source code. Atforma currently imports sanitised metadata from stack-export JSON; it does not execute import, refresh, preview, or update.\n`,
+    "index.ts": `import * as pulumi from '@pulumi/pulumi';\n\n// AtForma revision ${project.revision}; ${environment}.\n// These metadata components are NOT cloud resources.\n// Implement reviewed provider-native resources before any infrastructure deployment.\nconst design = ${JSON.stringify(graph, null, 2)};\nconst blocks = new Map<string, pulumi.ComponentResource>();\nconst remaining = new Map(design.map(block => [block.id, block]));\nwhile (remaining.size) {\n  let progress = false;\n  for (const [id, block] of remaining) {\n    if (block.dependsOn.every(parent => blocks.has(parent))) {\n      blocks.set(id, new pulumi.ComponentResource('atforma:design:Block', id, { label: block.name, provider: block.provider, kind: block.kind }, { protect: true, dependsOn: block.dependsOn.map(parent => blocks.get(parent)!) }));\n      remaining.delete(id); progress = true;\n    }\n  }\n  if (!progress) throw new Error('Design contains cycles or missing dependencies');\n}\nexport const designRevision = ${project.revision};\nexport const environment = ${JSON.stringify(environment)};\nexport const cloudResourcesImplemented = false;\n`,
+    "README.md": `# AtForma Pulumi scaffold\n\nDesign revision ${project.revision}; environment ${environment}.\n\nThis scaffold registers metadata ComponentResources only. It does not provision cloud resources, create network connections, enforce IAM, or implement AI inference. Wire dependencies express ordering only. Do not treat a successful preview of this scaffold as cloud validation.\n\nNext: implement provider-specific resource constructors and configuration, review costs/permissions, then run Pulumi preview in a separately configured staging stack.\n\nPulumi import brings existing resources into management; refresh updates recorded state from cloud reality. Neither automatically reconstructs an arbitrary application graph or edits its source code. AtForma currently imports sanitised metadata from stack-export JSON; it does not execute import, refresh, preview, or update.\n`,
   };
 }

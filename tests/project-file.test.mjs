@@ -54,7 +54,7 @@ test('limits: size, component and connection counts, broken files',()=>{
   const many={...file,design:{...file.design,nodes:Array.from({length:201},(_, i)=>({...file.design.nodes[0],id:`n${i}`}))}};
   assert.throws(()=>fromProjectFile(many),/oversized/);
   assert.throws(()=>fromProjectFile({...file,design:{...file.design,edges:[{id:'x',source:'nope',target:'sensors'}]}}),/Invalid connection/);
-  assert.throws(()=>fromProjectFile({format:'something.else'}),/Not an Atforma project file/);
+  assert.throws(()=>fromProjectFile({format:'something.else'}),/Not an AtForma project file/);
 });
 import {clientPack} from '../src/pack.mjs';
 test('the pack prints requirements, assumptions, open questions and only current decisions with history',()=>{

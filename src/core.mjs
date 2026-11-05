@@ -1,7 +1,7 @@
 import { UPSTREAM_DESCRIPTIONS } from "./upstream-catalog.mjs";
 import { cleanEngagement, cleanMeasures } from "./engagement.mjs";
 export const PROVIDERS = {
-  aws: { name: "AWS", color: "#d48b25", letter: "a" },
+  aws: { name: "AWS", color: "#1f777c", letter: "a" },
   azure: { name: "Azure", color: "#2687d5", letter: "A" },
   gcp: { name: "Google Cloud", color: "#44956b", letter: "G" },
   ibm: { name: "IBM", color: "#6b6cce", letter: "ibm" },

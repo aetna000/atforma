@@ -1,25 +1,25 @@
 /* AtFlow — whiteboard-simple, high-contrast shell. Tokens from atmem-tokens.css. */
 :root {
-  /* Infrastructure-console palette (AWS console familiar): squid-ink chrome, orange action, blue focus. */
-  --ink: light-dark(#16191f, #e9ebed);
-  --ink-2: light-dark(#5f6b7a, #9ba7b6);
-  --paper: light-dark(#ffffff, #192534);
-  --board: light-dark(#f2f3f3, #0f1b2a);
-  --line: light-dark(#d1d5db, #354150);
-  --edge: light-dark(#545b64, #8d99a8);
-  --accent: light-dark(#0972d3, #539fe5);
-  --accent-soft: light-dark(#e6f2fb, #12293f);
-  --action: #ec7211;
-  --action-hover: #eb5f07;
-  --chrome: #232f3e;
-  --chrome-2: #16191f;
-  --chrome-ink: #ffffff;
-  --good: light-dark(#037f0c, #29ad32);
-  --bad: light-dark(#d91515, #ff5d64);
-  --warn: light-dark(#8d6605, #f2b45a);
+  /* Shared AtMem.ai tokens: teal actions, neutral surfaces, accessible light/dark contrast. */
+  --ink: var(--color-ink);
+  --ink-2: var(--color-muted);
+  --paper: var(--color-card);
+  --board: var(--color-card-raised);
+  --line: var(--color-line);
+  --edge: var(--color-muted);
+  --accent: var(--color-brand);
+  --accent-soft: var(--color-brand-soft);
+  --action: var(--color-brand);
+  --action-hover: light-dark(#18666b, #7bdce1);
+  --chrome: var(--color-card);
+  --chrome-2: var(--color-line);
+  --chrome-ink: var(--color-ink);
+  --good: var(--color-good);
+  --bad: var(--color-bad);
+  --warn: var(--color-warn);
   --radius: 10px;
   --shadow: 0 1px 1px rgb(0 7 22 / 0.12), 0 4px 18px rgb(0 7 22 / 0.10);
-  font-family: "Amazon Ember", "Helvetica Neue", Roboto, Arial, var(--type-family-sans);
+  font-family: var(--type-family-sans);
   color: var(--ink);
   background: var(--board);
 }
@@ -842,3 +842,13 @@ label.inline input { width: 60px; }
 
 .terraform-code { white-space:pre-wrap; overflow-wrap:anywhere; max-height:55vh; overflow:auto; padding:18px; background:var(--paper); border:1px solid var(--line); border-radius:8px; font-size:12px; line-height:1.6; }
 .terraform-view .row, .terraform-view .seg { margin:16px 0; flex-wrap:wrap; }
+
+/* AtMem · AtForma lockup and shared theme; retain workspace layout. */
+.bar .icon, .crumbs, .modes button { color:var(--color-muted); }
+.crumbs .here, .project-name, .modes button.on, .modes button:hover { color:var(--color-ink); }
+.bar .brand:hover, .bar .icon:hover:not(:disabled), .crumbs button:hover { background:var(--color-brand-soft); color:var(--color-ink); }
+.btn.primary, .button.run-button, .modal .button.run-button, .send, .journey-steps li[aria-current=step] span { color:var(--color-brand-ink); }
+.seg button.on, .chips button.on { background:var(--color-brand-soft); color:var(--color-ink); }
+.brand { white-space:nowrap; }
+.brand-divider { color:var(--color-brand); padding:0 3px; }
+@media(max-width:900px){.brand span{display:inline;}}

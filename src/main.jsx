@@ -147,10 +147,10 @@ const ROLE_STYLE = {
   monitor: ["#e7157b", Gauge],
   guard: ["#dd344c", ShieldCheck],
   human: ["#5f6b7a", UserCheck],
-  app: ["#ed7100", AppWindow],
-  output: ["#ed7100", CheckCheck],
+  app: ["#1f777c", AppWindow],
+  output: ["#1f777c", CheckCheck],
 };
-const LAYER_COLOR = { data: "#7aa116", ml: "#01a88d", intelligence: "#01a88d", integration: "#e7157b", governance: "#dd344c", delivery: "#ed7100" };
+const LAYER_COLOR = { data: "#7aa116", ml: "#01a88d", intelligence: "#01a88d", integration: "#e7157b", governance: "#dd344c", delivery: "#1f777c" };
 const MODE_ICON = { design: PencilRuler, review: ShieldCheck, estimate: Calculator, deploy: Rocket };
 const SCENARIOS = [
   ["happy", "Normal day", null],
@@ -1098,7 +1098,7 @@ function App() {
         const scores = structuredClone(a.scores), notes = { ...a.notes };
         for (const option of result.optionAssessment) {
           scores[option.provider] = option.scores;
-          notes[option.provider] = `Atforma proposal — confirm: ${option.rationale}`;
+          notes[option.provider] = `AtForma proposal — confirm: ${option.rationale}`;
         }
         updateEngagement({ ...p, assessment: { ...a, scores, notes } });
         signals.push("cloud comparison updated");
@@ -1296,7 +1296,7 @@ function App() {
       const snapshot=structuredClone(project);
       const files=deliveryPack(snapshot, run, environment);
       const {visualFiles}=await import('./visual-export.mjs');
-      Object.assign(files,await visualFiles(snapshot,files['specification.md']));
+      Object.assign(files,await visualFiles(snapshot,files['specification.md'],files['spec-kit/implementation-spec.md']));
       const manifest=JSON.parse(files['manifest.json']);
       manifest.files=Object.keys(files);files['manifest.json']=JSON.stringify(manifest,null,2);
       exportFiles(files, "delivery");
@@ -1318,13 +1318,13 @@ function App() {
         live = await discoverLocalAgent();
         setSession(live);
       } catch {
-        throw Error("Atforma's local service isn't running. Start it with npm run local, then try again.");
+        throw Error("AtForma's local service isn't running. Start it with npm run local, then try again.");
       }
     }
     const result = await requestArchitect({
       session: live,
       connection: choice,
-      message: "Connection check from Atforma. Reply with one short sentence; no proposal.",
+      message: "Connection check from AtForma. Reply with one short sentence; no proposal.",
       project: projectRef.current,
       history: [],
       stage: "discover",
@@ -1525,9 +1525,9 @@ function App() {
   return (
     <div className={`app ${chatOpen ? "" : "chat-closed"}`}>
       <header className="bar">
-        <button className="brand" onClick={() => setModal("about")} title="About Atforma">
+        <button className="brand" onClick={() => setModal("about")} title="About AtForma">
           <Mark />
-          <span>Atforma</span>
+          <span>AtMem <span className="brand-divider">·</span> AtForma</span>
         </button>
         <nav className="crumbs" aria-label="Level">
           <button className="projects-btn" aria-label="Projects" title="Your projects" onClick={() => (refreshProjects(), setModal("projects"))}>
@@ -1959,7 +1959,7 @@ function App() {
         <aside className="chat" aria-label="Chat">
           <div className="chat-head">
             <strong className="chat-title">
-              <Mark /> Atforma
+              <Mark /> AtForma
             </strong>
             <label className="live-toggle" title="On: changes are drawn as we talk, and you can undo any of them. Off: they wait as previews for you to apply.">
               <input
@@ -2226,7 +2226,7 @@ function App() {
               </>
             ) : (
               <>
-                <h2>Atforma</h2>
+                <h2>AtForma</h2>
                 <p>
                   Let's design your AI stack together: you describe it, we draw it, then review, estimate and document it.
                   Part of atmem.ai. Runs on your computer; nothing is deployed.

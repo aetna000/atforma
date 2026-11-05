@@ -86,7 +86,7 @@ export async function discoverLocalAgent() {
 // Plain reasons instead of status codes or validation dumps.
 export function explain(status, detail) {
   if (typeof detail === "string") return detail;
-  if (status === 401) return "Atforma's helper restarted, so this page lost its session. Reload the page.";
+  if (status === 401) return "AtForma's helper restarted, so this page lost its session. Reload the page.";
   if (status === 422 && Array.isArray(detail) && detail.length) {
     const d = detail[0];
     const where = (d.loc || []).filter((x) => x !== "body").join(" → ");
@@ -140,14 +140,14 @@ export async function requestArchitect({
 }
 
 export async function memoryCall(session, action, payload, signal) {
-  if (!session?.token) throw Error("Atforma's local service is not connected.");
+  if (!session?.token) throw Error("AtForma's local service is not connected.");
   const response = await fetch(`/api/memory/${action}`, { method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.token}`},body:JSON.stringify(payload),signal:signal || AbortSignal.timeout(30000) });
   const value = await response.json();
   if (!response.ok) throw Error(typeof value.detail === "string" ? value.detail : "The memory request was rejected.");
   return value;
 }
 
-// Projects saved by Atforma's helper under the user's account on this computer.
+// Projects saved by AtForma's helper under the user's account on this computer.
 export async function projects(session, action, body = {}) {
   const response = await fetch(`/api/projects/${action}`, {
     method: "POST",

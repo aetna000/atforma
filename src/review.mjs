@@ -233,7 +233,7 @@ export function review(full) {
         attribute: rule.attribute,
         severity: rule.severity,
         ...f,
-        source: `Atforma rule ${rule.id} v${RULES_VERSION}`,
+        source: `AtForma rule ${rule.id} v${RULES_VERSION}`,
         status: accepted[key] ? "accepted" : "open",
         ...(accepted[key] ? { acceptance: accepted[key] } : {}),
       };

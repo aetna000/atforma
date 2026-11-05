@@ -1,4 +1,4 @@
-// Zoom levels for Atforma: System (layers) → Flow (blocks) → Block (detail).
+// Zoom levels for AtForma: System (layers) → Flow (blocks) → Block (detail).
 // Layers are derived from block behaviour, so projects need no extra data.
 import { orderProject } from "./core.mjs";
 
