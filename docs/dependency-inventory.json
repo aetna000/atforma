@@ -7,24 +7,6 @@
     "licenseFiles": []
   },
   {
-    "name": "@fontsource/dm-sans",
-    "version": "5.2.8",
-    "license": "OFL-1.1",
-    "dev": false,
-    "licenseFiles": [
-      "LICENSE"
-    ]
-  },
-  {
-    "name": "@fontsource/manrope",
-    "version": "5.2.8",
-    "license": "OFL-1.1",
-    "dev": false,
-    "licenseFiles": [
-      "LICENSE"
-    ]
-  },
-  {
     "name": "@playwright/test",
     "version": "1.64.1",
     "license": "Apache-2.0",
@@ -213,6 +195,15 @@
     ]
   },
   {
+    "name": "dagre",
+    "version": "0.8.5",
+    "license": "MIT",
+    "dev": false,
+    "licenseFiles": [
+      "LICENSE"
+    ]
+  },
+  {
     "name": "esbuild",
     "version": "0.25.12",
     "license": "MIT",
@@ -231,10 +222,37 @@
     ]
   },
   {
+    "name": "fflate",
+    "version": "0.8.3",
+    "license": "MIT",
+    "dev": false,
+    "licenseFiles": [
+      "LICENSE"
+    ]
+  },
+  {
     "name": "fsevents",
     "version": "2.3.3",
     "license": "MIT",
     "dev": true,
+    "licenseFiles": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "graphlib",
+    "version": "2.1.8",
+    "license": "MIT",
+    "dev": false,
+    "licenseFiles": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "lodash",
+    "version": "4.18.1",
+    "license": "MIT",
+    "dev": false,
     "licenseFiles": [
       "LICENSE"
     ]

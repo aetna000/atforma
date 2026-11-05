@@ -1,33 +1,73 @@
-# Forma — AI Architecture Workbench
+# Atforma — local AI stack consultant (atmem.ai)
 
-A high-level, LabVIEW-inspired architecture MVP for AWS, Azure, Google Cloud, IBM, and generic tools. Connect components, run local fixtures, inspect payloads and failures, and prepare staging or production plans.
+Atforma helps you design, and eventually deploy, an AI solution that fits your existing systems. You describe what you want in your own words; the architect asks a few easy questions at a time ("not sure" is always fine), sketches a first design, and works through **Discover → Design → Review → Estimate → Deploy** with you. Everything is kept in one project file you can reopen and regenerate outputs from. Runs locally; nothing is deployed.
 
-## Run locally
+The architect's know-how lives in [`agent-skills/`](agent-skills): a discovery skill (what to ask, in what order, in plain language, and what to assume when unsure) and workflow skills (knowledge assistant, document processing, prediction, agentic automation). The offline planner and a connected model both use them.
+
+## Start
+
+Prerequisites: Node 22.12+ and Python 3.11+. Current local verification uses Node 26 and Python 3.14.
 
 ```sh
 npm ci --ignore-scripts
-npm run dev
+python3 -m venv .venv
+.venv/bin/python -m pip install -r server/requirements.txt
+npm run local
 ```
 
-Open the printed local URL. `npm test` checks dataflow, failure handling, import boundaries and revision gates. `npm run build` produces `dist/`.
+On Windows use `.venv\\Scripts\\python.exe` for installation. The launcher selects the virtualenv executable for the operating system. Windows execution has not been browser-tested.
+
+Open **http://127.0.0.1:5174**. The sidecar binds to **127.0.0.1:8766**. `npm run dev` runs the zero-key frontend alone; model access needs the sidecar.
+
+## Choose an architect
+
+In **Connections**, choose Local patterns, an official account client, or a model API key. Local patterns work without keys. Install/sign in to the desired official client once:
+
+```sh
+claude auth login
+codex login
+copilot login
+gemini
+```
+
+Use only commands for providers you want. Atforma uses their supported native authentication; it does not extract tokens or implement a generic subscription OAuth proxy. Installation and subscription do not guarantee a particular model is available. Choose `default` for a native client's default model or enter an accessible model ID.
+
+For API access, enter a Claude/OpenAI/Gemini key in the local dialog (sidecar memory only), or supply `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` or `GEMINI_API_KEY` to the sidecar environment. Do not put keys in project data or source control. API billing is separate from account subscriptions. Bedrock is an optional explicit `ATFORMA_ENABLE_BEDROCK=1` + AWS SDK configuration path.
 
 ## Try it
 
-1. Run the default Azure flow in **Staging / Test**.
-2. Select an executed block and inspect input/output payloads.
-3. Choose **Missing input field** or **Access denied**, then run again.
-4. Ask the guided assistant to **Add a business API**, apply its proposal, and test **Tool unavailable**.
-5. Explore another provider, or mix library blocks manually. Connect output ports to input ports.
-6. Export/import your project, undo edits, export a review brief, or export a production plan.
+1. **Discover.** Answer "What would you like to build?" in a sentence. Answer the follow-ups, or press **Not sure**, **Why?** or **Skip**. What you say appears under *What I understand so far* (editable); numbers become usage inputs and statements like "within 5 seconds" become requirements. Press **Sketch it** when offered.
+2. **Design.** The board starts at **System**; double-click to open a layer, then a block. *Draft on AWS / Azure / Google Cloud / IBM* proposes alternatives; every applied change is a decision you can revise. Requirements, Options and Decisions sit beside the board.
+3. **Review.** Findings grouped by security, reliability, availability, scalability, performance, maintainability and cost, each with its rule and an action. Accept a risk with a reason and an owner. **Test run** runs designs that have sample-data fixtures (predictive-maintenance and analytics templates).
+4. **Estimate.** Monthly run cost from your usage and the unit prices you enter, each with a source. No prices are built in; missing ones keep the estimate marked incomplete.
+5. **Deploy.** Readiness, draft steps, a plan, a Pulumi scaffold and the **deployment document** — generated from the project every time. Nothing is provisioned.
 
-## Scope
+## Project files
 
-Runs use deterministic local fixtures, not cloud services or a language model. Timings measure local simulation including an intentional visual delay, not cloud latency. The guided chat recognises provider templates, API insertion, review and test requests; it is not an LLM. Model OAuth/API keys, cloud accounts, MCP execution, pricing, deployment and real integration tests are planned. Connection settings collect no credentials. Production exports are descriptive JSON, not executable IaC. Configuration fields are design metadata only.
+**⋯ → Save project file** writes `<name>.atforma.json` (format `atforma.project` 2.0.0): design, discovery, requirements, assumptions, open questions, decisions with history, and options. **Open project file** restores it exactly, upgrades older workbench files, refuses newer major versions, and keeps unknown fields. Files containing anything that looks like a credential are refused on save and open. Schema: [`specs/002-project-model/contracts/project-file.schema.json`](specs/002-project-model/contracts/project-file.schema.json).
 
-Projects persist in browser localStorage and can be exported as JSON. No backend, cross-device sync, accounts or multi-user isolation is implemented. Use illustrative data only.
+## Specifications
 
-## Open-source provenance
+Product direction lives in Spec Kit: the [constitution](.specify/memory/constitution.md) and numbered features in [`specs/`](specs/README.md) (discovery, project model, review, estimate, deployment document, AtMem memory, deployment plan, agent runtime). Use `/speckit-specify`, `/speckit-plan`, `/speckit-tasks` and `/speckit-implement` for new features.
 
-See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), [the source audit](docs/SOURCE_AUDIT.md), and [the integration plan](docs/INTEGRATION_PLAN.md). Six AWS/Azure catalogue descriptions are adapted from OpenArchFlow. The AWS architect workflow informs the design; AWS Labs MCP servers are described in a planned connector manifest, not bundled or running. This is selective integration, not a wholesale merge of three applications.
+## Checks
 
-Original product code has no public open-source licence grant at this stage. Third-party material retains its own licences. A dependency notice inventory is generated from installed packages and shipped under `public/licenses/`. Commercial release remains subject to the unresolved items in the audit.
+```sh
+npm test
+npm run test:server
+npm run test:browser  # uses locally installed Chrome on macOS, otherwise Playwright Chromium
+npm run build
+npm run notices
+```
+
+`python scripts/live-account-check.py PROVIDER MODEL` is an opt-in live smoke check using the running sidecar; it incurs provider usage. Do not run it automatically in CI.
+
+## Scope and deployment
+
+Local fixture runs are deterministic examples, not cloud tests. Architect model requests are real only when explicitly selected and sent. Cloud inventory discovery, MCP tools, live pricing, provider-native Pulumi resources, real staging tests and deployment remain unimplemented. Pulumi output is a metadata scaffold, not a provisioned AI system. Imported stack metadata is not a live refresh or a complete round trip.
+
+The browser stores projects locally; there is no workspace account service or cross-device sync. This is a single-user localhost application. See [self-hosting](docs/SELF_HOSTING.md) before deploying the workbench yourself. The browser application and the infrastructure drawn on its canvas have separate deployment lifecycles.
+
+## Provenance and commercialisation
+
+See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), [the merge manifest](docs/merge-manifest.json), [source audit](docs/SOURCE_AUDIT.md), [local architecture](docs/LOCAL_ARCHITECTURE.md), and [Claude Opus 5.5's design review](docs/CLAUDE_5_5_DESIGN_REVIEW.md). Imported upstream licences are preserved; no vendor branding assets are bundled. Original product code has no public open-source licence grant. The product is not commercially cleared by this preliminary engineering inventory.

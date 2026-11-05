@@ -1,0 +1,9 @@
+{
+  "sourceRepository": "javadtaghia/atmemai-platform (private, user-owned)",
+  "sourceFile": "packages/tokens/dist/atmem-tokens.css",
+  "sourceCommit": "09841263b48a7679c8b850ad8b7ae4a03e0994ea",
+  "sourceSha256": "de8b9c09800d07e66d7d02ac303a79a9a48cc06781f9a554352d28383f0a4023",
+  "localFile": "src/atmem-tokens.css",
+  "sourceModified": false,
+  "note": "Read-only token snapshot for local integration; the website source and live site are not changed. Memory mark adapted from user-owned identity lockup."
+}

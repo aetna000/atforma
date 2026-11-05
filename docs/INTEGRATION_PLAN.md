@@ -1,24 +1,23 @@
-# Integration plan
+# AtForma integration plan
 
-## Implemented first slice
+## Current local milestone
 
-- Provider-neutral graph and catalogues: AWS, Azure, Google Cloud, IBM and generic tools.
-- Browser canvas, connections, undo, JSON import/export and local persistence.
-- Revision-bound, explicitly accepted guided-demo proposals.
-- Graph-based fixture execution, input/output inspection, explicit failed/skipped steps.
-- Design → Staging/Test → Production-plan workflow with stale-run invalidation.
-- Original icons composed with Lucide; no cloud brand icon packs.
+- A single provider-neutral graph powers the unified canvas, architect proposals, inspector, front-panel indicators, wire probes, local fixture runs and export.
+- OpenArchFlow modules supply full AWS/Azure/generic/cloud-native/integration catalogues, templates, parsers, layout and payload formatting. Google Cloud and IBM are original starter catalogues, not upstream parity claims.
+- AWS architect sample modules supply the composed Strands agent, retry/backoff and rate limiter for explicit SDK providers. The active prompt is neutral; AWS-only automatic MCP initialization is not called.
+- Official Claude/Codex/Copilot/Gemini account-client adapters and Claude/OpenAI/Gemini API-key configuration run through a local sidecar. Availability/sign-in/model access remain provider-specific.
+- AtMem tokens and identity are used in a read-only local snapshot. AI blocks are prioritised, with broader infrastructure available.
+- Pulumi is preferred: metadata scaffold export and sanitised stack-snapshot import are implemented. No resource provisioning or full round-trip claims.
+- Original licence texts, source revision/file hashes, notices and dependency inventories are retained.
 
-## Next implementation slices
+## Next bounded milestones
 
-1. Backend identity and per-workspace access control; encrypted credential references; project persistence and audit events. Never put keys into graph data or browser storage.
-2. Agent adapter contract: messages, structured tool calls, streaming events, approvals, cancellation, quotas, and accounting. Use direct provider APIs first, then separately scoped Copilot/eligible OAuth adapters. Verify provider integration terms before offering subscription login.
-3. Read-only cloud discovery adapters for Azure, AWS, Google Cloud and IBM. Keep observed inventory separate from proposed graph state. Normalise capabilities, not incompatible service contracts.
-4. MCP tools through an isolated, allowlisted gateway; selected pinned AWS Labs servers only. Review per-server licences, notices, dependencies, transport, IAM and tool semantics. Add equivalent connectors for other providers; do not claim cloud parity before implementation.
-5. Provider-native schema and connection validation, pricing evidence with regions/dates/assumptions, and grounded architectural review.
-6. Real staging adapters and isolated runners: explicit test data, deployed resource identity, full execution traces, cost limits, timeouts, cancellation and cleanup. Simulation remains separate from cloud integration evidence.
-7. Terraform/provider-native deployment adapters and reviewable change plans. Staging integration tests, human approval, target account verification, rollback/recovery and revision-bound promotion precede production changes.
+1. Finish provider account onboarding and per-provider integration tests, improve streamed job feedback, and test desktop/Windows/Linux packaging. Preserve a zero-key frontend path.
+2. Formalise shared schema generation across TypeScript and Python; extend canonical graph migrations, diff-based proposals and revision history.
+3. Add AI-specific component schemas and actual staging adapters for selected AWS, Azure and Google Cloud use cases. Keep runtime data contracts separate from architecture relationships.
+4. Integrate Pulumi Automation API behind reviewed plans: supported resource constructors, project/stack/state-backend selection, import discovery, explicit refresh and source-change proposals. Do not automatically equate state refresh with rewriting source or diagram intent.
+5. Add scoped read-only inventory, first-party documentation tools and evidence-backed pricing. Review per-server licences and tool permissions before optional MCP integration.
+6. Add resource-aware staging deployment, actual endpoint evaluation, revision-bound promotion, approvals, rollback/recovery and cost bounds. Production changes require explicit user action.
+7. For hosted or commercial multi-user distribution, implement backend identity, workspace ownership, per-user credentials, isolation, quotas, security/release review and distribution-target licensing.
 
-## Execution semantics
-
-The current runtime follows a directed acyclic graph with one input per non-source node. Invalid structure blocks execution. Each node transforms a payload; failed parents block descendants. Sources, prediction fixtures, explanation templates, policy checks, output assertions and REST fixtures are supported. Mixed-provider designs are allowed but do not establish interoperability. Cycles, merges and real endpoint calls require future typed execution adapters.
+Future atmem.ai/AtForma integration remains deferred. Do not push or publish this local milestone without a new request.

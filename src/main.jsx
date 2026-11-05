@@ -1,78 +1,2075 @@
-import '@xyflow/react/dist/style.css';
-import '@fontsource/dm-sans/latin-400.css';
-import '@fontsource/dm-sans/latin-500.css';
-import '@fontsource/dm-sans/latin-600.css';
-import '@fontsource/manrope/latin-500.css';
-import '@fontsource/manrope/latin-600.css';
-import '@fontsource/manrope/latin-700.css';
-import React,{useCallback,useEffect,useRef,useState} from 'react';
-import {createRoot} from 'react-dom/client';
-import {ReactFlow,ReactFlowProvider,Background,Controls,MiniMap,Handle,Position,applyNodeChanges,applyEdgeChanges,addEdge,useReactFlow} from '@xyflow/react';
-import {Activity,ArrowDownToLine,ArrowRight,ArrowUp,Blocks,BookOpen,Box,Check,CheckCheck,ChevronDown,ChevronRight,Cloud,Code2,Database,FlaskConical,GitBranch,Layers,Link2,Maximize2,MessageSquare,MoreHorizontal,Play,Plus,Search,Settings2,ShieldCheck,Sparkles,Square,Trash2,Undo2,Upload,X,Zap,AlertCircle,Loader2,FileJson,PanelLeftClose,ExternalLink} from 'lucide-react';
-import {CATALOG,PROVIDERS,STAGES,template,checkProject,orderProject,executeBlock,validateImport,propose,makePlan} from './core.mjs';
-import './style.css';
-const ICONS={source:Database,predict:Activity,agent:Sparkles,guard:ShieldCheck,output:CheckCheck,tool:Code2};
-const STORAGE='forma-workspace-v1';
-function readSaved(){try{const raw=localStorage.getItem(STORAGE);return raw?validateImport(JSON.parse(raw)):template();}catch{return template();}}
-function Badge({provider,small=false}){const p=PROVIDERS[provider]||PROVIDERS.tools;return <span className={`provider-badge ${small?'small':''}`} style={{'--provider':p.color}}>{p.letter}</span>;}
-function ResourceNode({data,selected}){const Icon=ICONS[data.kind]||Box;return <div className={`resource-node ${selected?'selected':''} state-${data.runState||'idle'}`} style={{'--provider':PROVIDERS[data.provider].color}}>
- {data.kind!=='source'&&<Handle type="target" position={Position[data.inputPosition?.[0]?.toUpperCase()+data.inputPosition?.slice(1)]||Position.Left}/>}
- <div className="node-top"><Badge provider={data.provider} small/><span>{PROVIDERS[data.provider].name}</span><span className="node-menu"><MoreHorizontal size={16}/></span></div>
- <div className="node-main"><span className="node-icon"><Icon size={21}/></span><div><strong>{data.label}</strong><p>{data.description}</p></div></div>
- <div className="node-foot"><span className={`status-dot ${data.runState||''}`}/>{data.runState==='running'?'Processing fixture':data.runState==='passed'?'Step passed':data.runState==='failed'?'Step failed':data.runState==='skipped'?'Blocked by upstream':'Design component'}<span>{data.duration?`${data.duration} ms`:'•••'}</span></div>
- {data.kind!=='output'&&<Handle type="source" position={Position[data.outputPosition?.[0]?.toUpperCase()+data.outputPosition?.slice(1)]||Position.Right}/>}
- </div>;}
-const nodeTypes={resource:ResourceNode};
-const welcome={role:'assistant',text:'Let’s design something useful. This workspace starts with an Azure example: an AI layer over an existing prediction service.\n\nDrag in blocks from any cloud, or let’s explore another pattern together.',initial:true};
-function App(){
- const [project,setProject]=useState(readSaved);const projectRef=useRef(project);projectRef.current=project;
- const [mode,setMode]=useState('design'),[provider,setProvider]=useState('all'),[search,setSearch]=useState(''),[selected,setSelected]=useState(null),[pane,setPane]=useState('chat'),[messages,setMessages]=useState([welcome]),[input,setInput]=useState(''),[pending,setPending]=useState(null),[busy,setBusy]=useState(false),[scenario,setScenario]=useState('happy'),[run,setRun]=useState(null),[runStates,setRunStates]=useState({}),[history,setHistory]=useState([]),[toast,setToast]=useState(''),[modal,setModal]=useState(null),[environment,setEnvironment]=useState('staging'),[storageError,setStorageError]=useState(false),[library,setLibrary]=useState(true),[traceOpen,setTraceOpen]=useState(false);
- const {screenToFlowPosition,fitView}=useReactFlow();const fileRef=useRef();const chatEnd=useRef();const runToken=useRef(0);const commitGroup=useRef(false);
- const notify=useCallback(t=>setToast(t),[]);useEffect(()=>{if(toast){const timer=setTimeout(()=>setToast(''),4000);return()=>clearTimeout(timer);}},[toast]);
- useEffect(()=>{try{localStorage.setItem(STORAGE,JSON.stringify(project));setStorageError(false);}catch{setStorageError(true);}},[project]);
- useEffect(()=>{chatEnd.current?.scrollIntoView({behavior:'smooth'});},[messages,pending]);
- useEffect(()=>()=>{runToken.current++;},[]);
- const commit=useCallback((next,remember=true)=>{if(busy)return;const current=projectRef.current;if(remember)setHistory(h=>[...h.slice(-29),structuredClone(current)]);const updated={...next,revision:current.revision+1};projectRef.current=updated;setProject(updated);setRunStates({});setRun(null);},[busy]);
- const issues=checkProject(project),errors=issues.filter(i=>i.level==='error');const selectedNode=project.nodes.find(n=>n.id===selected);const trace=run?.steps.find(s=>s.id===selected);const currentPassed=run?.status==='passed'&&run.revision===project.revision;
- const onNodesChange=useCallback(changes=>{if(busy)return;const real=changes.filter(c=>c.type!=='select'&&c.type!=='dimensions');if(real.length){const dragging=real.some(c=>c.type==='position'&&c.dragging);const remember=!commitGroup.current;if(dragging)commitGroup.current=true;else commitGroup.current=false;const current=projectRef.current;commit({...current,nodes:applyNodeChanges(real,current.nodes)},remember);} },[commit,busy]);
- const onEdgesChange=useCallback(changes=>{if(busy)return;const real=changes.filter(c=>c.type!=='select');if(real.length)commit({...projectRef.current,edges:applyEdgeChanges(real,projectRef.current.edges)});},[commit,busy]);
- function addComponent(item,position){if(busy)return;const next=structuredClone(project);const id=crypto.randomUUID();next.nodes.push({id,type:'resource',position:position||{x:90+(next.nodes.length%3)*285,y:90+Math.floor(next.nodes.length/3)*210},data:{...item,config:{region:'To be selected',classification:'Internal',timeout:5000},origin:'proposed'}});commit(next);setSelected(id);setPane('inspector');notify(`${item.label} added. Connect its ports to the flow.`);}
- function undo(){if(!history.length||busy)return;const previous=history.at(-1);setHistory(h=>h.slice(0,-1));commit(previous,false);notify('Previous design restored.');}
- function download(data,name,type='application/json'){const url=URL.createObjectURL(new Blob([typeof data==='string'?data:JSON.stringify(data,null,2)],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
- async function importProject(e){const file=e.target.files?.[0];if(!file)return;try{if(file.size>1_000_000)throw Error('Project files must be smaller than 1 MB.');const p=validateImport(JSON.parse(await file.text()));commit(p);setSelected(null);setTimeout(()=>fitView({padding:0.18}),100);notify('Project imported.');}catch(error){notify(error.message);}e.target.value='';}
- function send(text=input){if(!text.trim()||busy)return;setMessages(m=>[...m,{role:'user',text}]);setInput('');const result=propose(text,project);if(result.next){setPending(result);setMessages(m=>[...m,{role:'assistant',text:result.body}]);}else setMessages(m=>[...m,{role:'assistant',text:result.body}]);}
- function applyProposal(){if(pending.baseRevision!==project.revision){notify('The canvas changed. Ask again to generate a proposal for this revision.');setPending(null);return;}commit(pending.next);setMessages(m=>[...m,{role:'assistant',text:`Applied: ${pending.title}. You can undo this change or run the flow in Staging / Test.`}]);setPending(null);setSelected(null);setScenario('happy');setTimeout(()=>fitView({padding:0.18}),80);}
- async function runFlow(){if(busy)return;setMode('test');setTraceOpen(true);if(errors.length){notify('Fix the structural issues before running.');setPane('review');return;}const revision=project.revision,p=structuredClone(project),token=++runToken.current;setBusy(true);setRunStates({});setPane('inspector');const steps=[],outputs={},states={};setRun({status:'running',revision,scenario,steps:[]});let failed=false;
- try{for(const n of orderProject(p)){if(token!==runToken.current)return;const parents=p.edges.filter(e=>e.target===n.id);const parentFailed=parents.some(e=>states[e.source]==='failed'||states[e.source]==='skipped');const input=parents.length?outputs[parents[0].source]:null;setSelected(n.id);if(parentFailed){states[n.id]='skipped';steps.push({id:n.id,label:n.data.label,status:'skipped',input:null,output:null,error:'Not executed because an upstream step failed.',duration:0});setRunStates({...states});continue;}states[n.id]='running';setRunStates({...states});const started=performance.now();await new Promise(resolve=>setTimeout(resolve,480));try{const output=executeBlock(n,input,scenario);outputs[n.id]=output;states[n.id]='passed';steps.push({id:n.id,label:n.data.label,status:'passed',input,output,duration:Math.round(performance.now()-started)});}catch(error){failed=true;states[n.id]='failed';steps.push({id:n.id,label:n.data.label,status:'failed',input,output:null,error:error.message,duration:Math.round(performance.now()-started)});}setRunStates({...states});setRun({status:'running',revision,scenario,steps:[...steps]});}setRun({status:failed?'failed':'passed',revision,scenario,steps:[...steps]});notify(failed?'Test failed. Inspect the failed block and upstream inputs.':'End-to-end simulation passed. Inspect the results or prepare a deployment plan.');}finally{setBusy(false);}}
- const visibleCatalog=CATALOG.filter(c=>(provider==='all'||c.provider===provider)&&`${c.label} ${c.description} ${PROVIDERS[c.provider].name}`.toLowerCase().includes(search.toLowerCase()));
- const displayNodes=project.nodes.map(n=>({...n,selected:n.id===selected,data:{...n.data,runState:runStates[n.id],duration:run?.steps.find(s=>s.id===n.id)?.duration}}));
- function selectBlock(id){setSelected(id);setPane('inspector');}
- return <div className="app-shell">
- <aside className="rail"><button className="brand" title="Forma home" onClick={()=>{setMode('design');setPane('chat');}}>f<span>·</span></button><div className="rail-divider"/><button className={`rail-icon ${mode==='design'?'active':''}`} title="Design workspace" onClick={()=>setMode('design')}><Blocks size={21}/></button><button className={`rail-icon ${mode==='test'?'active':''}`} title="Staging and tests" onClick={()=>setMode('test')}><FlaskConical size={21}/></button><button className={`rail-icon ${mode==='deploy'?'active':''}`} title="Deployment plans" onClick={()=>setMode('deploy')}><Cloud size={21}/></button><div className="rail-bottom"><button className="rail-icon" title="Open-source acknowledgements" onClick={()=>setModal('licenses')}><BookOpen size={19}/></button><button className="rail-icon" title="Connections" onClick={()=>setModal('connections')}><Settings2 size={20}/></button><span className="avatar">JT</span></div></aside>
- <div className="main-shell"><header className="topbar"><div className="breadcrumbs"><span>My workspace</span><ChevronRight size={14}/><strong>AI modernisation lab</strong><span className="tag">MVP</span></div><div className="header-actions"><span className="save-state"><span className={`status-dot ${storageError?'failed':'passed'}`}/>{storageError?'Save unavailable':'Saved on this browser'}</span><button className="button subtle" onClick={()=>download(project,'forma-project.json')}><ArrowDownToLine size={15}/>Export project</button><button className="avatar small-avatar" onClick={()=>setModal('about')} title="Workspace information">JT</button></div></header>
- <div className="projectbar"><div><div className="eyebrow"><span className="tiny-grid">▦</span> ARCHITECTURE WORKBENCH</div><h1>Build the system. See it work.</h1><p>A shared canvas for your ideas, your clouds, and your AI architect.</p></div><button className="button connections" onClick={()=>setModal('connections')}><Link2 size={15}/>Connections<span className="count-badge">0</span></button></div>
- <div className="workspace-toolbar"><div className="phase-tabs">{[['design','Design',Blocks],['test','Staging / Test',FlaskConical],['deploy','Production',Cloud]].map(([id,label,Icon],i)=><React.Fragment key={id}>{i>0&&<ChevronRight className="phase-arrow" size={13}/>}<button className={mode===id?'phase active':'phase'} onClick={()=>setMode(id)}><span className="phase-number">{i+1}</span><Icon size={15}/>{label}{id==='test'&&currentPassed&&<Check size={13}/>}</button></React.Fragment>)}</div><div className="toolbar-actions"><span className="design-only"><span className="status-dot"/>Design & local simulation</span><button className="icon-button" title="Undo design change" disabled={!history.length||busy} onClick={undo}><Undo2 size={17}/></button><button className="button run-button" disabled={busy} onClick={runFlow}>{busy?<Loader2 className="spin" size={15}/>:<Play size={15}/>} {busy?'Running…':'Run flow'}</button></div></div>
- <div className={`workspace ${library?'':'library-hidden'}`}>
- {library&&<aside className="library"><div className="panel-title"><h2>Component library</h2><button className="icon-button" title="Collapse library" onClick={()=>setLibrary(false)}><PanelLeftClose size={16}/></button></div><div className="searchbox"><Search size={15}/><input aria-label="Search components" placeholder="Search components…" value={search} onChange={e=>setSearch(e.target.value)}/><kbd>⌕</kbd></div><div className="provider-filters"><button className={provider==='all'?'chosen':''} onClick={()=>setProvider('all')}>All</button>{Object.entries(PROVIDERS).map(([id,p])=><button key={id} className={provider===id?'chosen':''} onClick={()=>setProvider(id)} title={p.name}><span style={{background:p.color}}/>{id==='tools'?'Tools':id==='gcp'?'Google':p.name}</button>)}</div><div className="library-caption"><span>{provider==='all'?'ALL COMPONENTS':PROVIDERS[provider].name.toUpperCase()}</span><span>{visibleCatalog.length}</span></div><div className="component-list">{visibleCatalog.map(item=>{const Icon=ICONS[item.kind];return <button key={item.id} className="library-item" draggable={!busy} onDragStart={e=>e.dataTransfer.setData('application/forma-component',item.id)} onClick={()=>addComponent(item)} disabled={busy}><span className="library-item-icon" style={{color:PROVIDERS[item.provider].color}}><Icon size={19}/></span><span><strong>{item.label}</strong><small>{PROVIDERS[item.provider].name} · {item.kind==='predict'?'Model':item.kind}</small></span><Plus size={14}/></button>;})}{!visibleCatalog.length&&<p className="empty">No components match your search.</p>}</div><div className="library-footer"><Box size={17}/><div><strong>Your building blocks</strong><p>Drag to canvas or click to add.</p></div></div></aside>}
- <main className="canvas-area" onDrop={e=>{e.preventDefault();const item=CATALOG.find(c=>c.id===e.dataTransfer.getData('application/forma-component'));if(item)addComponent(item,screenToFlowPosition({x:e.clientX,y:e.clientY}));}} onDragOver={e=>{e.preventDefault();e.dataTransfer.dropEffect='move';}}>
- <div className="canvas-heading">{!library&&<button className="icon-button" title="Show component library" onClick={()=>setLibrary(true)}><Layers size={18}/></button>}<div><span className="canvas-breadcrumb">{mode==='design'?'DESIGN CANVAS':mode==='test'?'STAGING / TEST':'DEPLOYMENT PLAN'}</span><h2>{project.name}</h2></div><button className="icon-button" title="Fit canvas" onClick={()=>fitView({padding:0.18})}><Maximize2 size={17}/></button></div>
- <ReactFlow nodes={displayNodes} edges={project.edges.map(e=>({...e,markerEnd:{type:'arrowclosed',color:runStates[e.source]==='passed'?'#439a79':'#a2adbb',width:16,height:16},animated:busy&&runStates[e.source]==='passed',style:{stroke:runStates[e.source]==='failed'?'#d56b6b':runStates[e.source]==='passed'?'#439a79':'#a2adbb',strokeWidth:1.7},labelStyle:{fill:'#7d8999',fontSize:10},labelBgStyle:{fill:'#f8f9fb'},labelBgPadding:[6,4]}))} nodeTypes={nodeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={c=>{if(!busy)commit({...project,edges:addEdge({...c,type:'smoothstep',label:'data'},project.edges)});}} isValidConnection={c=>c.source!==c.target&&!project.edges.some(e=>e.source===c.source&&e.target===c.target)} onNodeClick={(_,n)=>selectBlock(n.id)} onPaneClick={()=>setSelected(null)} nodesDraggable={!busy} nodesConnectable={!busy} elementsSelectable={!busy} deleteKeyCode={busy?null:['Backspace','Delete']} fitView fitViewOptions={{padding:0.22}} minZoom={0.25} maxZoom={1.8}><Background color="#ccd2dc" gap={22} size={1}/><Controls showInteractive={false}/><MiniMap nodeColor={n=>PROVIDERS[n.data.provider]?.color||'#888'} maskColor="rgba(246,248,251,.65)" pannable zoomable/></ReactFlow>
- {mode==='design'&&<div className="canvas-note"><span className="note-icon"><Sparkles size={16}/></span><div><strong>Start with a question. Build together.</strong><p>Mix clouds, connect ports, then run an end-to-end test.</p></div><button onClick={()=>{setPane('chat');send('How do I test this flow?');}} title="Explain this workspace"><ArrowRight size={17}/></button></div>}
- {mode==='test'&&<div className="test-controller"><div className="test-label"><span className="test-symbol"><FlaskConical size={18}/></span><div><strong>Test the entire flow</strong><p>Local fixtures · no cloud calls or charges</p></div></div><select aria-label="Test scenario" disabled={busy} value={scenario} onChange={e=>setScenario(e.target.value)}><option value="happy">Valid customer signals</option><option value="missing">Missing input field</option><option value="denied">Access denied</option><option value="tool-error" disabled={!project.nodes.some(n=>n.data.kind==='tool')}>Tool unavailable{!project.nodes.some(n=>n.data.kind==='tool')?' (add API block)':''}</option></select><button className="button run-button" disabled={busy} onClick={runFlow}><Play size={14}/>{busy?'Running…':'Run test'}</button></div>}
- {mode==='deploy'&&<div className="deployment-overlay"><div className="deploy-card"><span className="deploy-icon"><Cloud size={27}/></span><div className="eyebrow">FROM DESIGN TO DELIVERY</div><h2>Promote with confidence.</h2><p>Prepare a revision-specific deployment plan. Live cloud provisioning is not connected in this MVP.</p><div className="segmented"><button className={environment==='staging'?'active':''} onClick={()=>setEnvironment('staging')}>Staging</button><button className={environment==='production'?'active':''} onClick={()=>setEnvironment('production')}>Production</button></div><div className="deploy-check"><Check size={16}/><span>Architecture saved <small>Revision {project.revision}</small></span></div><div className={`deploy-check ${currentPassed?'':'incomplete'}`}>{currentPassed?<Check size={16}/>:<Square size={16}/>}<span>Current revision passes simulation <small>{currentPassed?'Passed':'Run a test first'}</small></span></div><div className="deploy-check incomplete"><Square size={16}/><span>Cloud account & deployment adapter <small>Not connected</small></span></div><div className="deploy-check incomplete"><Square size={16}/><span>Staging integration tests & approval <small>Required for production</small></span></div><button className="button run-button full" onClick={()=>{download(makePlan(project,run,environment),`forma-${environment}-plan.json`);notify('Design plan exported. It does not provision cloud resources.');}}><ArrowDownToLine size={15}/>Export {environment} plan</button><span className="deploy-footnote">A simulation pass is not a production readiness assessment.</span></div></div>}
- <div className="canvas-status"><span><span className="status-dot passed"/>{project.nodes.length} blocks <span className="status-separator">·</span>{project.edges.length} connections</span><span>Revision {project.revision}<span className="status-separator">·</span><button onClick={()=>fileRef.current.click()}>Import JSON</button></span></div>
- </main>
- <aside className="agent-panel"><div className="agent-header"><div className="agent-avatar"><Sparkles size={20}/></div><div><h2>Your AI architect</h2><span><span className="status-dot passed"/>Guided demo · no model connected</span></div><button className="icon-button" title="Configure agent connections" onClick={()=>setModal('connections')}><Settings2 size={17}/></button></div><div className="panel-tabs">{[['chat','Conversation'],['inspector','Inspect block'],['review','Review']].map(([id,label])=><button key={id} className={pane===id?'active':''} onClick={()=>setPane(id)}>{label}{id==='review'&&errors.length>0&&<span>{errors.length}</span>}</button>)}</div>
- {pane==='chat'&&<><div className="messages"><div className="conversation-date">YOUR DESIGN PARTNER</div>{messages.map((m,i)=><div key={i} className={`message ${m.role}`}><div className="message-label">{m.role==='assistant'?<><Sparkles size={12}/>Forma architect</>:'You'}</div><p>{m.text}</p>{m.initial&&<div className="workflow-chips">{STAGES.map((s,i)=><span key={s}>{i+1}. {s}</span>)}</div>}</div>)}{pending&&<div className="proposal"><div className="eyebrow"><GitBranch size={13}/> PROPOSED CHANGE</div><strong>{pending.title}</strong><p>{pending.next.nodes.length} blocks · {pending.next.edges.length} connections · based on revision {pending.baseRevision}</p><div><button className="button run-button" disabled={busy} onClick={applyProposal}><Check size={14}/>Apply to canvas</button><button className="button subtle" onClick={()=>setPending(null)}>Dismiss</button></div></div>}<div ref={chatEnd}/></div><div className="chat-bottom"><div className="suggestions">{['Explore AWS','Explore Google Cloud','Explore IBM','Add a business API'].map(s=><button key={s} disabled={busy} onClick={()=>send(s)}>{s}<Plus size={12}/></button>)}</div><form className="chat-composer" onSubmit={e=>{e.preventDefault();send();}}><textarea aria-label="Message your architect" placeholder="Describe what you want to build…" value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}}/><div><button type="button" className="model-select" onClick={()=>setModal('connections')}><Sparkles size={12}/>Demo patterns<ChevronDown size={12}/></button><button type="submit" className="send-button" aria-label="Send message" disabled={!input.trim()||busy}><ArrowUp size={16}/></button></div></form><span className="composer-footnote">Changes stay in your browser. No live AI requests.</span></div></>}
- {pane==='inspector'&&<div className="inspector">{selectedNode?<><div className="inspector-title"><Badge provider={selectedNode.data.provider}/><div><small>{PROVIDERS[selectedNode.data.provider].name}</small><h3>{selectedNode.data.label}</h3></div></div><label>BLOCK NAME<input disabled={busy} value={selectedNode.data.label} onChange={e=>commit({...project,nodes:project.nodes.map(n=>n.id===selected?{...n,data:{...n.data,label:e.target.value}}:n)})}/></label><label>REGION / LOCATION<input disabled={busy} value={selectedNode.data.config?.region||''} onChange={e=>commit({...project,nodes:project.nodes.map(n=>n.id===selected?{...n,data:{...n.data,config:{...n.data.config,region:e.target.value}}}:n)})}/></label><label>DATA CLASSIFICATION<select disabled={busy} value={selectedNode.data.config?.classification||'Internal'} onChange={e=>commit({...project,nodes:project.nodes.map(n=>n.id===selected?{...n,data:{...n.data,config:{...n.data.config,classification:e.target.value}}}:n)})}><option>Public</option><option>Internal</option><option>Confidential</option></select></label><div className="inspector-info"><ShieldCheck size={16}/><span>Proposed design component. Configuration is not applied to a cloud resource.</span></div><div className="section-label">EXECUTION FEEDBACK</div>{trace?<><div className={`trace-result ${trace.status}`}><span className={`status-dot ${trace.status}`}/>{trace.status} · {trace.duration} ms</div>{trace.error&&<div className="error-box">{trace.error}</div>}<details open><summary>Input payload</summary><pre>{JSON.stringify(trace.input,null,2)}</pre></details><details open><summary>Output payload</summary><pre>{JSON.stringify(trace.output,null,2)}</pre></details></>:<div className="inspector-empty"><FlaskConical size={22}/><p>Run a test to inspect this block’s input and output.</p></div>}<button className="button danger" disabled={busy} onClick={()=>{commit({...project,nodes:project.nodes.filter(n=>n.id!==selected),edges:project.edges.filter(e=>e.source!==selected&&e.target!==selected)});setSelected(null);}}><Trash2 size={14}/>Remove block</button></>:<div className="inspector-empty"><Box size={30}/><h3>Look inside a block</h3><p>Select a block on the canvas to edit its settings and inspect execution feedback.</p></div>}</div>}
- {pane==='review'&&<div className="review-panel"><div className="review-summary"><ShieldCheck size={25}/><h3>{errors.length?`${errors.length} issues to resolve`:'Ready for a local test'}</h3><p>Structural checks against your current design.</p></div>{issues.map((issue,i)=><button key={i} className={`review-issue ${issue.level}`} onClick={()=>issue.nodeId&&selectBlock(issue.nodeId)}>{issue.level==='error'?<AlertCircle size={17}/>:<BookOpen size={17}/>}<span>{issue.text}</span></button>)}<div className="section-label">BEFORE REAL DEPLOYMENT</div>{['Cloud identity and permissions','Network and data residency','Model quality and evidence','Service contracts and costs'].map(s=><div key={s} className="review-todo"><Square size={14}/>{s}</div>)}<button className="button subtle full" onClick={()=>download(`# Architecture brief\n\n${project.name}\n\nRevision: ${project.revision}\n\n## Requirements\n${project.requirements||'Not recorded'}\n\n## Components\n${project.nodes.map(n=>`- ${n.data.label} (${PROVIDERS[n.data.provider].name}): ${n.data.description}`).join('\n')}\n\n## Structural review\n${issues.map(i=>`- ${i.level}: ${i.text}`).join('\n')}\n\n## Status\nDesign and local fixtures only. No live model, cloud connection, pricing or deployment.\n`,'architecture-brief.md','text/markdown')}><ArrowDownToLine size={14}/>Export architecture brief</button></div>}
- </aside></div>
- {(traceOpen||run)&&<section className={`execution-panel ${traceOpen?'expanded':''}`}><button className="execution-header" onClick={()=>setTraceOpen(!traceOpen)}><ChevronRight className={traceOpen?'rotated':''} size={15}/><Activity size={15}/><strong>Execution feedback</strong><span className="trace-badge">LOCAL SIMULATION</span>{run&&<span className={`run-summary ${run.status}`}>{run.status==='passed'?<Check size={13}/>:run.status==='running'?<Loader2 size={13} className="spin"/>:<AlertCircle size={13}/>} {run.status} · {run.steps.filter(s=>s.status==='passed').length}/{project.nodes.length} steps</span>}<span className="execution-hint">Click a step to inspect its payload</span></button>{traceOpen&&<div className="execution-steps">{run?.steps.length?run.steps.map((s,i)=><React.Fragment key={s.id}>{i>0&&<ArrowRight size={15}/>}<button className={`execution-step ${s.status} ${selected===s.id?'chosen':''}`} onClick={()=>selectBlock(s.id)}><span className={`status-dot ${s.status}`}/><span><strong>{s.label}</strong><small>{s.error?s.status:s.duration+' ms · fixture'}</small></span>{s.status==='passed'?<Check size={14}/>:s.status==='failed'?<X size={14}/>:<Square size={13}/>}</button></React.Fragment>):<p className="empty">Press Run test to see data move through each block.</p>}</div>}</section>}
- <footer className="app-footer"><span><span className="footer-brand">f·</span>Forma<span className="status-separator">/</span>Architecture, together.</span><span>AWS · Azure · Google Cloud · IBM · Your tools</span><button onClick={()=>setModal('licenses')}>Open-source acknowledgements<ExternalLink size={11}/></button></footer>
- </div>
- <input type="file" ref={fileRef} accept="application/json,.json" hidden onChange={importProject}/>
- {toast&&<div className="toast" role="status"><Check size={16}/>{toast}</div>}
- {modal&&<div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setModal(null);}}><section className="modal" role="dialog" aria-modal="true" aria-label={modal==='connections'?'Connections':modal==='licenses'?'Open-source acknowledgements':'About Forma'}><button className="modal-close icon-button" onClick={()=>setModal(null)} aria-label="Close dialog"><X size={20}/></button>{modal==='connections'?<><div className="eyebrow">YOUR MODELS. YOUR INFRASTRUCTURE.</div><h2>Connect your workspace</h2><p>This high-level MVP runs entirely in your browser. Provider connections are the next implementation stage; no credentials are collected here.</p><div className="section-label">AGENT PROVIDERS — PLANNED</div>{[['Claude','API key / supported cloud access'],['OpenAI','API key / eligible ChatGPT integration'],['GitHub Copilot','SDK + GitHub authorisation']].map(([name,desc])=><div className="connection-row" key={name}><span className="connection-icon"><Sparkles size={18}/></span><div><strong>{name}</strong><small>{desc}</small></div><span className="tag">Planned</span></div>)}<div className="section-label">CLOUD ACCOUNTS — DESIGN LIBRARIES AVAILABLE</div><div className="cloud-connect-grid">{Object.entries(PROVIDERS).filter(([id])=>id!=='tools').map(([id,p])=><div key={id}><Badge provider={id}/><strong>{p.name}</strong><small>No live connection</small></div>)}</div><div className="inspector-info"><ShieldCheck size={17}/><span>Cloud access and model access will use separate credential references. Secrets will not be stored in project exports.</span></div></>:modal==='licenses'?<><div className="eyebrow">BUILT WITH OPEN SOURCE</div><h2>Credit where it belongs.</h2><p>Upstream revisions and reuse decisions are documented in the source repository. This prototype is not yet cleared for commercial release.</p><div className="license-item"><strong>OpenArchFlow</strong><span>MIT · Copyright © 2026 Rafael Sales</span><p>Selected AWS and Azure catalogue descriptions are adapted from the pinned upstream. Original canvas implementation uses React Flow.</p><a href="/licenses/openarchflow-LICENSE.txt" target="_blank" rel="noreferrer">Read licence ↗</a></div><div className="license-item"><strong>AWS GenAI Solutions Architect Agent</strong><span>MIT No Attribution</span><p>Discovery → architecture → cost → review informs the workflow. Its AWS-only prompt is not carried into this multi-cloud experience.</p><a href="/licenses/aws-architect-LICENSE.txt" target="_blank" rel="noreferrer">Read licence ↗</a></div><div className="license-item"><strong>AWS Labs MCP servers</strong><span>Apache-2.0 · future connector integration</span><p>Connector manifest only; servers and cloud credentials are not bundled or executed.</p><a href="/licenses/aws-mcp-LICENSE.txt" target="_blank" rel="noreferrer">Read licence ↗</a></div><a href="/licenses/dependency-notices.txt" target="_blank" rel="noreferrer">Installed dependency notices ↗</a><p className="modal-fine">Cloud names identify compatible design concepts. No vendor endorsement is implied. No official vendor icon packs are bundled.</p></>:<><div className="eyebrow">FORMA / FIRST WORKING SLICE</div><h2>A lab for architecture.</h2><p>Design across clouds, test connected blocks with local fixtures, inspect feedback, and export a staging or production plan.</p><p>This MVP does not call a live language model, access cloud accounts, provide live pricing, or deploy infrastructure.</p></>}</section></div>}
- </div>;
+import "@xyflow/react/dist/style.css";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createRoot } from "react-dom/client";
+import {
+  ReactFlow,
+  ReactFlowProvider,
+  Background,
+  Handle,
+  Position,
+  applyNodeChanges,
+  applyEdgeChanges,
+  addEdge,
+  useReactFlow,
+} from "@xyflow/react";
+import {
+  AlertTriangle,
+  ArrowUp,
+  Check,
+  ChevronRight,
+  GitBranch,
+  Loader2,
+  Maximize2,
+  MoreHorizontal,
+  PanelRightClose,
+  PanelRightOpen,
+  Play,
+  Plus,
+  Search,
+  Trash2,
+  Undo2,
+  X,
+  Database,
+  Activity,
+  Sparkles,
+  ShieldCheck,
+  CheckCheck,
+  Code2,
+  Cloud,
+  LayoutTemplate,
+  ZoomIn,
+  ZoomOut,
+  Radio,
+  History,
+  Workflow,
+  FlaskConical,
+  Package,
+  Gauge,
+  UserCheck,
+  AppWindow,
+  PencilRuler,
+  ScanSearch,
+  Calculator,
+  Rocket,
+  BrainCircuit,
+  Waypoints,
+  Mic,
+  Square,
+  Eraser,
+  LayoutGrid,
+  ArrowLeft,
+  FolderOpen,
+} from "lucide-react";
+import { roleOf } from "./review.mjs";
+import {
+  CATALOG,
+  PROVIDERS,
+  pdmTemplate,
+  checkProject,
+  orderProject,
+  executeBlock,
+  validateImport,
+  propose,
+  makePlan,
+} from "./core.mjs";
+import { layerOf, proposalDiff, systemView } from "./levels.mjs";
+import { consult, keepEngagement, newDecision, recommendationDecision } from "./engagement.mjs";
+import { adrMarkdown, OPTION_NAMES } from "./pack.mjs";
+import { deploymentDocument } from "./document.mjs";
+import { WORKFLOWS, conceptSignature, essentialsKnown, nextQuestion, opening, progress, sketch, understand } from "./discovery.mjs";
+import { review } from "./review.mjs";
+import { estimate } from "./estimate.mjs";
+import { DeployView, EstimateView, ProjectsDialog, ReviewView, TestCard } from "./JourneyViews.jsx";
+import { newRequirement } from "./records.mjs";
+import { DiscoverView, OptionsView, DecisionsView, MeasuresEditor, RequirementsView } from "./EngagementViews.jsx";
+import { fromProjectFile, parseProjectFile, toProjectFile, MAX_FILE_BYTES } from "./project-file.mjs";
+import { linkedTo, slugSubject } from "./records.mjs";
+import "./atmem-tokens.css";
+import "./atflow.css";
+import {
+  UPSTREAM_CATALOG,
+  autoLayout,
+  importUpstreamProject,
+  prettyPayload,
+} from "./integrations.ts";
+import {
+  Connections,
+  TemplateDialog,
+  ImportDialog,
+  PulumiDialog,
+  FrontPanel,
+} from "./WorkbenchDialogs.jsx";
+import { discoverLocalAgent, projects as projectStore, requestArchitect } from "./local-agent.mjs";
+import { EFFORT_LABEL } from "./WorkbenchDialogs.jsx";
+import { pulumiScaffold } from "./pulumi.mjs";
+import { zipSync, strToU8 } from "fflate";
+
+// Each browser starts fresh; earlier projects are opened deliberately (⋯ → Open project file).
+const STORAGE = "atforma-workspace-v3";
+// A new project starts empty: the user describes what they want first.
+const emptyProject = () => ({ id: crypto.randomUUID(), version: 1, revision: 1, name: "New project", provider: "tools", requirements: "", nodes: [], edges: [] });
+const ALL_CATALOG = [...CATALOG, ...UPSTREAM_CATALOG];
+const KIND_ICON = {
+  source: Database,
+  predict: Activity,
+  agent: Sparkles,
+  guard: ShieldCheck,
+  output: CheckCheck,
+  tool: Code2,
+  resource: Cloud,
+  stream: Radio,
+  history: History,
+  features: Workflow,
+  train: FlaskConical,
+  registry: Package,
+  monitor: Gauge,
+};
+// Scenario, label, block kind it needs.
+// Role → AWS-architecture-style colour and icon, so the board reads like infrastructure.
+const ROLE_STYLE = {
+  data: ["#7aa116", Database],
+  ingest: ["#8c4fff", Waypoints],
+  index: ["#c925d1", ScanSearch],
+  llm: ["#01a88d", BrainCircuit],
+  model: ["#01a88d", Activity],
+  monitor: ["#e7157b", Gauge],
+  guard: ["#dd344c", ShieldCheck],
+  human: ["#5f6b7a", UserCheck],
+  app: ["#ed7100", AppWindow],
+  output: ["#ed7100", CheckCheck],
+};
+const LAYER_COLOR = { data: "#7aa116", ml: "#01a88d", intelligence: "#01a88d", integration: "#e7157b", governance: "#dd344c", delivery: "#ed7100" };
+const MODE_ICON = { design: PencilRuler, review: ShieldCheck, estimate: Calculator, deploy: Rocket };
+const SCENARIOS = [
+  ["happy", "Normal day", null],
+  ["sensor-dropout", "Sensor dropout", "stream"],
+  ["weak-model", "Weak model", "train"],
+  ["drift", "Drift", "monitor"],
+  ["ungrounded", "Ungrounded insight", "agent"],
+  ["missing", "Missing input field", "source"],
+  ["denied", "Access denied", "guard"],
+  ["tool-error", "App unavailable", "tool"],
+];
+// Discovery is woven into Design: you talk, the architect draws.
+const MODES = [
+  ["design", "Design"],
+  ["review", "Review"],
+  ["estimate", "Estimate"],
+  ["deploy", "Deploy"],
+];
+const PROMPTS = {
+  design: ["Compare all four clouds"],
+  review: ["Review risks", "How do I test this?"],
+  estimate: ["What drives cost?"],
+  deploy: ["What evidence do we need to scale?"],
+};
+const STATUS_GLYPH = {
+  passed: <Check size={13} />,
+  failed: <X size={13} />,
+  running: <Loader2 size={13} className="spin" />,
+};
+
+function Mark() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M12 6.5 L5.5 17.5 M12 6.5 L18.5 17.5"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+      <circle cx="12" cy="5" r="2.6" fill="currentColor" />
+      <circle cx="5" cy="18.5" r="2.2" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="19" cy="18.5" r="2.2" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
 }
-createRoot(document.getElementById('root')).render(<ReactFlowProvider><App/></ReactFlowProvider>);
+
+// Which architect the user chose; absent on first visit, so we ask before anything else.
+const CONNECTION = "atforma-connection-v1";
+function readConnection() {
+  try {
+    const c = JSON.parse(localStorage.getItem(CONNECTION) || "null");
+    // Older builds stored "offline"; the architect now always needs a real model.
+    return c && typeof c.provider === "string" && c.provider !== "offline"
+      ? { provider: c.provider, model: String(c.model || ""), ...(c.effort ? { effort: String(c.effort) } : {}) }
+      : null;
+  } catch {
+    return null;
+  }
+}
+function saveConnection(c) {
+  try {
+    localStorage.setItem(CONNECTION, JSON.stringify({ provider: c.provider, model: c.model, effort: c.effort }));
+  } catch {}
+}
+function readSaved() {
+  try {
+    const raw = localStorage.getItem(STORAGE);
+    const p = validateImport(raw ? JSON.parse(raw) : emptyProject());
+    return p.id ? p : { ...p, id: crypto.randomUUID() };
+  } catch {
+    return validateImport(emptyProject());
+  }
+}
+
+function handlePosition(side, fallback) {
+  return Position[side?.[0]?.toUpperCase() + side?.slice(1)] || fallback;
+}
+
+function BlockNode({ data, selected }) {
+  const p = PROVIDERS[data.provider] || PROVIDERS.tools;
+  const [color, RoleIcon] = ROLE_STYLE[roleOf({ data })] || ["#5f6b7a", KIND_ICON[data.kind] || Cloud];
+  return (
+    <div
+      className={`blk kind-${data.kind} ${data.origin === "existing" ? "existing" : ""} ${selected ? "selected" : ""} ${data.dim ? "dim" : ""} state-${data.runState || "idle"}`}
+      style={{ "--provider": p.color, "--role": color }}
+    >
+      {data.kind !== "source" && (
+        <Handle type="target" position={handlePosition(data.inputPosition, Position.Left)} />
+      )}
+      <span className="blk-icon">
+        <RoleIcon size={18} />
+      </span>
+      <span className="blk-text">
+        <strong>{data.label}</strong>
+        {data.description && <span className="blk-why">{data.description}</span>}
+        {(data.origin === "existing" || data.provider !== "tools") && (
+          <small>
+            <i className="pdot" />
+            {data.origin === "existing" ? "your system" : p.name}
+          </small>
+        )}
+      </span>
+      <span className="blk-state">{STATUS_GLYPH[data.runState]}</span>
+      {data.kind !== "output" && (
+        <Handle type="source" position={handlePosition(data.outputPosition, Position.Right)} />
+      )}
+    </div>
+  );
+}
+
+function LayerNode({ data, selected }) {
+  return (
+    <div className={`layer ${selected ? "selected" : ""} state-${data.status}`} style={{ "--role": LAYER_COLOR[data.layer] || "#5f6b7a" }}>
+      <Handle type="target" position={Position.Left} isConnectable={false} />
+      <div className="layer-head">
+        <strong>{data.label}</strong>
+        <span className="blk-state">{STATUS_GLYPH[data.status]}</span>
+      </div>
+      <small>
+        {data.blocks.length} block{data.blocks.length === 1 ? "" : "s"}
+        {data.status !== "idle" && ` · ${data.done}/${data.blocks.length} passed`}
+      </small>
+      <span className="layer-providers">
+        {data.providers.map((id) => (
+          <span key={id} title={PROVIDERS[id].name} style={{ background: PROVIDERS[id].color }} />
+        ))}
+      </span>
+      <Handle type="source" position={Position.Right} isConnectable={false} />
+    </div>
+  );
+}
+
+// A comment: a sticky note on the board. Never part of the system; arrows may point from it.
+function NoteNode({ id, data, selected }) {
+  const [text, setText] = useState(data.label);
+  const box = useRef(null);
+  // A comment you just added is ready to type into.
+  useEffect(() => {
+    if (data.fresh) setTimeout(() => box.current?.focus(), 30);
+  }, [data.fresh]);
+  return (
+    <div className={`note ${selected ? "selected" : ""}`}>
+      <Handle type="target" position={Position.Left} />
+      <textarea
+        ref={box}
+        className="nodrag"
+        aria-label="Comment"
+        placeholder="Write a comment…"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={() => text !== data.label && data.onText?.(id, text)}
+      />
+      <Handle type="source" position={Position.Right} />
+    </div>
+  );
+}
+const nodeTypes = { resource: BlockNode, layer: LayerNode, note: NoteNode };
+
+function Palette({ onAdd, onClose, disabled }) {
+  const [query, setQuery] = useState(""),
+    [provider, setProvider] = useState("all"),
+    [scope, setScope] = useState("ai");
+  const items = ALL_CATALOG.filter(
+    (c) =>
+      (scope === "all" ||
+        (scope === "ai" &&
+          (c.kind !== "resource" ||
+            /AI|Machine Learning|Analytics/i.test(c.category || ""))) ||
+        (scope === "run" && c.kind !== "resource")) &&
+      (provider === "all" || c.provider === provider) &&
+      `${c.label} ${c.description} ${PROVIDERS[c.provider].name}`
+        .toLowerCase()
+        .includes(query.toLowerCase()),
+  );
+  return (
+    <div className="palette" role="dialog" aria-label="Add block">
+      <div className="palette-search">
+        <Search size={14} />
+        <input
+          autoFocus
+          aria-label="Search blocks"
+          placeholder="Search blocks"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") onClose();
+            if (e.key === "Enter" && items[0]) onAdd(items[0]);
+          }}
+        />
+        <select aria-label="Block scope" value={scope} onChange={(e) => setScope(e.target.value)}>
+          <option value="ai">AI</option>
+          <option value="run">Runnable</option>
+          <option value="all">All</option>
+        </select>
+      </div>
+      <div className="chips">
+        {["all", ...Object.keys(PROVIDERS)].map((id) => (
+          <button
+            key={id}
+            className={provider === id ? "on" : ""}
+            onClick={() => setProvider(id)}
+          >
+            {id === "all" ? "All" : id === "tools" ? "Tools" : id === "gcp" ? "Google" : PROVIDERS[id].name}
+          </button>
+        ))}
+      </div>
+      <div className="palette-list">
+        {items.map((item) => (
+          <button
+            key={item.id}
+            className="palette-item"
+            draggable={!disabled}
+            disabled={disabled}
+            onDragStart={(e) => e.dataTransfer.setData("application/atforma-block", item.id)}
+            onClick={() => onAdd(item)}
+          >
+            {React.createElement(KIND_ICON[item.kind] || Cloud, { size: 15 })}
+            <span>{item.label}</span>
+            <span className="dot" title={PROVIDERS[item.provider].name} style={{ background: PROVIDERS[item.provider].color }} />
+          </button>
+        ))}
+        {!items.length && <p className="muted pad">No blocks match.</p>}
+      </div>
+    </div>
+  );
+}
+
+function Linked({ project, id }) {
+  const { needs, assumptions, questions } = linkedTo(project, id);
+  if (!needs.length && !assumptions.length && !questions.length) return null;
+  return (
+    <div className="linked">
+      {needs.map((r) => (
+        <p key={r.id}>
+          <strong>Requirement</strong> {r.statement}
+          {r.measure && <span className="mono"> · {r.measure.metric} {r.measure.op} {String(r.measure.target)}{r.measure.unit}</span>}
+        </p>
+      ))}
+      {assumptions.map((a) => (
+        <p key={a.id}>
+          <strong>Assumption</strong> {a.statement} <span className="muted">· {a.madeAt}</span>
+        </p>
+      ))}
+      {questions.map((q) => (
+        <p key={q.id}>
+          <strong>Open question</strong> {q.question}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+function BlockDetail({ project, node, run, probe, busy, onChange, onRemove, onOpen, onBack }) {
+  const trace = run?.steps.find((s) => s.id === node.id);
+  const inputs = project.edges.filter((e) => e.target === node.id);
+  const outputs = project.edges.filter((e) => e.source === node.id);
+  const nameOf = (id) => project.nodes.find((n) => n.id === id)?.data.label;
+  const set = (patch) => onChange({ ...node, data: { ...node.data, ...patch } });
+  const setConfig = (patch) => set({ config: { ...node.data.config, ...patch } });
+  const p = PROVIDERS[node.data.provider];
+  return (
+    <section className="detail" aria-label="Block detail">
+      <button className="back" onClick={onBack} aria-label="Back to the board">
+        <ArrowLeft size={15} /> Back <kbd>Esc</kbd>
+      </button>
+      <div className="detail-col">
+        <h3>Inputs</h3>
+        {inputs.length ? (
+          inputs.map((e) => (
+            <button key={e.id} className="terminal" onClick={() => onOpen(e.source)}>
+              <span>{nameOf(e.source)}</span>
+              <small>{e.label || "data"}</small>
+            </button>
+          ))
+        ) : (
+          <p className="muted">None — this block starts the flow.</p>
+        )}
+        {trace && (
+          <>
+            <h4>Received</h4>
+            <pre>{prettyPayload(trace.input)}</pre>
+          </>
+        )}
+      </div>
+      <div className="detail-core" style={{ "--provider": p.color }}>
+        <div className="detail-title">
+          <span className="blk-provider" />
+          <input
+            aria-label="Block name"
+            disabled={busy}
+            value={node.data.label}
+            onChange={(e) => set({ label: e.target.value })}
+          />
+        </div>
+        <p className="muted">{node.data.description || "No description."}</p>
+        <div className="fields">
+          <label>
+            Provider
+            <select disabled={busy} value={node.data.provider} onChange={(e) => set({ provider: e.target.value })}>
+              {Object.entries(PROVIDERS).map(([id, v]) => (
+                <option key={id} value={id}>{v.name}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Behaviour
+            <select
+              aria-label="Execution behaviour"
+              disabled={busy}
+              value={node.data.kind}
+              onChange={(e) => set({ kind: e.target.value })}
+            >
+              <option value="resource">Reference only</option>
+              <option value="source">Source fixture</option>
+              <option value="predict">Model fixture</option>
+              <option value="agent">Agent fixture</option>
+              <option value="guard">Policy fixture</option>
+              <option value="output">Assertions</option>
+              <option value="tool">Tool / app fixture</option>
+              <option value="stream">Sensor stream</option>
+              <option value="history">Maintenance history</option>
+              <option value="features">Feature pipeline</option>
+              <option value="train">Training pipeline</option>
+              <option value="registry">Model registry</option>
+              <option value="monitor">Model monitor</option>
+            </select>
+          </label>
+          <label>
+            Region
+            <input
+              disabled={busy}
+              value={node.data.config?.region || ""}
+              onChange={(e) => setConfig({ region: e.target.value })}
+            />
+          </label>
+          <label>
+            Data class
+            <select
+              disabled={busy}
+              value={node.data.config?.classification || "Internal"}
+              onChange={(e) => setConfig({ classification: e.target.value })}
+            >
+              <option>Public</option>
+              <option>Internal</option>
+              <option>Confidential</option>
+            </select>
+          </label>
+          <label>
+            Status
+            <select aria-label="Block status" disabled={busy} value={node.data.origin === "existing" ? "existing" : "proposed"} onChange={(e) => set({ origin: e.target.value })}>
+              <option value="proposed">Proposed</option>
+              <option value="existing">Client's existing system</option>
+            </select>
+          </label>
+          <label className="check">
+            <input type="checkbox" aria-label="In prototype scope" disabled={busy} checked={!!node.data.poc} onChange={(e) => set({ poc: e.target.checked })} />
+            In prototype scope
+          </label>
+        </div>
+        <Linked project={project} id={node.id} />
+        {node.data.kind === "output" && (
+          <MeasuresEditor measures={node.data.measures} disabled={busy} onChange={(measures) => set({ measures })} />
+        )}
+        {trace ? (
+          <div className={`trace ${trace.status}`}>
+            {STATUS_GLYPH[trace.status]} {trace.status[0].toUpperCase() + trace.status.slice(1)} · {trace.duration} ms
+            {trace.error && <p className="error-box">{trace.error}</p>}
+          </div>
+        ) : (
+          <p className="muted">Not run yet. Run a test to see payloads.</p>
+        )}
+        <button className="btn ghost danger" disabled={busy} onClick={onRemove}>
+          <Trash2 size={13} /> Remove block
+        </button>
+      </div>
+      <div className={`detail-col ${probe ? "probed" : ""}`}>
+        <h3>Outputs</h3>
+        {outputs.length ? (
+          outputs.map((e) => (
+            <button key={e.id} className="terminal" onClick={() => onOpen(e.target)}>
+              <span>{nameOf(e.target)}</span>
+              <small>{e.label || "data"}</small>
+            </button>
+          ))
+        ) : (
+          <p className="muted">None — this block ends the flow.</p>
+        )}
+        {trace && (
+          <>
+            <h4>Produced{probe ? ` · probe on “${probe.label || "data"}”` : ""}</h4>
+            <pre>{prettyPayload(trace.output)}</pre>
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
+
+const brief = (p) => !!p.brief?.application?.trim();
+// The concept to draw right away: a first sketch once the idea is recognised, and a redraw
+// on the stated cloud while the design is still a sketch. Anything richer is the model's job.
+function conceptFor(was, now) {
+  if (!now.workflow) return null;
+  const proposal = sketch(now);
+  if (!now.nodes.length) return proposal;
+  // Keep refining only the concept we drew ourselves; once the user edits the board, it's theirs.
+  const untouched = now.conceptSig && conceptSignature(now) === now.conceptSig;
+  return untouched && conceptSignature(proposal.next) !== now.conceptSig ? proposal : null;
+}
+// Small, factual signals of what the harness did with a message.
+function harnessSignals(was, now) {
+  const grew = (k) => (now[k]?.length || 0) - (was[k]?.length || 0);
+  const out = [];
+  if (now.workflow && now.workflow !== was.workflow) out.push(`skill: ${WORKFLOWS.find((w) => w.id === now.workflow)?.name}`);
+  const topics = Object.keys(now.brief || {}).filter((k) => now.brief[k]?.trim() && !was.brief?.[k]?.trim());
+  if (topics.length) out.push(`noted ${topics.join(", ")}`);
+  if (grew("facts") > 0) out.push(`+${grew("facts")} fact${grew("facts") > 1 ? "s" : ""}`);
+  if (grew("needs") > 0) out.push(`+${grew("needs")} requirement${grew("needs") > 1 ? "s" : ""}`);
+  if (grew("assumptions") > 0) out.push("assumption logged");
+  if (grew("openQuestions") > 0) out.push("open question");
+  return out;
+}
+const welcome = (project) => ({
+  role: "assistant",
+  text: project.nodes.length || project.brief?.application?.trim()
+    ? `Good to see you again — let's keep going.\n\n${opening(project)}`
+    : `Hi! What would you like to build? For example, a RAG system over your company's documents, or a chatbot for your team. “Not sure” is always a fine answer along the way.`,
+});
+
+function App() {
+  const [project, setProject] = useState(readSaved);
+  const projectRef = useRef(project);
+  projectRef.current = project;
+  const [mode, setMode] = useState("design"),
+    [peek, setPeek] = useState(null),
+    [picked, setPicked] = useState(() => new Set()),
+    [saved, setSaved] = useState({ projects: [], bin: [], folder: "" }),
+    [ctx, setCtx] = useState(null),
+    [drawLive, setDrawLive] = useState(() => {
+      try {
+        return localStorage.getItem("atforma-draw-live") !== "off";
+      } catch {
+        return true;
+      }
+    }),
+    [designView, setDesignView] = useState("board"),
+    [level, setLevel] = useState("flow"),
+    [focus, setFocus] = useState(null),
+    [selected, setSelected] = useState(null),
+    [messages, setMessages] = useState(() => [welcome(projectRef.current)]),
+    [reviewView, setReviewView] = useState("findings"),
+    [input, setInput] = useState(""),
+    [pending, setPending] = useState(null),
+    [busy, setBusy] = useState(false),
+    [scenario, setScenario] = useState("happy"),
+    [run, setRun] = useState(null),
+    [runStates, setRunStates] = useState({}),
+    [history, setHistory] = useState([]),
+    [toast, setToast] = useState(""),
+    [modal, setModal] = useState(() => (readConnection() ? null : "welcome")),
+    [menu, setMenu] = useState(false),
+    [palette, setPalette] = useState(false),
+    [issuesOpen, setIssuesOpen] = useState(false),
+    [chatOpen, setChatOpen] = useState(true),
+    [environment, setEnvironment] = useState("staging"),
+    [storageError, setStorageError] = useState(false),
+    [view, setView] = useState("diagram"),
+    [probe, setProbe] = useState(null),
+    [snapshot, setSnapshot] = useState(null),
+    [measured, setMeasured] = useState({});
+  const [session, setSession] = useState(null),
+    [connection, setConnection] = useState(readConnection),
+    [agentBusy, setAgentBusy] = useState(false);
+  const agentAbort = useRef(null);
+  const recognition = useRef(null);
+  const dictated = useRef(false);
+  const [listening, setListening] = useState(false);
+  // Voice: on-device recognition where the browser offers it; otherwise ask once before
+  // using the browser's speech service (Chrome sends audio to Google for this).
+  async function startVoice() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return notify("Voice input isn't available in this browser. Chrome, Edge and Safari support it.");
+    const rec = new SR();
+    let local = false;
+    try {
+      if (typeof SR.available === "function") local = (await SR.available({ langs: ["en-US"], processLocally: true })) === "available";
+    } catch {}
+    if (local) rec.processLocally = true;
+    else {
+      let ok = false;
+      try {
+        ok = localStorage.getItem("atforma-voice-cloud") === "yes";
+      } catch {}
+      if (!ok) {
+        ok = window.confirm("Voice uses your browser's speech service, which sends the audio to Google (Chrome) or Apple (Safari) to turn it into text. Use it?");
+        if (!ok) return;
+        try {
+          localStorage.setItem("atforma-voice-cloud", "yes");
+        } catch {}
+      }
+    }
+    rec.lang = "en-US";
+    rec.interimResults = true;
+    rec.continuous = true;
+    const base = input.trim() ? `${input.trim()} ` : "";
+    rec.onresult = (e) => {
+      const text = Array.from(e.results).map((r) => r[0].transcript).join(" ");
+      setInput(base + text.trim());
+    };
+    rec.onerror = (e) => {
+      if (e.error === "not-allowed") notify("Microphone access is blocked. Allow it in the browser's site settings.");
+      else if (e.error !== "aborted" && e.error !== "no-speech") notify("Voice stopped. Try again.");
+    };
+    rec.onend = () => setListening(false);
+    recognition.current = rec;
+    dictated.current = true;
+    setListening(true);
+    rec.start();
+  }
+  function stopVoice() {
+    recognition.current?.stop();
+    setListening(false);
+  }
+  const { screenToFlowPosition, fitView, zoomIn, zoomOut } = useReactFlow();
+  const fileRef = useRef();
+  const chatEnd = useRef();
+  const runToken = useRef(0);
+  const commitGroup = useRef(false);
+  const notify = useCallback((t) => setToast(t), []);
+  // In Build the prototype card and run bar cover part of the board; fit around them.
+  const testing = mode === "review" && reviewView === "test";
+  // The notes card sits on the board's left; fit the drawing beside it, never under it.
+  const notesShown = false; // notes live in the chat header, never over the board
+  const padding = testing
+    ? { top: "70px", right: "330px", bottom: "90px", left: "80px" }
+    : notesShown
+      ? { top: "70px", right: "40px", bottom: "70px", left: "430px" }
+      : 0.25;
+  const refit = useCallback(
+    // Wait a frame or two so newly drawn blocks are measured before fitting them in.
+    (nodes) => setTimeout(() => fitView({ padding, maxZoom: 1.1, duration: 200, ...(nodes ? { nodes } : {}) }), 180),
+    [fitView, testing, notesShown],
+  );
+  useEffect(() => {
+    refit();
+  }, [testing, notesShown, refit, pending]);
+
+  const refreshSession = useCallback(async () => {
+    try {
+      const next = await discoverLocalAgent();
+      setSession(next);
+      return next;
+    } catch {
+      setSession(null);
+      return null;
+    }
+  }, []);
+  useEffect(() => {
+    refreshSession();
+  }, [refreshSession]);
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(""), 3500);
+    return () => clearTimeout(timer);
+  }, [toast]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE, JSON.stringify(project));
+      setStorageError(false);
+    } catch {
+      setStorageError(true);
+    }
+  }, [project]);
+  useEffect(() => {
+    chatEnd.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, pending, agentBusy]);
+  useEffect(
+    () => () => {
+      runToken.current++;
+      agentAbort.current?.abort();
+    },
+    [],
+  );
+
+  const commit = useCallback(
+    (next, remember = true) => {
+      if (busy) return;
+      const current = projectRef.current;
+      if (remember) setHistory((h) => [...h.slice(-29), structuredClone(current)]);
+      const updated = { ...next, revision: current.revision + 1 };
+      projectRef.current = updated;
+      setProject(updated);
+      setRunStates({});
+      setRun(null);
+      setProbe(null);
+    },
+    [busy],
+  );
+
+  // Brief, options, decisions and gate edits are not design changes: no revision bump, runs kept.
+  const updateEngagement = useCallback((next) => {
+    projectRef.current = next;
+    setProject(next);
+  }, []);
+  const allIssues = checkProject(project).filter((i) => i.level !== "info");
+  // Fixture checks only matter for designs that can be test-run; sketches are reviewed in Review.
+  const runnable = project.nodes.some((n) => n.data.kind !== "note") && !project.nodes.some((n) => n.data.kind === "resource");
+  const issues = runnable ? allIssues.filter((i) => i.level === "error") : [];
+  const selectedNode = project.nodes.find((n) => n.id === selected);
+  const currentPassed = run?.status === "passed" && run.revision === project.revision;
+  const focusBlocks = useMemo(
+    () =>
+      focus ? new Set(project.nodes.filter((n) => layerOf(n).id === focus).map((n) => n.id)) : null,
+    [focus, project.nodes],
+  );
+  const focusLabel = focus && project.nodes.map(layerOf).find((l) => l.id === focus)?.label;
+
+  // Level navigation: System → Flow (optionally focused on a layer) → Block.
+  function goSystem() {
+    setLevel("system");
+    setFocus(null);
+    setProbe(null);
+    refit();
+  }
+  function goFlow(layer = null) {
+    setLevel("flow");
+    setFocus(layer);
+    setProbe(null);
+    const ids = layer
+      ? projectRef.current.nodes.filter((n) => layerOf(n).id === layer).map((n) => ({ id: n.id }))
+      : null;
+    refit(ids);
+  }
+  function openBlock(id, edge = null) {
+    setSelected(id);
+    setProbe(edge);
+    setLevel("block");
+    const n = projectRef.current.nodes.find((x) => x.id === id);
+    if (n && focus && layerOf(n).id !== focus) setFocus(layerOf(n).id);
+  }
+  function goUp() {
+    if (level === "block") goFlow(focus);
+    else if (level === "flow") goSystem();
+  }
+
+  useEffect(() => {
+    function keys(e) {
+      const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName);
+      if (e.key === "Escape") {
+        if (modal || menu || palette || issuesOpen) {
+          if (!(modal === "welcome" && !connection)) setModal(null);
+          setMenu(false);
+          setPalette(false);
+          setIssuesOpen(false);
+        } else if (agentAbort.current) agentAbort.current.abort();
+        else if (!typing) goUp();
+      }
+      if (e.key === "/" && !typing) {
+        e.preventDefault();
+        setPalette(true);
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a" && !typing && mode === "design") {
+        e.preventDefault();
+        setLevel("flow");
+        setPicked(new Set(projectRef.current.nodes.map((n) => n.id)));
+      }
+      if ((e.key === "Delete" || e.key === "Backspace") && !typing && picked.size > 1) {
+        e.preventDefault();
+        removeNodes(picked);
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        document.querySelector(".runbar .run-button")?.click();
+      }
+    }
+    window.addEventListener("keydown", keys);
+    return () => window.removeEventListener("keydown", keys);
+  });
+
+  const onNodesChange = useCallback(
+    (changes) => {
+      // React Flow hides unmeasured nodes; keep sizes outside the design revision.
+      const sizes = changes.filter((c) => c.type === "dimensions" && c.dimensions);
+      if (sizes.length)
+        setMeasured((m) => ({ ...m, ...Object.fromEntries(sizes.map((c) => [c.id, c.dimensions])) }));
+      if (busy || level === "system") return;
+      const real = changes.filter((c) => c.type !== "select" && c.type !== "dimensions");
+      if (!real.length) return;
+      const dragging = real.some((c) => c.type === "position" && c.dragging);
+      const remember = !commitGroup.current;
+      commitGroup.current = dragging;
+      const current = projectRef.current;
+      commit({ ...current, nodes: applyNodeChanges(real, current.nodes) }, remember);
+    },
+    [commit, busy, level],
+  );
+  const onEdgesChange = useCallback(
+    (changes) => {
+      if (busy || level === "system") return;
+      const real = changes.filter((c) => c.type !== "select");
+      if (real.length)
+        commit({ ...projectRef.current, edges: applyEdgeChanges(real, projectRef.current.edges) });
+    },
+    [commit, busy, level],
+  );
+
+  // New blocks land in the middle of the visible board, nudged so they don't stack.
+  function centre(count) {
+    const box = document.getElementById("canvas")?.getBoundingClientRect();
+    const at = box
+      ? screenToFlowPosition({ x: box.left + box.width / 2, y: box.top + box.height / 2 })
+      : { x: 90, y: 90 };
+    return { x: at.x - 105 + (count % 4) * 24, y: at.y - 29 + (count % 4) * 24 };
+  }
+  function noteText(id, text) {
+    const p = projectRef.current;
+    commit({ ...p, nodes: p.nodes.map((n) => (n.id === id ? { ...n, data: { ...n.data, label: text.slice(0, 150), description: text.slice(0, 500) } } : n)) });
+  }
+  function addNote(position, attachTo = null) {
+    const p = projectRef.current;
+    const id = `note-${crypto.randomUUID().slice(0, 8)}`;
+    freshNote.current = id;
+    const note = { id, type: "resource", position, data: { label: "", kind: "note", provider: "tools", description: "", config: { region: "", classification: "Internal", timeout: 5000 }, origin: "proposed" } };
+    commit({ ...p, nodes: [...p.nodes, note], edges: attachTo ? [...p.edges, { id: `${id}-${attachTo}`, source: id, target: attachTo, type: "smoothstep", label: "" }] : p.edges });
+    if (level !== "flow") setLevel("flow");
+  }
+  function clearBoard() {
+    const p = projectRef.current;
+    if (!p.nodes.length) return;
+    commit({ ...p, nodes: [], edges: [] });
+    setPicked(new Set());
+    setSelected(null);
+    notify("Board cleared — Undo brings it back.");
+  }
+  function removeNodes(ids) {
+    const p = projectRef.current;
+    commit({ ...p, nodes: p.nodes.filter((n) => !ids.has(n.id)), edges: p.edges.filter((e) => !ids.has(e.source) && !ids.has(e.target)) });
+    setPicked(new Set());
+    setSelected(null);
+  }
+  // What the user changed by hand since the model last saw the board.
+  // What the model has seen; starts as the board as it was when the page opened.
+  const seen = useRef(null);
+  if (!seen.current) seen.current = structuredClone(project);
+  const paletteAt = useRef(null);
+  const freshNote = useRef(null);
+  function canvasChanges(now) {
+    const was = seen.current;
+    if (!was) return [];
+    const before = new Map(was.nodes.map((n) => [n.id, n])),
+      after = new Map(now.nodes.map((n) => [n.id, n]));
+    const name = (n) => (n.data.kind === "note" ? `note “${n.data.label}”` : n.data.label);
+    const out = [];
+    for (const n of now.nodes) if (!before.has(n.id)) out.push(`added ${name(n)}`);
+    for (const n of was.nodes) if (!after.has(n.id)) out.push(`removed ${name(n)}`);
+    for (const n of now.nodes) if (before.has(n.id) && before.get(n.id).data.label !== n.data.label) out.push(`renamed “${before.get(n.id).data.label}” to “${n.data.label}”`);
+    const wire = (e) => `${e.source}>${e.target}`;
+    const had = new Set(was.edges.map(wire)),
+      has = new Set(now.edges.map(wire));
+    const label = (id) => (after.get(id) || before.get(id))?.data.label || id;
+    for (const e of now.edges) if (!had.has(wire(e))) out.push(`drew an arrow ${label(e.source)} → ${label(e.target)}`);
+    for (const e of was.edges) if (!has.has(wire(e))) out.push(`removed the arrow ${label(e.source)} → ${label(e.target)}`);
+    return out.slice(0, 40);
+  }
+  function addComponent(item, position) {
+    if (busy) return;
+    const next = structuredClone(project);
+    const id = crypto.randomUUID();
+    next.nodes.push({
+      id,
+      type: "resource",
+      position: position || centre(next.nodes.length),
+      data: {
+        ...item,
+        config: { region: "To be selected", classification: "Internal", timeout: 5000 },
+        origin: "proposed",
+      },
+    });
+    commit(next);
+    setSelected(id);
+    setPalette(false);
+    if (level !== "flow") goFlow(null);
+    notify(`${item.label} added — wire its ports.`);
+  }
+  function updateNode(node) {
+    commit({ ...project, nodes: project.nodes.map((n) => (n.id === node.id ? node : n)) });
+  }
+  function removeNode(id) {
+    commit({
+      ...project,
+      nodes: project.nodes.filter((n) => n.id !== id),
+      edges: project.edges.filter((e) => e.source !== id && e.target !== id),
+    });
+    setSelected(null);
+    goFlow(focus);
+  }
+  function undo() {
+    if (!history.length || busy) return;
+    const previous = history.at(-1);
+    setHistory((h) => h.slice(0, -1));
+    // Undo takes back the design, never what the user has told us since.
+    commit(keepEngagement(previous, projectRef.current), false);
+  }
+  function download(data, name, type = "application/json") {
+    const url = URL.createObjectURL(
+      new Blob(
+        [data instanceof Uint8Array || typeof data === "string" ? data : JSON.stringify(data, null, 2)],
+        { type },
+      ),
+    );
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  async function importProject(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      if (file.size > MAX_FILE_BYTES) throw Error("Project files must be 2 MB or smaller.");
+      const content = await file.text();
+      const raw = JSON.parse(content);
+      if (raw.format || raw.version === 1) {
+        const { project: opened, migrated, from } = parseProjectFile(content);
+        loadDesign(opened, { own: true });
+        notify(migrated ? `Project opened and upgraded from ${from}.` : "Project opened.");
+      } else {
+        loadDesign(importUpstreamProject(raw));
+        notify("OpenArchFlow design imported.");
+      }
+    } catch (error) {
+      notify(error.message);
+    }
+    e.target.value = "";
+  }
+  // A project file brings its own records; templates and imports keep the current ones.
+  function loadDesign(next, { own = false } = {}) {
+    if (busy) {
+      notify("Stop the run before replacing the design.");
+      return;
+    }
+    // A project file brings its own engagement; templates and imports keep the current one.
+    if (own) {
+      // Opening a file restores its revision exactly; the previous project stays undoable.
+      setHistory((h) => [...h.slice(-29), structuredClone(projectRef.current)]);
+      projectRef.current = next;
+      setProject(next);
+      setRunStates({});
+      setRun(null);
+      setProbe(null);
+    } else commit(validateImport(keepEngagement(next, projectRef.current)));
+    setSelected(null);
+    setPending(null);
+    setScenario("happy");
+    setView("diagram");
+    setMode("design");
+    setDesignView("board");
+    setModal(null);
+    setLevel("flow");
+    setFocus(null);
+    refit();
+    if (next.importReport) notify(next.importReport.notice);
+  }
+
+  async function send(text = input) {
+    if (!text.trim() || busy || agentBusy) return;
+    const message = text.trim();
+    setMessages((m) => [...m, { role: "user", text: message }]);
+    setInput("");
+    setChatOpen(true);
+    if (!connection) {
+      setModal("welcome");
+      return;
+    }
+    if (/^compare all four clouds/i.test(message)) {
+      setMode("design");
+      setDesignView("options");
+    }
+    if (!session) {
+      setMessages((m) => [
+        ...m,
+        { role: "assistant", text: "Looks like we've lost the connection, so that message didn't go out. Let's fix it.", fix: true },
+      ]);
+      return;
+    }
+    const controller = new AbortController();
+    agentAbort.current = controller;
+    setAgentBusy(true);
+    try {
+      // Keep the discovery record current from the user's words, whatever model replies.
+      const was = projectRef.current;
+      const heard = understand(message, was);
+      updateEngagement(heard.project);
+      const signals = harnessSignals(was, heard.project);
+      // Draw the concept now, from the skills; the model refines it when it replies.
+      const concept = conceptFor(was, heard.project);
+      if (concept && drawLive) {
+        applyProposal(concept, { live: true, quiet: true });
+        signals.unshift(`sketched ${concept.next.nodes.length} blocks`);
+      }
+      // Dictated text may contain speech-recognition slips; the model reads past them.
+      const spoken = dictated.current;
+      dictated.current = false;
+      const edits = canvasChanges(projectRef.current);
+      seen.current = structuredClone(projectRef.current);
+      const result = await requestArchitect({
+        extra: edits.length ? [{ type: "discovery", id: "canvas-changes", text: `Since your last reply the user ${edits.join("; ")}. Build on these changes.` }] : [],
+        session,
+        connection,
+        message: spoken ? `${message}\n\n(Dictated by voice: interpret obvious speech-recognition errors, e.g. "rang" for "RAG".)` : message,
+        project: projectRef.current,
+        history: messages,
+        stage: mode,
+        signal: controller.signal,
+      });
+      setMessages((m) => [...m, { role: "assistant", text: result.message, live: true, signals }]);
+      if (result.proposal) {
+        const proposal = { ...result.proposal, next: validateImport(result.proposal.next) };
+        seen.current = structuredClone(proposal.next);
+        // "Draw as we talk": the design evolves with the conversation; each step is undoable.
+        if (drawLive) applyProposal(proposal, { live: true });
+        else setPending(proposal);
+      }
+    } catch (error) {
+      setMessages((m) => [
+        ...m,
+        error.name === "AbortError"
+          ? { role: "assistant", text: "Stopped. Nothing on the board changed." }
+          : { role: "assistant", text: `Hmm, that didn't work: ${error.message}`, fix: /connect|sign|model|running|service|failed|limit/i.test(error.message) },
+      ]);
+    } finally {
+      if (agentAbort.current === controller) {
+        setAgentBusy(false);
+        agentAbort.current = null;
+      }
+    }
+  }
+  // Applying a proposal is a design decision: it is recorded, and Undo restores the previous design.
+  function applyProposal(proposal = pending, { live = false, quiet = false } = {}) {
+    const current = projectRef.current;
+    if (proposal.baseRevision !== current.revision) {
+      notify("The design changed since this proposal. Ask again.");
+      setPending(null);
+      return;
+    }
+    const decision = {
+      ...newDecision(current),
+      subject: `design.${slugSubject(proposal.title)}`,
+      title: proposal.title,
+      status: "Accepted",
+      context: proposal.body || "",
+      decision: `${live ? "Drawn while talking" : "Applied"} as design revision ${current.revision + 1}.`,
+    };
+    const change = proposalDiff(current, proposal.next);
+    // Remember the concept we drew so we can keep evolving it until the user takes over.
+    commit({ ...keepEngagement(proposal.next, current), decisions: [...(current.decisions || []), decision], conceptSig: quiet ? conceptSignature(proposal.next) : null });
+    const summary = [
+      ...change.added.map((l) => `+ ${l}`),
+      ...change.changed.map((l) => `~ ${l}`),
+      ...change.removed.map((l) => `− ${l}`),
+    ].join("\n");
+    if (!quiet) setMessages((m) => [
+      ...m,
+      {
+        role: "assistant",
+        text: `${live ? "Drew it" : "Applied"}: ${proposal.title}${summary ? `\n${summary.split("\n").slice(0, 3).join("\n")}${summary.split("\n").length > 3 ? `\n+${summary.split("\n").length - 3} more` : ""}` : ""}`,
+        signals: [`${live ? "drew" : "applied"} ${proposal.next.nodes.length} blocks`, `logged ${decision.id.toUpperCase()}`, "undo ↶"],
+      },
+    ]);
+    setPending(null);
+    setSelected(null);
+    setScenario("happy");
+    if (mode !== "design" || designView !== "board") {
+      setMode("design");
+      setDesignView("board");
+    }
+    setLevel("flow");
+    setFocus(null);
+    refit();
+  }
+
+  function exportPulumi() {
+    const files = pulumiScaffold(project, environment);
+    download(
+      zipSync(Object.fromEntries(Object.entries(files).map(([name, text]) => [name, strToU8(text)]))),
+      `atforma-${environment}-pulumi.zip`,
+      "application/zip",
+    );
+    notify("Pulumi scaffold exported. Resource implementations are not generated.");
+  }
+  function cancelRun() {
+    runToken.current++;
+    setBusy(false);
+    setRun((r) => (r ? { ...r, status: "cancelled" } : r));
+    setRunStates((s) =>
+      Object.fromEntries(Object.entries(s).map(([id, state]) => [id, state === "running" ? "cancelled" : state])),
+    );
+  }
+  async function runFlow() {
+    if (busy) return;
+    if (!runnable || issues.length) return;
+    const revision = project.revision,
+      p = structuredClone({ ...project, nodes: project.nodes.filter((n) => n.data.kind !== "note"), edges: project.edges.filter((e) => !project.nodes.some((n) => n.data.kind === "note" && (n.id === e.source || n.id === e.target))) }),
+      token = ++runToken.current;
+    setBusy(true);
+    setRunStates({});
+    const steps = [],
+      outputs = {},
+      states = {};
+    setRun({ status: "running", revision, scenario, steps: [] });
+    let failed = false;
+    try {
+      for (const n of orderProject(p)) {
+        if (token !== runToken.current) return;
+        const parents = p.edges.filter((e) => e.target === n.id);
+        // Several inputs are merged, in wire order.
+        const input = parents.length ? Object.assign({}, ...parents.map((e) => outputs[e.source])) : null;
+        if (parents.some((e) => states[e.source] === "failed" || states[e.source] === "skipped")) {
+          states[n.id] = "skipped";
+          steps.push({ id: n.id, label: n.data.label, status: "skipped", input: null, output: null, error: "Not executed because an upstream step failed.", duration: 0 });
+          setRunStates({ ...states });
+          continue;
+        }
+        states[n.id] = "running";
+        setRunStates({ ...states });
+        const started = performance.now();
+        await new Promise((resolve) => setTimeout(resolve, 380));
+        if (token !== runToken.current) return;
+        try {
+          const output = executeBlock(n, input, scenario);
+          outputs[n.id] = output;
+          states[n.id] = "passed";
+          steps.push({ id: n.id, label: n.data.label, status: "passed", input, output, duration: Math.round(performance.now() - started) });
+        } catch (error) {
+          failed = true;
+          states[n.id] = "failed";
+          steps.push({ id: n.id, label: n.data.label, status: "failed", input, output: null, error: error.message, duration: Math.round(performance.now() - started) });
+        }
+        setRunStates({ ...states });
+        setRun({ status: "running", revision, scenario, steps: [...steps] });
+      }
+      setRun({ status: failed ? "failed" : "passed", revision, scenario, steps: [...steps] });
+    } finally {
+      if (token === runToken.current) setBusy(false);
+    }
+  }
+
+  // Canvas content per level.
+  // A pending proposal is drawn on the board straight away, as a preview, until applied or dismissed.
+  const shown = pending?.next && mode === "design" ? pending.next : project;
+  const previewing = shown !== project;
+  const system = useMemo(() => systemView(shown, runStates), [shown, runStates]);
+  const wireClass = (source) =>
+    `wire ${runStates[source] === "failed" ? "wire-failed" : runStates[source] === "passed" ? "wire-passed" : ""}`;
+  const canvasNodes =
+    level === "system"
+      ? system.nodes.map((n) => ({ ...n, measured: measured[n.id], className: previewing ? "preview" : "" }))
+      : shown.nodes.map((n) => ({
+          ...n,
+          type: n.data.kind === "note" ? "note" : n.type,
+          measured: measured[n.id],
+          className: previewing ? "preview" : "",
+          selected: n.id === selected || picked.has(n.id),
+          data: { ...n.data, onText: noteText, fresh: n.id === freshNote.current, runState: runStates[n.id], dim: (focusBlocks && !focusBlocks.has(n.id)) || (testing && !n.data.poc && n.data.kind !== "resource" && project.nodes.some((x) => x.data.poc)) },
+        }));
+  const canvasEdges =
+    level === "system"
+      ? system.edges.map((e) => ({ ...e, className: wireClass(e.data.sources[0]), markerEnd: { type: "arrowclosed", width: 14, height: 14 } }))
+      : shown.edges.map((e) => ({
+          ...e,
+          className: `${previewing ? "preview" : ""} ${wireClass(e.source)} ${focusBlocks && !(focusBlocks.has(e.source) || focusBlocks.has(e.target)) ? "dim" : ""}`,
+          animated: busy && runStates[e.source] === "passed",
+          markerEnd: { type: "arrowclosed", width: 14, height: 14 },
+        }));
+  const slug = project.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "atflow";
+  const exportDocument = () => {
+    download(deploymentDocument(project, run), `${slug}-deployment-document.md`, "text/markdown");
+    notify("Deployment document generated from the current project.");
+  };
+  // One short real request proves the sign-in, model ID and local service all work.
+  async function verifyConnection(choice) {
+    let live = session;
+    if (!live) {
+      try {
+        live = await discoverLocalAgent();
+        setSession(live);
+      } catch {
+        throw Error("Atforma's local service isn't running. Start it with npm run local, then try again.");
+      }
+    }
+    const result = await requestArchitect({
+      session: live,
+      connection: choice,
+      message: "Connection check from Atforma. Reply with one short sentence; no proposal.",
+      project: projectRef.current,
+      history: [],
+      stage: "discover",
+      signal: AbortSignal.timeout(90000),
+    });
+    if (!result?.message) throw Error("The model didn't reply. Check the model ID and sign-in.");
+  }
+  // Sketching is the model's job; the skill's starter sketch is described to it as a starting point.
+  function sketchIt() {
+    send("Please draft a first sketch of the architecture from what I've told you, as a proposal I can review.");
+  }
+  function skipQuestion() {
+    const p = projectRef.current;
+    const skipped = { ...p, asked: [...(p.asked || []), ask?.id].filter(Boolean) };
+    const next = nextQuestion({ ...skipped, lastAsked: null });
+    updateEngagement({ ...skipped, lastAsked: next });
+    setMessages((m) => [...m, { role: "assistant", text: next ? `No problem, we'll come back to it.\n\n${next.question}\n${next.beginner}` : "That's everything I need for now." }]);
+  }
+  // Autosave to the helper (your account on this computer), a moment after each change.
+  const binned = useRef(new Set());
+  useEffect(() => {
+    if (!session || binned.current.has(project.id) || (!project.nodes.length && !project.brief?.application?.trim())) return;
+    const t = setTimeout(async () => {
+      try {
+        await projectStore(session, "save", { id: project.id, file: toProjectFile(project) });
+      } catch {}
+    }, 800);
+    return () => clearTimeout(t);
+  }, [project, session]);
+  async function refreshProjects() {
+    if (!session) return;
+    try {
+      setSaved(await projectStore(session, "list"));
+    } catch (e) {
+      notify(e.message);
+    }
+  }
+  function switchTo(next) {
+    const leaving = projectRef.current;
+    if (session && !binned.current.has(leaving.id) && (leaving.nodes.length || leaving.brief?.application?.trim()))
+      projectStore(session, "save", { id: leaving.id, file: toProjectFile(leaving) }).catch(() => {});
+    setHistory((h) => [...h.slice(-29), structuredClone(projectRef.current)]);
+    projectRef.current = next;
+    seen.current = structuredClone(next);
+    setProject(next);
+    setRun(null);
+    setRunStates({});
+    setPending(null);
+    setSelected(null);
+    setPicked(new Set());
+    setLevel("flow");
+    setFocus(null);
+    setMode("design");
+    setDesignView("board");
+    setPeek(null);
+    setMessages([welcome(next)]);
+    refit();
+  }
+  async function openSaved(id) {
+    try {
+      const { project: opened } = fromProjectFile(await projectStore(session, "get", { id }));
+      switchTo(opened);
+      setModal(null);
+    } catch (e) {
+      notify(e.message);
+    }
+  }
+  function newProject() {
+    switchTo(validateImport(emptyProject()));
+    setModal(null);
+  }
+  async function binProject(id) {
+    try {
+      binned.current.add(id);
+      await projectStore(session, "trash", { id });
+      if (id === projectRef.current.id) switchTo(validateImport(emptyProject()));
+      await refreshProjects();
+      notify("Moved to the bin. Restore it from Projects any time.");
+    } catch (e) {
+      binned.current.delete(id);
+      notify(e.message);
+    }
+  }
+  async function restoreProject(id) {
+    try {
+      await projectStore(session, "restore", { id });
+      binned.current.delete(id);
+      await refreshProjects();
+    } catch (e) {
+      notify(e.message);
+    }
+  }
+  async function purgeProject(id) {
+    try {
+      await projectStore(session, "purge", { id });
+      await refreshProjects();
+    } catch (e) {
+      notify(e.message);
+    }
+  }
+  const findings = useMemo(() => review(project), [project]);
+  const costs = useMemo(() => estimate(project), [project]);
+  const topics = progress(project);
+  const blockerCount = findings.filter((f) => f.severity === "blocker" && f.status === "open").length;
+  const ask = project.lastAsked?.question ? project.lastAsked : nextQuestion(project);
+  function saveProjectFile() {
+    try {
+      download(JSON.stringify(toProjectFile(project), null, 2), `${slug}.atforma.json`);
+      notify("Project file saved. Open it later from ⋯ → Open project file.");
+    } catch (error) {
+      notify(error.message);
+    }
+  }
+  const exportDecisions = () =>
+    download(`# Decisions · ${project.name}\n\n${adrMarkdown(project.decisions)}`, `${slug}-decisions.md`, "text/markdown");
+  function showDesign(cloud) {
+    send(`Propose this design on ${OPTION_NAMES[cloud]}, keeping its structure, so I can compare.`);
+  }
+  function recommend(option) {
+    const d = recommendationDecision(project, option, OPTION_NAMES);
+    updateEngagement({ ...project, decisions: [...(project.decisions || []), d] });
+    setDesignView("decisions");
+    notify(`${d.id.toUpperCase()} drafted. Add an owner and the consequences.`);
+  }
+  const scenarioReady = ([, , needs]) => !needs || project.nodes.some((n) => n.data.kind === needs);
+  const onBoard = testing || (mode === "design" && designView === "board");
+  const diff = pending?.next ? proposalDiff(project, pending.next) : null;
+
+  return (
+    <div className={`app ${chatOpen ? "" : "chat-closed"}`}>
+      <header className="bar">
+        <button className="brand" onClick={() => setModal("about")} title="About Atforma">
+          <Mark />
+          <span>Atforma</span>
+        </button>
+        <nav className="crumbs" aria-label="Level">
+          <button className="projects-btn" aria-label="Projects" title="Your projects" onClick={() => (refreshProjects(), setModal("projects"))}>
+            <FolderOpen size={15} />
+          </button>
+          <input
+            className="project-name"
+            aria-label="Project name"
+            value={project.name}
+            onChange={(e) => commit({ ...project, name: e.target.value })}
+          />
+          <ChevronRight size={13} />
+          <button className={level === "system" ? "here" : ""} onClick={goSystem}>
+            System
+          </button>
+          {level !== "system" && (
+            <>
+              <ChevronRight size={13} />
+              <button className={level === "flow" ? "here" : ""} onClick={() => goFlow(focus)}>
+                {focusLabel || "Flow"}
+              </button>
+              {focus && level === "flow" && (
+                <button className="clear" title="Show all blocks" aria-label="Show all blocks" onClick={() => goFlow(null)}>
+                  <X size={12} />
+                </button>
+              )}
+            </>
+          )}
+          {level === "block" && selectedNode && (
+            <>
+              <ChevronRight size={13} />
+              <span className="here">{selectedNode.data.label}</span>
+            </>
+          )}
+        </nav>
+        <div className="modes" role="tablist">
+          {MODES.map(([id, label]) => (
+            <button
+              key={id}
+              role="tab"
+              aria-selected={mode === id}
+              className={mode === id ? "on" : ""}
+              onClick={() => setMode(id)}
+            >
+              {React.createElement(MODE_ICON[id], { size: 14 })}
+              {label}
+              {id === "review" && blockerCount > 0 && <span className="badge">{blockerCount}</span>}
+            </button>
+          ))}
+        </div>
+        <div className="bar-actions">
+          {storageError && <span className="warn-text">Not saved</span>}
+          <button className="icon" title="More" aria-label="More" onClick={() => setMenu((m) => !m)}>
+            <MoreHorizontal size={16} />
+          </button>
+          <button
+            className="icon"
+            title={chatOpen ? "Hide chat" : "Show chat"}
+            aria-label={chatOpen ? "Hide chat" : "Show chat"}
+            onClick={() => setChatOpen((o) => !o)}
+          >
+            {chatOpen ? <PanelRightClose size={16} /> : <PanelRightOpen size={16} />}
+          </button>
+        </div>
+        {menu && (
+          <div className="menu" role="menu" onClick={() => setMenu(false)}>
+            <button role="menuitem" onClick={() => (refreshProjects(), setModal("projects"))} disabled={busy}>Projects</button>
+            <button role="menuitem" onClick={newProject} disabled={busy}>New project</button>
+            <button role="menuitem" onClick={() => setPalette(true)} disabled={busy}>Add a block</button>
+            <button role="menuitem" onClick={() => setModal("templates")} disabled={busy}>Templates</button>
+            <button role="menuitem" onClick={() => setModal("import")} disabled={busy}>Import diagram</button>
+            <button role="menuitem" onClick={() => fileRef.current.click()} disabled={busy}>Open project file</button>
+            <button role="menuitem" onClick={saveProjectFile}>Save project file</button>
+            <button role="menuitem" onClick={exportDocument}>Deployment document</button>
+            <button role="menuitem" onClick={exportDecisions}>Export decisions</button>
+            <hr />
+            <button role="menuitem" onClick={() => setModal("connections")}>Connections</button>
+            <button role="menuitem" onClick={() => setModal("licenses")}>Licences</button>
+          </div>
+        )}
+      </header>
+
+      <main
+        id="canvas"
+        className={`canvas level-${level}`}
+        onDrop={(e) => {
+          e.preventDefault();
+          const item = ALL_CATALOG.find((c) => c.id === e.dataTransfer.getData("application/atforma-block"));
+          if (item) addComponent(item, screenToFlowPosition({ x: e.clientX, y: e.clientY }));
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "move";
+        }}
+      >
+        <ReactFlow
+          nodes={canvasNodes}
+          edges={canvasEdges}
+          nodeTypes={nodeTypes}
+          colorMode="system"
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={(c) => {
+            if (!busy && level === "flow")
+              commit({ ...project, edges: addEdge({ ...c, type: "smoothstep", label: "data" }, project.edges) });
+          }}
+          isValidConnection={(c) =>
+            c.source !== c.target && !project.edges.some((e) => e.source === c.source && e.target === c.target)
+          }
+          onNodeClick={(_, n) => {
+            if (level === "system") return;
+            setSelected(n.id);
+            setProbe(null);
+          }}
+          onNodeDoubleClick={(_, n) => (level === "system" ? goFlow(n.data.layer) : openBlock(n.id))}
+          onEdgeClick={(_, e) => (level === "system" ? goFlow(null) : openBlock(e.source, e))}
+          onPaneContextMenu={(e) => {
+            e.preventDefault();
+            if (previewing) return;
+            setCtx({ x: e.clientX, y: e.clientY, at: screenToFlowPosition({ x: e.clientX, y: e.clientY }) });
+          }}
+          onNodeContextMenu={(e, n) => {
+            e.preventDefault();
+            if (previewing || level === "system") return;
+            setCtx({ x: e.clientX, y: e.clientY, at: screenToFlowPosition({ x: e.clientX, y: e.clientY }), node: n });
+          }}
+          onPaneClick={() => {
+            setCtx(null);
+            setPicked(new Set());
+            setSelected(null);
+            setPalette(false);
+          }}
+          nodesDraggable={!busy && !previewing && level === "flow"}
+          nodesConnectable={!busy && !previewing && level === "flow"}
+          elementsSelectable={!busy}
+          deleteKeyCode={busy || level !== "flow" ? null : ["Backspace", "Delete"]}
+          fitView
+          fitViewOptions={{ padding: 0.25, maxZoom: 1.2 }}
+          minZoom={0.25}
+          maxZoom={1.8}
+          zoomOnDoubleClick={false}
+          proOptions={{ hideAttribution: true }}
+        >
+          <Background gap={20} size={1} />
+        </ReactFlow>
+
+        <div className="toolbar" aria-label="Tools">
+          <button
+            className="icon"
+            title="Auto-arrange"
+            aria-label="Auto-arrange"
+            disabled={busy || !project.nodes.length}
+            onClick={() => {
+              setLevel("flow");
+              commit(autoLayout(projectRef.current));
+              refit();
+            }}
+          >
+            <LayoutGrid size={17} />
+          </button>
+          <button className="icon" title="Clear board" aria-label="Clear board" disabled={!project.nodes.length || busy} onClick={clearBoard}>
+            <Eraser size={17} />
+          </button>
+          <button className="icon" title="Undo" aria-label="Undo" disabled={!history.length || busy} onClick={undo}>
+            <Undo2 size={17} />
+          </button>
+        </div>
+        {level !== "block" && (
+          <div className="zoom">
+            <button className="icon" aria-label="Zoom out" onClick={() => zoomOut()}><ZoomOut size={15} /></button>
+            <button className="icon" aria-label="Fit" title="Fit" onClick={() => refit()}><Maximize2 size={14} /></button>
+            <button className="icon" aria-label="Zoom in" onClick={() => zoomIn()}><ZoomIn size={15} /></button>
+          </div>
+        )}
+        {palette && <Palette onAdd={(item) => addComponent(item, paletteAt.current || undefined)} onClose={() => ((paletteAt.current = null), setPalette(false))} disabled={busy} />}
+
+        {level === "system" && project.nodes.length > 0 && (
+          <p className="hint">Double-click to open</p>
+        )}
+        {level === "flow" && selectedNode && (
+          <p className="hint">Double-click for detail · Esc back</p>
+        )}
+        {ctx && (
+          <div className="ctx-menu" role="menu" style={{ left: ctx.x, top: ctx.y }} onMouseLeave={() => setCtx(null)}>
+            {ctx.node ? (
+              <>
+                <button role="menuitem" onClick={() => (addNote({ x: ctx.at.x + 40, y: ctx.at.y - 120 }, ctx.node.id), setCtx(null))}>
+                  Add comment
+                </button>
+                <button role="menuitem" className="danger" onClick={() => (removeNodes(new Set(picked.size > 1 ? picked : [ctx.node.id])), setCtx(null))}>
+                  {picked.size > 1 ? `Delete ${picked.size} items` : "Delete"}
+                </button>
+              </>
+            ) : (
+              <>
+                <button role="menuitem" onClick={() => ((paletteAt.current = ctx.at), setPalette(true), setCtx(null))}>
+                  Add block here
+                </button>
+                <button role="menuitem" onClick={() => (addNote(ctx.at), setCtx(null))}>
+                  Add comment here
+                </button>
+                <button role="menuitem" onClick={() => (setLevel("flow"), setPicked(new Set(project.nodes.map((n) => n.id))), setCtx(null))}>
+                  Select all
+                </button>
+                <button role="menuitem" className="danger" disabled={!project.nodes.length} onClick={() => (clearBoard(), setCtx(null))}>
+                  Clear board
+                </button>
+              </>
+            )}
+          </div>
+        )}
+        {picked.size > 1 && (
+          <div className="preview-bar" role="status">
+            <span>{picked.size} selected</span>
+            <button className="btn" onClick={() => removeNodes(picked)}>
+              Delete
+            </button>
+            <button className="btn ghost" onClick={() => setPicked(new Set())}>
+              Cancel
+            </button>
+          </div>
+        )}
+        {previewing && (
+          <div className="preview-bar" role="status">
+            <span>
+              Preview · <strong>{pending.title}</strong>
+            </span>
+            <button className="btn primary" disabled={busy} onClick={() => applyProposal()}>
+              Apply
+            </button>
+            <button className="btn ghost" onClick={() => setPending(null)}>
+              Dismiss
+            </button>
+          </div>
+        )}
+        {!shown.nodes.length && (
+          <div className="empty-canvas">
+            <p className="muted">Describe your idea in the chat — it takes shape here.</p>
+          </div>
+        )}
+
+        {level === "block" && selectedNode && (
+          <BlockDetail
+            project={project}
+            node={selectedNode}
+            run={run}
+            probe={probe}
+            busy={busy}
+            onChange={updateNode}
+            onRemove={() => removeNode(selectedNode.id)}
+            onOpen={(id) => openBlock(id)}
+            onBack={goUp}
+          />
+        )}
+
+        {testing && view === "panel" && level !== "block" && (
+          <FrontPanel project={project} run={run} onSelect={openBlock} />
+        )}
+
+        {testing && !runnable && (
+          <div className="runbar note">
+            <span>
+              {project.nodes.length
+                ? "This design is a sketch, so it can't be test-run yet. Test runs need blocks with sample-data behaviour — the Predictive maintenance and Analytics templates have them."
+                : "Nothing to test yet. Describe what you want to build in Discover first."}
+            </span>
+          </div>
+        )}
+        {testing && runnable && issues.length > 0 && (
+          <div className="runbar note">
+            <span>Fix before testing:</span>
+            <div className="steps">
+              {issues.map((issue, i) => (
+                <button key={i} className="step failed" onClick={() => issue.nodeId && openBlock(issue.nodeId)}>
+                  {issue.text}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {testing && runnable && !issues.length && (
+          <div className="runbar">
+            {busy ? (
+              <button className="btn" onClick={cancelRun}>
+                <X size={14} /> Stop
+              </button>
+            ) : (
+              <button className="btn primary run-button" onClick={runFlow} title="Runs each block in order with sample data on this computer. No AI model, no cloud, no cost.">
+                <Play size={13} /> Test with sample data
+              </button>
+            )}
+            <select aria-label="Test scenario" disabled={busy} value={scenario} onChange={(e) => setScenario(e.target.value)}>
+              {SCENARIOS.filter(scenarioReady).map(([id, label]) => (
+                <option key={id} value={id}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <div className="seg">
+              <button className={view === "diagram" ? "on" : ""} onClick={() => setView("diagram")}>Diagram</button>
+              <button className={view === "panel" ? "on" : ""} onClick={() => setView("panel")}>Panel</button>
+            </div>
+            {run && (
+              <span className={`run-summary ${run.status}`}>
+                {STATUS_GLYPH[run.status]} {run.status[0].toUpperCase() + run.status.slice(1)} · {run.steps.filter((s) => s.status === "passed").length}/{project.nodes.length}
+              </span>
+            )}
+            <div className="steps">
+              {run?.steps.map((s) => (
+                <button
+                  key={s.id}
+                  className={`step ${s.status} ${selected === s.id ? "on" : ""}`}
+                  title={s.error || `${s.duration} ms`}
+                  onClick={() => openBlock(s.id)}
+                >
+                  {s.label}
+                </button>
+              ))}
+              {!run && <span className="muted">Pick a scenario, then test. Failure scenarios show where problems are caught.</span>}
+            </div>
+          </div>
+        )}
+
+        {testing && runnable && level !== "block" && <TestCard project={project} run={run} onOpen={(id) => openBlock(id)} />}
+
+        {mode === "review" && (
+          <div className="subviews seg" role="tablist" aria-label="Review views">
+            {[
+              ["findings", "Findings"],
+              ["test", "Test run"],
+            ].map(([id, label]) => (
+              <button key={id} role="tab" aria-selected={reviewView === id} className={reviewView === id ? "on" : ""} onClick={() => setReviewView(id)}>
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+        {mode === "review" && reviewView === "findings" && (
+          <ReviewView
+            project={project}
+            findings={findings}
+            onChange={updateEngagement}
+            onOpen={(id) => {
+              setMode("design");
+              setDesignView("board");
+              openBlock(id);
+            }}
+            onAddRequirement={(category) => {
+              updateEngagement({
+                ...projectRef.current,
+                needs: [
+                  ...(projectRef.current.needs || []),
+                  newRequirement(
+                    category === "availability"
+                      ? { category, statement: "Available during business hours", measure: { metric: "monthly availability", op: ">=", target: 99.5, unit: "%" } }
+                      : { category, statement: "Responds quickly enough for people to wait", measure: { metric: "p95 response time", op: "<=", target: 10, unit: "s" } },
+                  ),
+                ],
+              });
+              setMode("design");
+              setDesignView("requirements");
+              notify("Requirement added with a suggested target — adjust it to what you need.");
+            }}
+          />
+        )}
+        {mode === "estimate" && <EstimateView project={project} result={costs} onChange={updateEngagement} />}
+        {mode === "deploy" && (
+          <DeployView
+            project={project}
+            findings={findings}
+            environment={environment}
+            onEnvironment={setEnvironment}
+            onPlan={() => {
+              download(makePlan(project, run, environment), `${slug}-${environment}-plan.json`);
+              notify("Plan exported. Nothing was provisioned.");
+            }}
+            onPulumi={() => setModal("pulumi")}
+            onDocument={exportDocument}
+            onChange={updateEngagement}
+          />
+        )}
+
+        {mode === "design" && (
+          <div className="subviews seg" role="tablist" aria-label="Design views">
+            {[
+              ["board", "Board"],
+              ["requirements", "Requirements"],
+              ["options", "Options"],
+              ["decisions", "Decisions"],
+            ].map(([id, label]) => (
+              <button key={id} role="tab" aria-selected={designView === id} className={designView === id ? "on" : ""} onClick={() => setDesignView(id)}>
+                {label}
+                {id === "decisions" && project.decisions?.length ? ` ${project.decisions.filter((d) => d.status !== "Superseded").length}` : ""}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {mode === "design" && designView === "options" && (
+          <OptionsView project={project} onChange={updateEngagement} onShowDesign={showDesign} onRecommend={recommend} />
+        )}
+        {mode === "design" && designView === "decisions" && (
+          <DecisionsView project={project} onChange={updateEngagement} onError={notify} />
+        )}
+        {mode === "design" && designView === "requirements" && (
+          <RequirementsView project={project} onChange={updateEngagement} topics={topics} />
+        )}
+      </main>
+
+      {chatOpen && (
+        <aside className="chat" aria-label="Chat">
+          <div className="chat-head">
+            <strong className="chat-title">
+              <Mark /> Atforma
+            </strong>
+            <label className="live-toggle" title="On: changes are drawn as we talk, and you can undo any of them. Off: they wait as previews for you to apply.">
+              <input
+                type="checkbox"
+                checked={drawLive}
+                onChange={(e) => {
+                  setDrawLive(e.target.checked);
+                  try {
+                    localStorage.setItem("atforma-draw-live", e.target.checked ? "on" : "off");
+                  } catch {}
+                }}
+              />
+              Draw as we talk
+            </label>
+            <button className="model" onClick={() => setModal("connections")} title="Connections">
+              <span className={`led ${connection && session ? "on" : ""}`} />
+              {connection ? `${connection.model}${connection.effort ? ` · ${EFFORT_LABEL[connection.effort] || connection.effort}` : ""}` : "Connect a model"}
+            </button>
+          </div>
+          <div className="skills" aria-label="Active skills">
+            <button
+              className={`known-bar ${peek === "known" ? "on" : ""}`}
+              aria-label={`What we know: ${topics.filter((t) => t.state !== "open").length} of ${topics.length}`}
+              onClick={() => setPeek((p) => (p === "known" ? null : "known"))}
+            >
+              <span className="segs">
+                {topics.map((t) => (
+                  <i key={t.id} className={t.state} />
+                ))}
+              </span>
+              {topics.filter((t) => t.state !== "open").length} of {topics.length}
+            </button>
+            {WORKFLOWS.filter((w) => w.id === project.workflow).map((w) => (
+              <button key={w.id} className={`skill ${peek === "skill" ? "on" : ""}`} onClick={() => setPeek((p) => (p === "skill" ? null : "skill"))}>
+                Skill: {w.name}
+              </button>
+            ))}
+            {project.nodes.length > 0 && (
+              <button className="skill" title="Review rules check the design on every change" onClick={() => setMode("review")}>
+                Review {findings.filter((f) => f.status === "open").length}
+              </button>
+            )}
+          </div>
+          {peek === "skill" &&
+            WORKFLOWS.filter((w) => w.id === project.workflow).map((w) => (
+              <div key={w.id} className="peek">
+                <strong>{w.name}</strong> <span className="muted">knows</span>
+                <div className="knows">
+                  {w.knows.map((k) => (
+                    <span key={k}>{k}</span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          {peek === "known" && (
+            <ul className="peek known-list">
+              {topics.map((t) => (
+                <li key={t.id} className={t.state} title={project.brief?.[t.id] || t.question}>
+                  <span>{t.state === "known" ? "✓" : t.state === "assumed" ? "~" : "·"}</span>
+                  {t.label}
+                  {t.state !== "open" && <em>{String(project.brief?.[t.id] || "").split("\n").filter((l) => !/^Not sure yet/.test(l)).pop() || "assumed"}</em>}
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="messages">
+            {messages.map((m, i) => (
+              <div key={i} className={`msg ${m.role}`}>
+                {m.text}
+                {m.fix && (
+                  <button className="btn fix" onClick={() => setModal("connections")}>
+                    Fix connection
+                  </button>
+                )}
+                {m.signals?.length > 0 && (
+                  <div className="signals" aria-label="What the harness did">
+                    {m.signals.map((sig) => (
+                      <span key={sig}>{sig}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+            {pending && diff && (
+              <div className="proposal">
+                <strong>{pending.title}</strong>
+                <ul>
+                  {diff.added.map((l) => <li key={`a${l}`} className="add">+ {l}</li>)}
+                  {diff.changed.map((l) => <li key={`c${l}`} className="chg">~ {l}</li>)}
+                  {diff.removed.map((l) => <li key={`r${l}`} className="del">− {l}</li>)}
+                  {(diff.wiresAdded > 0 || diff.wiresRemoved > 0) && (
+                    <li className="muted">
+                      wires +{diff.wiresAdded} −{diff.wiresRemoved}
+                    </li>
+                  )}
+                </ul>
+                <small className="muted">Based on r{pending.baseRevision}</small>
+                <div className="row">
+                  <button className="btn primary" disabled={busy} onClick={() => applyProposal()}>Apply to canvas</button>
+                  <button className="btn ghost" onClick={() => setPending(null)}>Dismiss</button>
+                </div>
+              </div>
+            )}
+            {agentBusy && (
+              <div className="msg assistant working">
+                <Loader2 size={13} className="spin" /> Refining…
+                <button className="link" onClick={() => agentAbort.current?.abort()}>Cancel</button>
+              </div>
+            )}
+            <div ref={chatEnd} />
+          </div>
+          <div className="prompts">
+            {mode === "design" && brief(project) && ask && (
+              <>
+                <button disabled={busy || agentBusy} onClick={() => send("Not sure")}>Not sure</button>
+                <button onClick={() => setMessages((m) => [...m, { role: "assistant", text: `Why I ask: ${ask.why || "it shapes the design."}` }])}>Why?</button>
+                <button onClick={skipQuestion}>Skip</button>
+              </>
+            )}
+            {mode === "design" && project.workflow && !project.nodes.length && !pending && (
+              <button className="primary-chip" disabled={busy || agentBusy} onClick={sketchIt}>Sketch it →</button>
+            )}
+            {PROMPTS[mode].filter(() => project.nodes.length > 0).map((s) => (
+              <button key={s} disabled={busy || agentBusy} onClick={() => send(s)}>
+                {s}
+              </button>
+            ))}
+          </div>
+          <form
+            className="composer"
+            onSubmit={(e) => {
+              e.preventDefault();
+              send();
+            }}
+          >
+            <textarea
+              aria-label="Your message"
+              placeholder={brief(project) ? "Reply in your own words…" : "Describe what you want to build…"}
+              rows={2}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  send();
+                }
+              }}
+            />
+            <button
+              type="button"
+              className={`mic ${listening ? "on" : ""}`}
+              aria-label={listening ? "Stop dictation" : "Speak"}
+              title={listening ? "Stop" : "Speak — your words appear here"}
+              onClick={listening ? stopVoice : startVoice}
+            >
+              {listening ? <Square size={13} /> : <Mic size={15} />}
+            </button>
+            <button type="submit" className="send" aria-label="Send message" disabled={!input.trim() || busy || agentBusy}>
+              <ArrowUp size={15} />
+            </button>
+          </form>
+        </aside>
+      )}
+
+      <input type="file" ref={fileRef} accept="application/json,.json" hidden onChange={importProject} />
+      {toast && (
+        <div className="toast" role="status">
+          {toast}
+        </div>
+      )}
+      {modal && (
+        <div className="backdrop" onMouseDown={(e) => e.target === e.currentTarget && !(modal === "welcome" && !connection) && setModal(null)}>
+          <section className="modal" role="dialog" aria-modal="true" aria-label={modal}>
+            {!(modal === "welcome" && !connection) && <button className="icon modal-close" onClick={() => setModal(null)} aria-label="Close dialog">
+              <X size={16} />
+            </button>}
+            {modal === "templates" ? (
+              <TemplateDialog onLoad={loadDesign} />
+            ) : modal === "import" ? (
+              <ImportDialog onLoad={loadDesign} onNotify={notify} />
+            ) : modal === "pulumi" ? (
+              <PulumiDialog
+                snapshot={snapshot}
+                onSnapshot={setSnapshot}
+                onLoad={loadDesign}
+                onExport={exportPulumi}
+                onNotify={notify}
+                environment={environment}
+              />
+            ) : modal === "projects" ? (
+              <ProjectsDialog
+                list={saved}
+                folder={saved.folder}
+                currentId={project.id}
+                onOpen={openSaved}
+                onNew={newProject}
+                onBin={binProject}
+                onRestore={restoreProject}
+                onPurge={purgeProject}
+              />
+            ) : modal === "start-over" ? (
+              <>
+                <h2>Start over?</h2>
+                <p>This clears the board, notes and chat. Your connection stays.</p>
+                <div className="row">
+                  <button
+                    className="button run-button"
+                    onClick={() => {
+                      const fresh = validateImport(emptyProject());
+                      setHistory((h) => [...h.slice(-29), structuredClone(projectRef.current)]);
+                      projectRef.current = fresh;
+                      setProject(fresh);
+                      setRun(null);
+                      setRunStates({});
+                      setPending(null);
+                      setSelected(null);
+                      setLevel("flow");
+                      setFocus(null);
+                      setMode("design");
+                      setDesignView("board");
+                      setPeek(null);
+                      setMessages([welcome(fresh)]);
+                      setModal(null);
+                    }}
+                  >
+                    Start over
+                  </button>
+                  <button className="button subtle" onClick={() => setModal(null)}>
+                    Keep working
+                  </button>
+                </div>
+                <p className="modal-fine">Want to keep this one? ⋯ → Save project file first.</p>
+              </>
+            ) : modal === "connections" || modal === "welcome" ? (
+              <Connections
+                session={session}
+                connection={connection}
+                onRetry={refreshSession}
+                welcome={!connection}
+                onCheck={verifyConnection}
+                onSave={(choice) => {
+                  setConnection(choice);
+                  saveConnection(choice);
+                  setModal(null);
+                }}
+              />
+            ) : modal === "licenses" ? (
+              <>
+                <h2>Licences</h2>
+                <dl className="licences">
+                  <dt>OpenArchFlow</dt>
+                  <dd>
+                    MIT · © 2026 Rafael Sales. Catalogues, templates, import parsers, layout, payload formatting.{" "}
+                    <a href="/licenses/openarchflow-LICENSE.txt" target="_blank" rel="noreferrer">Licence</a>
+                  </dd>
+                  <dt>AWS GenAI Solutions Architect Agent</dt>
+                  <dd>
+                    MIT-0. Agent composition, retry and rate limiting in the sidecar; prompt replaced with a cloud-neutral one.{" "}
+                    <a href="/licenses/aws-architect-LICENSE.txt" target="_blank" rel="noreferrer">Licence</a>
+                  </dd>
+                  <dt>AWS Labs MCP servers</dt>
+                  <dd>
+                    Apache-2.0. Manifest only; not bundled or executed.{" "}
+                    <a href="/licenses/aws-mcp-LICENSE.txt" target="_blank" rel="noreferrer">Licence</a>
+                  </dd>
+                </dl>
+                <a href="/licenses/dependency-notices.txt" target="_blank" rel="noreferrer">Dependency notices</a>
+                <p className="modal-fine">Cloud names identify design concepts. No vendor endorsement or icon packs.</p>
+              </>
+            ) : (
+              <>
+                <h2>Atforma</h2>
+                <p>
+                  Let's design your AI stack together: you describe it, we draw it, then review, estimate and document it.
+                  Part of atmem.ai. Runs on your computer; nothing is deployed.
+                </p>
+                <p className="muted">Keys: / add block · Esc up a level · ⌘↵ run</p>
+              </>
+            )}
+          </section>
+        </div>
+      )}
+    </div>
+  );
+}
+
+createRoot(document.getElementById("root")).render(
+  <ReactFlowProvider>
+    <App />
+  </ReactFlowProvider>,
+);

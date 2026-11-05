@@ -3,3 +3,8 @@ dist/
 .env*
 !.env.example
 .playwright/
+
+.venv/
+__pycache__/
+*.pyc
+.local/
