@@ -1,7 +1,7 @@
-# AtForma training: your first AI architecture
+# AtMem AI Architect training: your first AI architecture
 
 This walkthrough teaches the local design workflow. It is not model training
-or a cloud deployment exercise. [Install AtForma](INSTALLATION.md) first, open
+or a cloud deployment exercise. [Install AtMem AI Architect](INSTALLATION.md) first, open
 the local application and choose Local patterns or an explicitly configured
 model connection. Local patterns is a bounded fallback; a connected model
 request may consume provider usage.
@@ -32,7 +32,7 @@ not itself trigger a consultation.
 
 Open the requirements document. Distinguish confirmed requirements from
 **Suggestions still to discuss**. Use **Explain why we need this**, **Discuss**
-or **Clarify with AtForma** to continue the interview. Stable REQ numbers
+or **Clarify with AtMem AI Architect** to continue the interview. Stable REQ numbers
 help track each requirement across revisions.
 
 Try changing one requirement: use **Comment or request a change**, then

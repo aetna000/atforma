@@ -1,10 +1,10 @@
 // The durable project file: atforma.project 2.0.0. See specs/002-project-model.
 import { validateImport } from "./core.mjs";
 
-export const FORMAT = "atforma.project";
+export const FORMAT = "atmem.ai-architect.project";
 export const FORMAT_VERSION = "2.2.0";
 export const MAX_FILE_BYTES = 2_000_000;
-const GENERATOR = "atforma-workbench 0.2.0";
+const GENERATOR = "atmem-ai-architect 0.2.0";
 
 // Section keys the 2.0 reader understands; anything else is kept in extensions.
 const KNOWN_TOP = ["format", "formatVersion", "meta", "design", "discovery", "requirements", "assumptions", "openQuestions", "decisions", "options", "estimate", "review", "extensions"];
@@ -99,10 +99,10 @@ export function fromProjectFile(raw) {
   refuseCredentials(raw, "Import");
   if (raw.format === undefined && raw.version === 1)
     return { project: validateImport(raw), migrated: true, from: "workbench v1" };
-  if (raw.format !== FORMAT) throw Error("Not an AtForma project file.");
+  if (![FORMAT,"atforma.project"].includes(raw.format)) throw Error("Not an AtMem AI Architect project file.");
   const [major] = String(raw.formatVersion || "").split(".").map(Number);
   if (major !== 2)
-    throw Error(`This file is format ${raw.formatVersion}; this version of AtForma reads ${FORMAT_VERSION}. Update AtForma to open it.`);
+    throw Error(`This file is format ${raw.formatVersion}; this version of AtMem AI Architect reads ${FORMAT_VERSION}. Update AtMem AI Architect to open it.`);
   const meta = raw.meta || {},
     design = raw.design || {},
     discovery = raw.discovery || {};
@@ -140,7 +140,7 @@ export function fromProjectFile(raw) {
     ...(raw.options ? { assessment: raw.options } : {}),
     ...(Object.keys(extensions).length ? { extensions } : {}),
   });
-  return { project, migrated: raw.formatVersion !== FORMAT_VERSION, from: raw.formatVersion };
+  return { project, migrated: raw.format !== FORMAT || raw.formatVersion !== FORMAT_VERSION, from: raw.formatVersion };
 }
 
 export function parseProjectFile(textContent) {

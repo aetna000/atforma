@@ -2,9 +2,9 @@
 
 Requested model: `claude-opus-5-5`. Run through the installed, authenticated Claude Code CLI with tools disabled, safe mode, no session persistence, and no fallback model. Input was a product brief, not credentials or private source.
 
-# AtForma: Local Integration and Design Brief
+# AtMem AI Architect: Local Integration and Design Brief
 
-**Scope:** Localhost only. No publication to atmem.ai, no hosted services, no automatic deployment. The future target is atmem.ai/AtForma, so the contracts below are designed to survive that move without implementing it now.
+**Scope:** Localhost only. No publication to atmem.ai, no hosted services, no automatic deployment. The future target is atmem.ai/AtMem AI Architect, so the contracts below are designed to survive that move without implementing it now.
 
 ---
 
@@ -82,7 +82,7 @@ Every artifact carries a **plane tag**, a `designRevision`, an `inputsHash` and 
 | **Observed inventory** | Read-only discovery snapshot with timestamp and source; shown as a *diff* against Design, never auto-applied | Explicit opt-in, read-only | `OBS` |
 | **Deploy plan** | Terraform/plan artifacts for staging and production review | None to generate | `PLAN` |
 
-Production is *plan export only*. A human applies it outside AtForma.
+Production is *plan export only*. A human applies it outside AtMem AI Architect.
 
 Simulated numbers are always labelled as estimates, with the engine version and assumptions attached.
 

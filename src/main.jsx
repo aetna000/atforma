@@ -1099,7 +1099,7 @@ function App() {
         const scores = structuredClone(a.scores), notes = { ...a.notes };
         for (const option of result.optionAssessment) {
           scores[option.provider] = option.scores;
-          notes[option.provider] = `AtForma proposal — confirm: ${option.rationale}`;
+          notes[option.provider] = `AtMem AI Architect proposal — confirm: ${option.rationale}`;
         }
         updateEngagement({ ...p, assessment: { ...a, scores, notes } });
         signals.push("cloud comparison updated");
@@ -1194,7 +1194,7 @@ function App() {
     const files = pulumiScaffold(project, environment);
     download(
       zipSync(Object.fromEntries(Object.entries(files).map(([name, text]) => [name, strToU8(text)]))),
-      `atforma-${environment}-pulumi.zip`,
+      `atmem-ai-architect-${environment}-pulumi.zip`,
       "application/zip",
     );
     notify("Pulumi scaffold exported. Resource implementations are not generated.");
@@ -1316,13 +1316,13 @@ function App() {
         live = await discoverLocalAgent();
         setSession(live);
       } catch {
-        throw Error("AtForma's local service isn't running. Start it with npm run local, then try again.");
+        throw Error("AtMem AI Architect's local service isn't running. Start it with npm run local, then try again.");
       }
     }
     const result = await requestArchitect({
       session: live,
       connection: choice,
-      message: "Connection check from AtForma. Reply with one short sentence; no proposal.",
+      message: "Connection check from AtMem AI Architect. Reply with one short sentence; no proposal.",
       project: projectRef.current,
       history: [],
       stage: "discover",
@@ -1497,7 +1497,7 @@ function App() {
   const ask = project.lastAsked?.question ? project.lastAsked : nextQuestion(project);
   function saveProjectFile() {
     try {
-      download(JSON.stringify(toProjectFile(project), null, 2), `${slug}.atforma.json`);
+      download(JSON.stringify(toProjectFile(project), null, 2), `${slug}.atmem-ai-architect.json`);
       notify("Project file saved. Open it later from ⋯ → Open project file.");
       return true;
     } catch (error) {
@@ -1523,9 +1523,9 @@ function App() {
   return (
     <div className={`app ${chatOpen ? "" : "chat-closed"}`}>
       <header className="bar">
-        <button className="brand" onClick={() => setModal("about")} title="About AtForma">
+        <button className="brand" onClick={() => setModal("about")} title="About AtMem AI Architect">
           <Mark />
-          <span>AtMem <span className="brand-divider">·</span> AtForma</span>
+          <span>AtMem AI Architect</span>
         </button>
         <nav className="crumbs" aria-label="Level">
           <button className="projects-btn" aria-label="Projects" title="Your projects" onClick={() => (refreshProjects(), setModal("projects"))}>
@@ -1959,7 +1959,7 @@ function App() {
         <aside className="chat" aria-label="Chat">
           <div className="chat-head">
             <strong className="chat-title">
-              <Mark /> AtForma
+              <Mark /> AtMem AI Architect
             </strong>
             <label className="live-toggle" title="On: changes are drawn as we talk, and you can undo any of them. Off: they wait as previews for you to apply.">
               <input
@@ -2226,7 +2226,7 @@ function App() {
               </>
             ) : (
               <>
-                <h2>AtForma</h2>
+                <h2>AtMem AI Architect</h2>
                 <p>
                   Let's design your AI stack together: you describe it, we draw it, then review, estimate and document it.
                   Part of atmem.ai. Runs on your computer; nothing is deployed.

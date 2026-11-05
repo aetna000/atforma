@@ -139,7 +139,7 @@ export function OptionsView({ project, onDiscuss, onPreview, onChoose, onContinu
     {selected && <p className="cloud-selection" role="status"><strong>Selected: {OPTION_NAMES[selected]}</strong> · You can change your choice below. <button className="btn primary" disabled={busy} onClick={onContinue}>Continue with {OPTION_NAMES[selected]} →</button></p>}
     {!ready && <p className="muted">We’ll clarify what matters to you and explain the tradeoffs here as we go.</p>}
     {['current','aws','azure','gcp','ibm'].filter(id => notes[id]).map(id => <article className="consultation-summary" key={id}>
-      <h3>{OPTION_NAMES[id]}{selected===id ? " · Selected" : ""}</h3><p>{notes[id].replace(/^At[Ff]orma proposal — confirm: /,'')}</p>
+      <h3>{OPTION_NAMES[id]}{selected===id ? " · Selected" : ""}</h3><p>{notes[id].replace(/^(?:AtMem AI Architect|At[Ff]orma) proposal — confirm: /,'')}</p>
       <button className="link" onClick={() => onDiscuss(`Explain how ${OPTION_NAMES[id]} fits our design and the main tradeoff. Ask one question to help me decide; keep this as a discussion until I explicitly choose.`)}>Discuss this option</button>
       {id!=="current" && <><button className="link" onClick={()=>onPreview(id)}>Preview service architecture</button><button className="btn primary" disabled={busy||selected===id} onClick={()=>onChoose(id)}>{selected===id ? `${OPTION_NAMES[id]} selected` : `Choose ${OPTION_NAMES[id]} & continue →`}</button></>}
     </article>)}
@@ -153,7 +153,7 @@ export function DecisionsView({ project, onDiscuss }) {
   const sketches = all.filter(d => d.subject?.startsWith('design.'));
   const labels = {'platform.cloud':'Cloud provider','cloud.region':'Region','data.country':'Country / data residency','infrastructure.tool':'Infrastructure tool'};
   return <section className="doc" aria-label="Decisions">
-    <header className="doc-head"><h2>Choices we’ve made</h2><p className="muted">AtForma records your choices and explains why they fit. You can revisit them in chat.</p></header>
+    <header className="doc-head"><h2>Choices we’ve made</h2><p className="muted">AtMem AI Architect records your choices and explains why they fit. You can revisit them in chat.</p></header>
     <button className="btn" onClick={() => onDiscuss('Review our current design and explicit choices. Explain the next choice we need to make and ask me one useful question. Do not treat a sketch or a suggestion as an accepted decision.')}>Discuss the next choice</button>
     {!current.length && <p className="muted">No choices confirmed yet. We’ll work through them together as the design develops.</p>}
     {current.map(d => <article className="consultation-summary" key={d.id}>
@@ -290,14 +290,14 @@ function RequirementComments({ requirement, comments, onSave, onRemove, target, 
         <p className="revision-label">Proposed wording</p><p className="revision-after">{c.after}</p><p>{c.explanation}</p>
         <button className="requirement-add-comment" onClick={()=>onResolve(c.id,true)}>Apply this revision</button>
         <button className="link" onClick={()=>onResolve(c.id,false)}>Keep current wording</button>
-      </div> : <><p className="comment-status">{c.reviewMessage || 'Saved feedback. Ask AtForma to suggest wording, then review the change here.'}</p><button className="requirement-add-comment" disabled={reviewing} onClick={()=>onReview([c])}>{reviewing?'Preparing suggestions…':'Suggest a revision'}</button><button className="link" onClick={()=>onDiscuss(`Help me clarify my feedback on ${number} (${requirement.id}): ${c.text}. Ask one question before proposing a change.`)}>Discuss feedback</button></>}
+      </div> : <><p className="comment-status">{c.reviewMessage || 'Saved feedback. Ask AtMem AI Architect to suggest wording, then review the change here.'}</p><button className="requirement-add-comment" disabled={reviewing} onClick={()=>onReview([c])}>{reviewing?'Preparing suggestions…':'Suggest a revision'}</button><button className="link" onClick={()=>onDiscuss(`Help me clarify my feedback on ${number} (${requirement.id}): ${c.text}. Ask one question before proposing a change.`)}>Discuss feedback</button></>}
       <button className="link" onClick={()=>onRemove(c.id)} aria-label={`Remove comment ${c.id}`}>Remove</button>
     </div>)}
     {comments.some(c=>['reviewed','dismissed'].includes(c.status)) && <details className="comment-history"><summary>Feedback history</summary>{comments.filter(c=>['reviewed','dismissed'].includes(c.status)).map(c=><div key={c.id}><p>{c.text}</p><small>{c.status==='reviewed'?'Revision applied':'Original wording kept'}</small>{c.after&&<p>{c.after}</p>}</div>)}</details>}
     {!open ? <button className="requirement-add-comment" onClick={()=>{setQuote('');setOpen(true);}}>Comment or request a change</button> : <div className="comment-composer">
       <strong>Feedback on {number}</strong>{quote && <blockquote>{quote}</blockquote>}
       <textarea ref={editor} aria-label={`Comment on ${requirement.id}`} value={text} maxLength={500} onChange={e=>setText(e.target.value)} placeholder="What doesn’t fit, what’s missing, or what would you like explained?" />
-      <p className="comment-status">AtForma will suggest new wording below. You decide whether to apply it.</p>
+      <p className="comment-status">AtMem AI Architect will suggest new wording below. You decide whether to apply it.</p>
       <button className="btn" disabled={!text.trim()||reviewing} onClick={()=>save(true)}>Suggest a revision</button>
       <button className="link" disabled={!text.trim()} onClick={()=>save(false)}>Save for later</button>
       <button className="link" onClick={()=>{setOpen(false);setText('');}}>Cancel</button>
@@ -347,7 +347,7 @@ export function RequirementsView({ project, onDiscuss, onChange, onReview, revie
     </div>}
     <article className="requirements-paper" aria-label="Requirements document">
       <header className="requirements-cover">
-        <p className="document-kicker">AtForma · Working requirements</p>
+        <p className="document-kicker">AtMem AI Architect · Working requirements</p>
         <h2>{project.name || 'Solution requirements'}</h2>
         <p className="document-subtitle">Where we’ve reached</p>
         <p>This document brings together the requirements developed from our board and discussion. Proposed requirements remain open for review as the design evolves.</p>
@@ -369,10 +369,10 @@ export function RequirementsView({ project, onDiscuss, onChange, onReview, revie
         </div>)}
         <button className="link document-discuss" onClick={()=>onDiscuss(`Let's discuss the ${titles[key] || key} section of our requirements document further. Current requirements: ${rows.map(r=>`${r.id}: ${r.statement}`).join('; ')}. Ask one useful question and refine the document from my answer.`)}>Discuss this section further in chat</button>
       </Tag>;})}
-      {!needs.length && <section className="requirements-chapter"><h3>Requirements to develop</h3><p>As we discuss the idea and shape the board, AtForma will summarise the functional requirements, constraints and acceptance targets here.</p></section>}
+      {!needs.length && <section className="requirements-chapter"><h3>Requirements to develop</h3><p>As we discuss the idea and shape the board, AtMem AI Architect will summarise the functional requirements, constraints and acceptance targets here.</p></section>}
       {!!project.assumptions?.length && <section className="requirements-chapter"><h3>Assumptions to validate</h3>{project.assumptions.map(a=><p key={a.id}>{a.statement}</p>)}</section>}
       {!!questions.length && <section className="requirements-chapter"><h3>Open questions</h3>{questions.map(q=><p key={q.id}>{q.question}</p>)}<button className="link document-discuss" onClick={()=>onDiscuss(`Help resolve the open questions in our requirements document, one at a time. Start with the question that most affects the design.`)}>Let’s work through these in chat</button></section>}
-      <footer className="document-footer">AtForma · Requirements derived from the current design and discussion</footer>
+      <footer className="document-footer">AtMem AI Architect · Requirements derived from the current design and discussion</footer>
     </article>
   </section>;
 }

@@ -1,3 +1,4 @@
+from .settings import setting
 """Local schema validation of server-generated Terraform. Never plan/apply or read cloud credentials."""
 import asyncio
 import json
@@ -20,9 +21,9 @@ class ValidationRequest(BaseModel):
     environment: Literal['staging', 'production'] = 'staging'
 
 def validate(payload):
-    binary = os.getenv('ATFORMA_TERRAFORM_BIN') or shutil.which('terraform', path=str(ROOT/'.venv'/'bin')+os.pathsep+os.getenv('PATH', ''))
+    binary = setting('TERRAFORM_BIN') or shutil.which('terraform', path=str(ROOT/'.venv'/'bin')+os.pathsep+os.getenv('PATH', ''))
     if not binary:
-        return {'status': 'unavailable', 'checks': [], 'message': 'Terraform is not installed. Install Terraform or set ATFORMA_TERRAFORM_BIN for the local service. No CLI validation was run.'}
+        return {'status': 'unavailable', 'checks': [], 'message': 'Terraform is not installed. Install Terraform or set ATMEM_ARCHITECT_TERRAFORM_BIN for the local service. No CLI validation was run.'}
     node = shutil.which('node')
     if not node:
         return {'status': 'unavailable', 'checks': [], 'message': 'Node is unavailable to the local service.'}

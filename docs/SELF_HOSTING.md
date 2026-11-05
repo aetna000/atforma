@@ -1,4 +1,4 @@
-# Running and deploying AtForma yourself
+# Running and deploying AtMem AI Architect yourself
 
 ## Local workstation — supported first path
 
@@ -17,6 +17,6 @@ Before exposing a backend beyond loopback:
 - Put the application behind TLS and an authenticated reverse proxy; update the precise Host/Origin allowlists together.
 - Use a proper secret store, per-user quotas, model limits, durable project storage and audit events.
 - Separate model permissions from cloud-account permissions. The present sidecar has no infrastructure execution API.
-- Choose a Pulumi state backend and provider credentials independently of AtForma's own hosting. Add real resource implementations, reviewable previews, explicit approval and staging evidence before any update path.
+- Choose a Pulumi state backend and provider credentials independently of AtMem AI Architect's own hosting. Add real resource implementations, reviewable previews, explicit approval and staging evidence before any update path.
 
 Product information and training on atmem.ai are separate from this local application. Publishing those pages does not host its interactive frontend or agent service. Application hosting requires a separate reviewed integration; the existing website also retains its owner-review and validated-main publication process.

@@ -1,23 +1,24 @@
-"""Loopback-only Atforma sidecar. No cloud discovery or deployment endpoints."""
+from .settings import setting, home as product_home
+"""Loopback-only AtMem AI Architect sidecar. No cloud discovery or deployment endpoints."""
 import asyncio, os, secrets, shutil
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
-from .architect import AtFormaArchitect
+from .architect import AtMemArchitect
 from .contracts import ChatRequest
 from .local_providers import capabilities, models, start_login
 from .memory_routes import router as memory_router
 from .agent_runtime import run as run_architect
 from .memory_service import service as memory_service, safe as memory_safe
 
-app=FastAPI(title='Atforma helper',docs_url=None,redoc_url=None,openapi_url=None)
+app=FastAPI(title='AtMem AI Architect helper',docs_url=None,redoc_url=None,openapi_url=None)
 app.include_router(memory_router)
 from .terraform_routes import router as terraform_router
 app.include_router(terraform_router)
 TOKEN=secrets.token_urlsafe(32)
-ARCHITECT=AtFormaArchitect()
+ARCHITECT=AtMemArchitect()
 ALLOWED_HOSTS={'127.0.0.1:5174','localhost:5174','127.0.0.1:8766','localhost:8766','testserver'}
 ALLOWED_ORIGINS={'http://127.0.0.1:5174','http://localhost:5174'}
-for _port in (os.getenv('ATFORMA_PORT'),os.getenv('ATFORMA_SIDECAR_PORT')):
+for _port in (setting('PORT'),setting('SIDECAR_PORT')):
     if _port and _port.isdigit() and 1024 <= int(_port) <= 65535:
         ALLOWED_HOSTS.update({f'127.0.0.1:{_port}',f'localhost:{_port}'})
         ALLOWED_ORIGINS.update({f'http://127.0.0.1:{_port}',f'http://localhost:{_port}'})
@@ -51,12 +52,12 @@ async def session():
         'openai':{'available':bool(ARCHITECT.keys.get('openai') or os.getenv('OPENAI_API_KEY')),'description':'API key supplied to the sidecar environment'},
         'gemini-api':{'available':bool(ARCHITECT.keys.get('gemini-api') or os.getenv('GEMINI_API_KEY')),'description':'Ephemeral API key or GEMINI_API_KEY'},
         'xai':{'available':bool(ARCHITECT.keys.get('xai') or os.getenv('XAI_API_KEY')),'description':'xAI API key for Grok'},
-        'bedrock':{'available':bool(os.getenv('ATFORMA_ENABLE_BEDROCK')),'description':'Explicit opt-in plus AWS SDK credential chain; credentials not probed'},
+        'bedrock':{'available':bool(setting('ENABLE_BEDROCK')),'description':'Explicit opt-in plus AWS SDK credential chain; credentials not probed'},
     },'cloudExecution':False,'mcpEnabled':False,'sdkTimeoutNote':'Stopping a submitted remote model request may not stop provider-side computation or billing.'}
 
 @app.post('/api/architect')
 async def architect(payload:ChatRequest,request:Request):
-    if payload.provider=='bedrock' and not os.getenv('ATFORMA_ENABLE_BEDROCK'):
+    if payload.provider=='bedrock' and not setting('ENABLE_BEDROCK'):
         raise HTTPException(409,'Bedrock is disabled. Explicitly enable it in the local sidecar environment.')
     if TURN_LOCK.locked():raise HTTPException(409,"We're still working on your last message — give it a moment.")
     async with TURN_LOCK:
@@ -127,7 +128,7 @@ from pathlib import Path as _Path
 from datetime import datetime as _dt, timezone as _tz
 
 def _home():
-    root=_Path(os.getenv('ATFORMA_HOME') or (_Path.home()/'.atforma'))
+    root=product_home()
     (root/'projects').mkdir(parents=True,exist_ok=True);(root/'bin').mkdir(parents=True,exist_ok=True)
     return root
 def _pid(payload):
@@ -160,7 +161,7 @@ async def projects_get(request:Request):
 async def projects_save(request:Request):
     payload=await request.json();pid=_pid(payload)
     file=payload.get('file')
-    if not isinstance(file,dict) or file.get('format')!='atforma.project':raise HTTPException(422,'Not an Atforma project file.')
+    if not isinstance(file,dict) or file.get('format') not in {'atmem.ai-architect.project','atforma.project'}:raise HTTPException(422,'Not an AtMem AI Architect project file.')
     if not memory_safe(file):raise HTTPException(422,'Project content looks like a credential; remove it before saving.')
     if (_home()/'bin'/f'{pid}.atforma.json').exists():raise HTTPException(409,'This project is in the bin. Restore it first.')
     target=_home()/'projects'/f'{pid}.atforma.json';tmp=target.with_suffix('.tmp')

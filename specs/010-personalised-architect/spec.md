@@ -2,7 +2,7 @@
 
 **Status:** Proposed design, not implemented. **Date:** 2026-11-05.
 
-Atforma is the user's specialist AI architecture, cloud infrastructure and DevOps partner.
+AtMem AI Architect is the user's specialist AI architecture, cloud infrastructure and DevOps partner.
 It uses AtMem to retrieve relevant user and project context, selects relevant reviewed
 skills, uses available tools according to their permissions, and reports what informed its
 advice. This extends 006 (memory) and 008 (runtime); it does not require a runtime rewrite
@@ -10,20 +10,20 @@ before the first AtMem integration.
 
 ## The experience
 
-A user returns and says “let's continue the document assistant.” Atforma recalls the
+A user returns and says “let's continue the document assistant.” AtMem AI Architect recalls the
 project's current requirements and decisions plus relevant confirmed user preferences.
 It might say “We chose Azure because your team uses Microsoft 365; Australian hosting is
 still required. Has either changed?” It asks about uncertainty instead of repeating
 answered questions or silently treating old facts as current.
 
-When the user asks about AWS alternatives, Atforma selects comparison and AWS skills,
+When the user asks about AWS alternatives, AtMem AI Architect selects comparison and AWS skills,
 uses available documentation/pricing tools, shows tradeoffs against those constraints,
 and proposes a diagram change. If the user chooses a new platform, the decision is
 superseded with its reason. The next session retrieves the current choice and history.
-If a pricing tool is unavailable, Atforma reports that and keeps unpriced lines open.
+If a pricing tool is unavailable, AtMem AI Architect reports that and keeps unpriced lines open.
 
 The canvas and chat stay central. A **Memory** control opens the scoped AtMem dashboard
-inside Atforma. An expandable per-turn disclosure shows the facts, skills and tools
+inside AtMem AI Architect. An expandable per-turn disclosure shows the facts, skills and tools
 actually supplied or used; never an invented “thinking” trace.
 
 ## Context ownership
@@ -89,9 +89,9 @@ providers remain sketch/guidance coverage until their tools and deployment examp
 Candidate sources are recorded in sources.json. They are discovery results, not installed,
 activated, commercially cleared or benchmarked skill packs. Import a small task-relevant
 subset with licence/provenance, review and scenario tests. Vendor guidance is selected only
-after a provider choice or explicit comparison; vendor-neutral comparison remains an Atforma skill.
+after a provider choice or explicit comparison; vendor-neutral comparison remains an AtMem AI Architect skill.
 
-## Scoped AtMem dashboard inside Atforma
+## Scoped AtMem dashboard inside AtMem AI Architect
 
 - **About you:** confirmed preferences, source, dates and where each is used; preview corrections,
   change project sharing and forget with the applicable policy.
@@ -104,7 +104,7 @@ after a provider choice or explicit comparison; vendor-neutral comparison remain
 - Policy detail appears on demand: retention, supersession, duplicate/conflict handling and
   preview/apply receipts. Nothing is deleted by a model-written instruction.
 
-Serve this view through the Atforma sidecar with enforced scope on every request. The existing
+Serve this view through the AtMem AI Architect sidecar with enforced scope on every request. The existing
 AtMem loopback dashboard has no login and is an operator surface; do not expose an unfiltered
 iframe or proxy it as a multi-user customer dashboard. Reuse supported AtMem read/report APIs
 and components where their scope contract is verified. Missing APIs become explicit AtMem work.

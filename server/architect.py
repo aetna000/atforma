@@ -3,7 +3,7 @@ import asyncio, json, os, shutil, signal, tempfile
 from .contracts import ArchitectResponse, ChatRequest
 from .prompts import SYSTEM_PROMPT
 
-class AtFormaArchitect:
+class AtMemArchitect:
     def __init__(self):
         self._sdk_lock=asyncio.Lock()
         self._limiter=None

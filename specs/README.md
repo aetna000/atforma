@@ -1,6 +1,6 @@
-# Atforma specifications
+# AtMem AI Architect specifications
 
-Source: *Atforma product summary and action plan* (2026-11-05). Principles: [constitution](../.specify/memory/constitution.md).
+Source: *AtMem AI Architect product summary and action plan* (2026-11-05). Principles: [constitution](../.specify/memory/constitution.md).
 
 ## User journey → features
 
@@ -40,6 +40,6 @@ These block parts of the specs and are marked `[NEEDS CLARIFICATION]` where they
 |---|---|---|
 | OD-1 | First target user and first supported provider (AWS, Azure/Foundry, Google, IBM, Databricks) | 003 provider rules, 004 price book, 007 |
 | OD-2 | Representative deployment scenarios for testing | 007, research |
-| OD-3 | Product and umbrella naming. UI now says **Atforma** (working name) | Branding only |
+| OD-3 | Product and umbrella naming. UI now says **AtMem AI Architect** (working name) | Branding only |
 | OD-4 | Project file format and versioning — **implemented as proposed in 002** (`atforma.project` 2.2.0, JSON, `.atforma.json`); confirm or change | 002 sign-off |
 | OD-5 | Deployment permissions and how far release 1 automates execution | 007 |

@@ -1,4 +1,4 @@
-# Data model: Atforma project 2.1.0
+# Data model: AtMem AI Architect project 2.1.0
 
 2.1.0 (minor, backwards compatible) adds `discovery.facts|workflow|asked|lastAsked|sketchOffered`, `estimate` (usage overrides, sourced unit prices, range factors) and `review.accepted` (accepted risks).
 

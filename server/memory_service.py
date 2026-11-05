@@ -1,4 +1,5 @@
-"""Atforma's authenticated single-user scope policy over the real AtMem core SDK.
+from .settings import setting, home as product_home
+"""AtMem AI Architect's authenticated single-user scope policy over the real AtMem core SDK.
 
 Application queue/receipts live in state.sqlite; memory and supersession live in AtMem.
 No unfiltered dashboard, shared ~/.atmem store, or model-selected subject is exposed.
@@ -40,9 +41,9 @@ def timestamp():
 
 class MemoryService:
     def __init__(self, home=None, worker=None):
-        self.home = Path(home or os.getenv('ATFORMA_HOME') or Path.home() / '.atforma') / 'memory'
+        self.home = Path(home or product_home()) / 'memory'
         self.home.mkdir(parents=True, exist_ok=True, mode=0o700)
-        self.worker = str(worker or os.getenv('ATFORMA_MEMORY_PYTHON') or ROOT / '.memory-venv' / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python'))
+        self.worker = str(worker or setting('MEMORY_PYTHON') or ROOT / '.memory-venv' / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python'))
         self.lock = threading.RLock()
         self.error = None
         with self.db() as db:
@@ -159,7 +160,7 @@ class MemoryService:
 
     def sync(self, project, file):
         self.project(project)
-        if not isinstance(file, dict) or file.get('format') != 'atforma.project' or file.get('meta', {}).get('id') != project or not safe(file):
+        if not isinstance(file, dict) or file.get('format') not in {'atmem.ai-architect.project','atforma.project'} or file.get('meta', {}).get('id') != project or not safe(file):
             raise ValueError('Invalid project snapshot or credential-bearing data')
         revision = file.get('meta', {}).get('revision')
         if not isinstance(revision, int) or revision < 1:
@@ -188,7 +189,7 @@ class MemoryService:
     def status(self, project):
         with self.db() as db:
             counts = dict(db.execute('SELECT state,count(*) FROM queue WHERE project=? GROUP BY state', (project,)).fetchall())
-        return {'enabled': self.enabled(project), 'status': 'disabled' if not self.enabled(project) else 'unavailable' if self.error else 'ready', 'pending': counts.get('pending', 0), 'rejected': counts.get('rejected', 0), 'engine': 'AtMem 2.3.10 core SDK', 'policy': 'Atforma single-user scope and opt-out policy', 'detail': self.error}
+        return {'enabled': self.enabled(project), 'status': 'disabled' if not self.enabled(project) else 'unavailable' if self.error else 'ready', 'pending': counts.get('pending', 0), 'rejected': counts.get('rejected', 0), 'engine': 'AtMem 2.3.10 core SDK', 'policy': 'AtMem AI Architect single-user scope and opt-out policy', 'detail': self.error}
 
     def profile(self, project, field, value):
         if field not in {'explanation', 'experience', 'iac', 'preferences'} or not value.strip() or len(value) > 1000:
@@ -265,7 +266,7 @@ _instance_home = None
 _guard = threading.Lock()
 def service():
     global _instance, _instance_home
-    home = str(os.getenv('ATFORMA_HOME') or Path.home() / '.atforma')
+    home = str(product_home())
     with _guard:
         if _instance is None or _instance_home != home:
             _instance, _instance_home = MemoryService(home), home

@@ -7,18 +7,18 @@
 AtMem's framework-neutral `AtMemTurnLifecycle`/`AtMemAdapterIdentity` expose begin,
 context_for_model, model_input/model_output, tool_requested/tool_completed and end.
 ControlPlaneManager and existing framework adapter documentation describe governed capture,
-preparation and exposure confirmation. Atforma currently passes project-derived context and
+preparation and exposure confirmation. AtMem AI Architect currently passes project-derived context and
 has no AtMem boundary. Start by wrapping that boundary; replacing all model clients or adopting
 a different agent framework is not a prerequisite.
 
 Keep CLI and direct SDK delivery claims separate. A native CLI may change or summarise its
-internal prompt: record exactly what Atforma passed to that client, not unobserved internals.
+internal prompt: record exactly what AtMem AI Architect passed to that client, not unobserved internals.
 Use existing AtMem contracts where verified; do not invent method names for supersession,
 scoped knowledge queries or dashboard projection before inspecting and testing those APIs.
 
 The AtMem checkout and prerelease worktree are both dirty. Design against their documented
 contracts, then qualify one clean version independently; do not edit, reset or install those
-working trees into Atforma as an implicit dependency upgrade. Do not alter the user's existing
+working trees into AtMem AI Architect as an implicit dependency upgrade. Do not alter the user's existing
 memory database for integration tests. Use temporary test stores and configured app scopes.
 
 ## Delivery slices
@@ -26,7 +26,7 @@ memory database for integration tests. Use temporary test stores and configured 
 1. **Memory foundation (006):** pin compatible AtMem; configure trusted local identity; capture
    eligible events; retrieve bounded user/project context before requests; preserve governed
    withholding; implement durable ordered/idempotent replay and an honest availability status.
-2. **Visible memory:** scoped dashboard inside Atforma, initially inspecting facts, decisions,
+2. **Visible memory:** scoped dashboard inside AtMem AI Architect, initially inspecting facts, decisions,
    history, pending sync and turn evidence. Add correction/forget/policy preview using verified
    AtMem APIs and explicit user actions. Do not expose the entire operator dashboard.
 3. **Specialist skills:** versioned skill manifest, reviewed artifacts and tool-capability contracts;
@@ -55,6 +55,6 @@ small baseline comparison and browser journeys per slice.
 - /Users/javadtaghia/gitlab/aetnamem/docs/saas-integration.md (identity and dashboard boundaries)
 - /Users/javadtaghia/gitlab/atmem-release-2.3.11b1/atmem/adapters/base.py
 - /Users/javadtaghia/gitlab/atmem-release-2.3.11b1/atmem/context_engine/pools.py
-- Atforma server/architect.py, server/contracts.py, server/local_providers.py and src/local-agent.mjs
+- AtMem AI Architect server/architect.py, server/contracts.py, server/local_providers.py and src/local-agent.mjs
 
 These are inspection paths, not portable runtime dependency paths or proof of release availability.

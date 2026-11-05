@@ -8,7 +8,7 @@ from atmem import Memory
 
 def run(payload):
     if version('atmem') != '2.3.10':
-        raise RuntimeError('Atforma requires the tested AtMem 2.3.10 runtime')
+        raise RuntimeError('AtMem AI Architect requires the tested AtMem 2.3.10 runtime')
     memory = Memory(payload['database'], auto_vectors=False)
     receipts = sqlite3.connect(payload['database'] + '.receipts.sqlite')
     receipts.execute('CREATE TABLE IF NOT EXISTS receipts (id TEXT PRIMARY KEY, result TEXT)')

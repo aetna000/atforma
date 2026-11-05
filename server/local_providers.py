@@ -37,7 +37,7 @@ async def start_login(provider):
     """Start the provider's official login; return a sign-in URL if the CLI prints one."""
     import re
     argv=LOGIN.get(provider)
-    if not argv or not shutil.which(argv[0]):raise RuntimeError('This provider has no sign-in Atforma can start. Use its API key instead.')
+    if not argv or not shutil.which(argv[0]):raise RuntimeError('This provider has no sign-in AtMem AI Architect can start. Use its API key instead.')
     running=LOGINS.get(provider)
     if running and running.returncode is None:return {'started':True,'url':None}
     process=await asyncio.create_subprocess_exec(*argv,stdin=asyncio.subprocess.DEVNULL,stdout=asyncio.subprocess.PIPE,stderr=asyncio.subprocess.STDOUT,env=account_environment(),start_new_session=os.name!='nt')

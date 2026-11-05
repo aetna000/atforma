@@ -1,4 +1,4 @@
-/** AtForma adapters for pinned upstream modules. See docs/merge-manifest.json. */
+/** AtMem AI Architect adapters for pinned upstream modules. See docs/merge-manifest.json. */
 import { AWS_SERVICES } from "./upstream/openarchflow/providers/aws.ts";
 import { AZURE_SERVICES } from "./upstream/openarchflow/providers/azure.ts";
 import { GENERIC_SERVICES } from "./upstream/openarchflow/providers/generic.ts";

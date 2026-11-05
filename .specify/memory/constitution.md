@@ -1,16 +1,16 @@
 <!--
 Sync Impact Report
 - Version: 1.0.0 → 1.1.0 (Principle I: opt-out "Draw as we talk" live application of diagram proposals, with undo and decision log)
-- Earlier: 0.0.0 → 1.0.0 (initial ratification from the Atforma product summary and action plan)
+- Earlier: 0.0.0 → 1.0.0 (initial ratification from the AtMem AI Architect product summary and action plan)
 - Principles added: I–VIII
 - Sections added: Product Boundaries, Technical Constraints, Development Workflow, Governance
 - Templates: plan-template.md "Constitution Check" is answered against Principles I–VIII; no template edits required
 - Deferred: product and umbrella naming (see Open Decisions)
 -->
 
-# Atforma Constitution
+# AtMem AI Architect Constitution
 
-Atforma is a locally installed, browser-based AI stack consultant. It guides individuals and
+AtMem AI Architect is a locally installed, browser-based AI stack consultant. It guides individuals and
 organisations from discovery to a reviewable deployment of an AI solution that fits their
 existing systems. It focuses on the AI stack, not on taking over the customer's whole
 infrastructure.
@@ -44,7 +44,7 @@ loss of the user's content.
 
 ### IV. Local-first and least privilege
 
-Atforma runs on the user's machine. The browser talks only to a loopback sidecar. Credentials and
+AtMem AI Architect runs on the user's machine. The browser talks only to a loopback sidecar. Credentials and
 secrets MUST NOT be stored in project files, browser storage or memory events. Cloud and model
 access is explicit opt-in, read-only before write, and scoped to the selected provider and
 environment.
@@ -58,7 +58,7 @@ NOT imply complete coverage or validation it does not have.
 
 ### VI. Memory is reported, policy-driven and reversible
 
-Project context and decisions persist through AtMem as a headless service. Atforma MUST report
+Project context and decisions persist through AtMem as a headless service. AtMem AI Architect MUST report
 relevant changes as events; AtMem cannot discover what it was not told. Changed decisions are
 superseded, not overwritten, and keep their history and reason. Time-sensitive statements keep
 the date they were made. Deletion happens only under an explicit, applicable policy.
@@ -67,7 +67,7 @@ Ambiguous conflicts are flagged for review, not resolved silently.
 ### VII. A calm, canvas-centred interface
 
 The architecture canvas is central. Information is grouped, and detail is exposed on demand:
-high level first, then detail. No dense dashboards of lines and text. Atforma has its own
+high level first, then detail. No dense dashboards of lines and text. AtMem AI Architect has its own
 interface and does not reuse the AtMem UI. Interfaces meet WCAG 2.2 AA contrast and work at
 phone width without horizontal scrolling.
 
@@ -79,7 +79,7 @@ A feature is done only when its acceptance scenarios pass locally.
 
 ## Product Boundaries
 
-- **Atforma**: the user-facing workspace and AI stack consultant (this repository).
+- **AtMem AI Architect**: the user-facing workspace and AI stack consultant (this repository).
 - **AtMem**: headless memory and governance engine; retains requirements, context and decisions
   across sessions; remains independently available. Accessed through MCP, plugin or integration.
 - **Adbot**: the internal agent framework. Its name need not appear in the customer journey.

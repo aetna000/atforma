@@ -42,7 +42,7 @@ export function specificationPdf(markdown,fontData,diagramImage=null){
     else line(text.replace(/^[-*] /,'• ').replace(/^_([\s\S]+)_$/,'$1'));
   }
   const count=doc.getNumberOfPages();
-  for(let i=1;i<=count;i++){doc.setPage(i);doc.setFontSize(8);doc.setTextColor('#627080');doc.text('AtForma · Working specification',20,287);doc.text(`${i} / ${count}`,190,287,{align:'right'});}
+  for(let i=1;i<=count;i++){doc.setPage(i);doc.setFontSize(8);doc.setTextColor('#627080');doc.text('AtMem AI Architect · Working specification',20,287);doc.text(`${i} / ${count}`,190,287,{align:'right'});}
   return new Uint8Array(doc.output('arraybuffer'));
 }
 function wrap(ctx,text,width){

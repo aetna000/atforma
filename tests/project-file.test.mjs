@@ -54,7 +54,7 @@ test('limits: size, component and connection counts, broken files',()=>{
   const many={...file,design:{...file.design,nodes:Array.from({length:201},(_, i)=>({...file.design.nodes[0],id:`n${i}`}))}};
   assert.throws(()=>fromProjectFile(many),/oversized/);
   assert.throws(()=>fromProjectFile({...file,design:{...file.design,edges:[{id:'x',source:'nope',target:'sensors'}]}}),/Invalid connection/);
-  assert.throws(()=>fromProjectFile({format:'something.else'}),/Not an AtForma project file/);
+  assert.throws(()=>fromProjectFile({format:'something.else'}),/Not an AtMem AI Architect project file/);
 });
 import {clientPack} from '../src/pack.mjs';
 test('the pack prints requirements, assumptions, open questions and only current decisions with history',()=>{
@@ -64,4 +64,13 @@ test('the pack prints requirements, assumptions, open questions and only current
   assert.match(md,/- Which region\? _\(Client IT\)_/);
   assert.match(md,/ADR-002 · Region/);assert.match(md,/_Changed because: Data residency_/);assert.match(md,/ADR-001 \(2026-11-01, superseded\): eu-west-1/);
   assert.doesNotMatch(md,/### ADR-001/);
+});
+
+test('legacy project identity imports and exports with the new brand without losing data',()=>{
+ const p={version:1,revision:1,name:'Existing user project',provider:'tools',nodes:[],edges:[],requirements:'Keep existing work',extensions:{requirementComments:[{id:'feedback',text:'Keep this comment'}]}};
+ const file=toProjectFile(p);assert.equal(file.format,'atmem.ai-architect.project');
+ const old={...file,format:'atforma.project'};
+ const loaded=fromProjectFile(old);assert.equal(loaded.migrated,true);
+ assert.equal(loaded.project.name,p.name);assert.equal(loaded.project.extensions.requirementComments[0].text,'Keep this comment');
+ assert.equal(toProjectFile(loaded.project).format,'atmem.ai-architect.project');
 });

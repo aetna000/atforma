@@ -64,7 +64,7 @@ export function Connections({ session, connection, onCheck, onSave, onRetry, wel
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.token}` },
       body: JSON.stringify({ provider: choice }),
     })
-      .then((r) => (r.ok ? r.json() : Promise.reject(Error(r.status === 404 ? "AtForma's helper is out of date — restart it with npm run local." : "Couldn't load models."))))
+      .then((r) => (r.ok ? r.json() : Promise.reject(Error(r.status === 404 ? "AtMem AI Architect's helper is out of date — restart it with npm run local." : "Couldn't load models."))))
       .then(({ models, reason }) => {
         if (!live) return;
         setList(models || []);
@@ -149,7 +149,7 @@ export function Connections({ session, connection, onCheck, onSave, onRetry, wel
       <h2>{welcome ? "Check your connection" : "Connection"}</h2>
       {!session && (
         <p className="error-box">
-          Looks like AtForma's helper isn't running. Start it with <code>npm run local</code>, then{" "}
+          Looks like AtMem AI Architect's helper isn't running. Start it with <code>npm run local</code>, then{" "}
           <button className="link" onClick={onRetry}>
             retry
           </button>
@@ -248,7 +248,7 @@ export function Connections({ session, connection, onCheck, onSave, onRetry, wel
               </option>
             ))
           ) : (
-            <option value="">{!session ? "Waiting for AtForma's helper…" : reason || "Loading your models…"}</option>
+            <option value="">{!session ? "Waiting for AtMem AI Architect's helper…" : reason || "Loading your models…"}</option>
           )}
         </select>
       </label>

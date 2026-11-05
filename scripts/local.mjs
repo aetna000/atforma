@@ -30,7 +30,7 @@ for (const [binary, args] of [
       "--host",
       "127.0.0.1",
       "--port",
-      process.env.ATFORMA_SIDECAR_PORT || "8766",
+      (process.env.ATMEM_ARCHITECT_SIDECAR_PORT || process.env.ATFORMA_SIDECAR_PORT) || "8766",
       "--no-access-log",
     ],
   ],

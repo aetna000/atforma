@@ -74,7 +74,7 @@ assert.match(read('diagram.svg'),/Amazon S3/);
 assert.match(read('START_HERE.md'),/coding agent/);assert.match(read('spec-kit/tasks.md'),/Implement AWS Lambda/);const kit=JSON.parse(read('spec-kit/tasks.json'));assert.equal(kit.snapshotId,manifest.snapshotId);assert.ok(kit.tasks.every(t=>t.status==='todo'));assert.match(read('spec-kit/implementation-spec.pdf').slice(0,5),/%PDF-/);
 
 assert.equal(manifest.designRevision,4);assert.equal(costs.cloud.expected,11.6);assert.equal(costs.consulting.expected,10000);assert.match(read('specification.md'),/Answer staff policy questions/);assert.match(read('handoff.md'),/Confirm data retention/);assert.equal(Object.keys(JSON.parse(read('terraform/main.tf.json')).resource.aws_s3_bucket).length,1);
-assert.deepEqual(JSON.parse(read('project.atforma.json')).estimate.details.length,5);
+assert.deepEqual(JSON.parse(read('project.atmem-ai-architect.json')).estimate.details.length,5);
 await page.screenshot({path:`${out}/delivery-desktop.png`,fullPage:true});
 await page.getByRole('region',{name:'Architecture journey'}).getByRole('button',{name:'Outputs',exact:true}).click();
 const outputs=page.getByRole('region',{name:'Outputs',exact:true});

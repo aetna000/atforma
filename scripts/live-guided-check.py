@@ -2,12 +2,12 @@
 import asyncio,json,sys
 from pathlib import Path
 from unittest.mock import AsyncMock
-from server.architect import AtFormaArchitect
+from server.architect import AtMemArchitect
 from server.contracts import ChatRequest
 
 async def main():
     provider=sys.argv[1] if len(sys.argv)>1 else 'codex'
-    architect=AtFormaArchitect()
+    architect=AtMemArchitect()
     project={'version':1,'revision':1,'name':'Synthetic HR assistant','provider':'tools','requirements':'Staff ask questions about approved HR policy PDFs. Cite sources and respect document access.','nodes':[],'edges':[]}
     first=await architect.call(ChatRequest(provider=provider,model='default',effort='low',project=project,message='Sketch an internal assistant for staff questions about approved HR policy PDFs. We need citations and document access controls. Ask the next useful scope question. This is a synthetic test; no deployment.',context=[{'type':'discovery','id':'guided-journey','text':'Current stage: sketch and document. Draw from the idea and ask one scope question; cloud not chosen yet.'}]),AsyncMock(return_value=False))
     assert first.proposal and first.proposal.next.nodes, 'First turn did not sketch the idea'

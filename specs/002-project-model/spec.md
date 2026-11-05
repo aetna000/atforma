@@ -12,7 +12,7 @@
 
 ### User Story 1 — Save a project and reopen it later (Priority: P1)
 
-A user exports their project to a single file, closes Atforma, and weeks later opens the file to carry on. Everything they made is back: the diagram, discovery answers, requirements, assumptions, open questions, decisions with their history, and options scores. Files from earlier Atforma versions open too.
+A user exports their project to a single file, closes AtMem AI Architect, and weeks later opens the file to carry on. Everything they made is back: the diagram, discovery answers, requirements, assumptions, open questions, decisions with their history, and options scores. Files from earlier AtMem AI Architect versions open too.
 
 **Why this priority**: Every later output (review, estimate, deployment document) must be regenerable from saved project data. Without a durable file there is no "revisit".
 
@@ -22,7 +22,7 @@ A user exports their project to a single file, closes Atforma, and weeks later o
 
 1. **Given** a project with components, connections, requirements, assumptions, open questions and decisions, **When** the user exports and re-imports it, **Then** all of them are identical and the design revision is preserved.
 2. **Given** a file saved by the earlier workbench format (version 1), **When** the user imports it, **Then** it opens, is upgraded to the current format, and the user is told it was upgraded.
-3. **Given** a file written by a newer Atforma version, **When** the user imports it, **Then** import is refused with a message naming both versions, and the current project is unchanged.
+3. **Given** a file written by a newer AtMem AI Architect version, **When** the user imports it, **Then** import is refused with a message naming both versions, and the current project is unchanged.
 4. **Given** a file containing fields this version does not know, **When** it is imported and exported again, **Then** those fields are kept under extensions, not dropped.
 
 ---

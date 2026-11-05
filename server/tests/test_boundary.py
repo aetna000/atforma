@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, patch
 from fastapi.testclient import TestClient
 from server.app import app, TOKEN
 from server.contracts import Project, ArchitectResponse, ChatRequest
-from server.architect import AtFormaArchitect
+from server.architect import AtMemArchitect
 from server.upstream.agent.aws_architect import AWSArchitectAgent
 
 PROJECT={'version':1,'revision':4,'name':'Fixture graph','provider':'gcp','requirements':'Use Google Cloud','nodes':[],'edges':[]}
@@ -34,7 +34,7 @@ class BoundaryTests(unittest.TestCase):
         with self.assertRaises(ValueError):Project.model_validate(project)
     def test_model_output_revision_mismatch_rejected(self):
         raw={'message':'A proposal','phase':'Architecture','proposal':{'baseRevision':1,'title':'Change','body':'Test','next':PROJECT}}
-        architect=AtFormaArchitect();request=ChatRequest(message='change it',model='claude-opus-5-5',project=PROJECT)
+        architect=AtMemArchitect();request=ChatRequest(message='change it',model='claude-opus-5-5',project=PROJECT)
         with patch.object(architect,'_claude',new=AsyncMock(return_value=raw)):
             with self.assertRaisesRegex(ValueError,'wrong revision'):asyncio.run(architect.call(request,AsyncMock(return_value=False)))
     def test_upstream_retry_is_used_and_non_throttle_errors_are_not_retried(self):
@@ -67,7 +67,7 @@ class MaintenanceContractTests(unittest.TestCase):
 class ContextTests(unittest.TestCase):
     def test_read_only_context_reaches_the_model_prompt(self):
         request=ChatRequest(message='Which region?',model='m',project=PROJECT,context=[{'type':'decision','id':'adr-003','text':'cloud.region — Region: eu-central-1 (Accepted)'}])
-        payload=json.loads(AtFormaArchitect.context(request))
+        payload=json.loads(AtMemArchitect.context(request))
         self.assertEqual(payload['readOnlyContext'][0]['id'],'adr-003')
     def test_context_rejects_unknown_types_and_fields(self):
         for item in [{'type':'command','id':'x','text':'rm'},{'type':'decision','id':'x','text':'t','extra':1}]:
@@ -76,7 +76,7 @@ class ContextTests(unittest.TestCase):
 class SkillsTests(unittest.TestCase):
     def test_agent_skills_are_in_the_system_prompt(self):
         from server.prompts import SYSTEM_PROMPT
-        for text in ['You are Atforma','"not sure" is always acceptable','What would you like to build?','RAG: answering questions from your documents','Which actions need a person to approve them first?']:
+        for text in ['You are AtMem AI Architect','"not sure" is always acceptable','What would you like to build?','RAG: answering questions from your documents','Which actions need a person to approve them first?']:
             self.assertIn(text,SYSTEM_PROMPT)
     def test_discovery_context_and_journey_stages_accepted(self):
         for stage in ['discover','design','review','estimate','deploy']:

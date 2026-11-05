@@ -25,7 +25,7 @@ def parse_s3(data, region, url):
 @lru_cache(maxsize=32)
 def _fetch(region, hour):
     url=f'https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonS3/current/{region}/index.json'
-    with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'Atforma/0.2'}),timeout=12) as response:
+    with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'AtMem AI Architect/0.2'}),timeout=12) as response:
         raw=response.read(12_000_001)
     if len(raw)>12_000_000: raise ValueError('Price list exceeds the supported size')
     return parse_s3(json.loads(raw),region,url)

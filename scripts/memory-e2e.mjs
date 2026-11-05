@@ -2,7 +2,7 @@
 import {chromium} from '@playwright/test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-const base=process.env.ATFORMA_TEST_URL||'http://127.0.0.1:5175';
+const base=(process.env.ATMEM_ARCHITECT_TEST_URL || process.env.ATFORMA_TEST_URL)||'http://127.0.0.1:5175';
 const out='/tmp/forma-qa/memory';fs.mkdirSync(out,{recursive:true});
 const browser=await chromium.launch({...(fs.existsSync('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome')?{executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'}:{}),headless:true});
 const context=await browser.newContext({viewport:{width:1440,height:1000},colorScheme:'dark'});
@@ -18,7 +18,7 @@ const tab=async(name)=>{await finished();await page.locator('.modes').getByRole(
 const openMemory=async()=>{await finished();await page.getByRole('button',{name:'More',exact:true}).click();await page.getByRole('menuitem',{name:'AtMem dashboard',exact:true}).click();await page.getByRole('heading',{name:'AtMem dashboard'}).waitFor();await page.getByRole('button',{name:/^Turn memory (off|on)$/}).waitFor();};
 assert.equal((await project()).nodes.length,0,'no default blocks');
 await page.getByRole('region',{name:'Architecture journey',exact:true}).waitFor();
-await page.getByRole('button',{name:'AtMem · AtForma',exact:true}).waitFor();
+await page.getByRole('button',{name:'AtMem AI Architect',exact:true}).waitFor();
 assert.equal(await page.locator('.journey-actions .primary').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(95, 208, 214)');
 assert.deepEqual(await page.locator('.modes [role=tab]').allInnerTexts(),['Design'],'later stages are hidden at the start');
 await chat('I want an internal assistant so staff can ask questions about our HR policy documents.');
@@ -118,7 +118,7 @@ await page.getByRole('button',{name:'Preview forget',exact:true}).first().click(
 await page.getByRole('button',{name:'Turn memory off',exact:true}).click();await page.getByRole('button',{name:'Turn memory on',exact:true}).waitFor();await page.getByRole('button',{name:'Close dialog',exact:true}).click();
 await chat('Remember about me: please retain this secret preference forever.');await openMemory();assert.equal(await page.getByText(/User-confirmed preferences/).count(),0);await page.getByRole('button',{name:'Turn memory on',exact:true}).click();await page.getByRole('button',{name:'Close dialog',exact:true}).click();
 // Save the project and reset through the existing flow; no default blocks on a fresh idea.
-await page.getByRole('button',{name:'Start over',exact:true}).click();const download=page.waitForEvent('download');await page.getByRole('button',{name:'Save project and start over',exact:true}).click();await(await download).saveAs(`${out}/project.atforma.json`);assert.equal((await project()).nodes.length,0);
-assert.equal(JSON.parse(fs.readFileSync(`${out}/project.atforma.json`)).extensions.requirementComments[0].status,'reviewed');
+await page.getByRole('button',{name:'Start over',exact:true}).click();const download=page.waitForEvent('download');await page.getByRole('button',{name:'Save project and start over',exact:true}).click();await(await download).saveAs(`${out}/project.atmem-ai-architect.json`);assert.equal((await project()).nodes.length,0);
+assert.equal(JSON.parse(fs.readFileSync(`${out}/project.atmem-ai-architect.json`)).extensions.requirementComments[0].status,'reviewed');
 await page.setViewportSize({width:390,height:844});await page.screenshot({path:`${out}/mobile-empty-canvas.png`});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
 assert.deepEqual(errors,[]);await browser.close();console.log('Real AtMem browser journey passed: idea → sketch, right-click comments/live feedback, form-free requirements, four-cloud comparison/choices, sourced-pricing boundary, conversational usage, memory/history/profile/forget/opt-out, save/reset and mobile. Model and numeric quotes are fixture-only.');

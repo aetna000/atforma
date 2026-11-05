@@ -6,7 +6,7 @@ Source: https://github.com/dmux/OpenArchFlow
 Revision: `69450801847dcf23a7bc87b8aedd701f66281168`
 Copyright (c) 2026 Rafael Sales. MIT License.
 
-Copied/adapted modules now include AWS/Azure/generic/cloud-native/integration catalogues, templates, Mermaid and SQL parsers, Dagre layout and payload formatting. Exact paths, original hashes, destination hashes and modification status are recorded in `docs/merge-manifest.json`. AtForma supplies its own React Flow 12 shell and provider-neutral graph adapters. Type-only imports were adapted, layout dimensions changed, and Mermaid label/wire parsing corrected. No upstream vendor icon assets, screenshots, videos, Next.js shell, analytics, SEO claims or application deployment code are bundled.
+Copied/adapted modules now include AWS/Azure/generic/cloud-native/integration catalogues, templates, Mermaid and SQL parsers, Dagre layout and payload formatting. Exact paths, original hashes, destination hashes and modification status are recorded in `docs/merge-manifest.json`. AtMem AI Architect supplies its own React Flow 12 shell and provider-neutral graph adapters. Type-only imports were adapted, layout dimensions changed, and Mermaid label/wire parsing corrected. No upstream vendor icon assets, screenshots, videos, Next.js shell, analytics, SEO claims or application deployment code are bundled.
 
 The full MIT copyright and permission notice is preserved in `public/licenses/openarchflow-LICENSE.txt`, distributed with the build. Each ported module carries an attribution header. Six earlier catalogue description adaptations remain attributed in `src/upstream-catalog.mjs`.
 
@@ -16,7 +16,7 @@ Source: https://github.com/aws-samples/sample-genai-aws-solutions-architect-agen
 Revision: `da49eb4e6b1528d84ca96f9147b8e1ddce6aec2d`
 MIT No Attribution (MIT-0). Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 
-The source agent, rate limiter, configuration, prompts and supporting file tool are retained under `server/upstream/` with a package-relative import adaptation. AtForma uses the composed agent and retry/rate-limiting path for configured Strands API providers; it supplies new neutral instructions and does not call the upstream automatic MCP/Bedrock initialization. The upstream file tool is not registered, and its original AWS-only prompt is never the active prompt. Streamlit and upstream media assets are excluded. Official local account adapters are implemented separately.
+The source agent, rate limiter, configuration, prompts and supporting file tool are retained under `server/upstream/` with a package-relative import adaptation. AtMem AI Architect uses the composed agent and retry/rate-limiting path for configured Strands API providers; it supplies new neutral instructions and does not call the upstream automatic MCP/Bedrock initialization. The upstream file tool is not registered, and its original AWS-only prompt is never the active prompt. Streamlit and upstream media assets are excluded. Official local account adapters are implemented separately.
 
 The full licence is retained in `public/licenses/aws-architect-LICENSE.txt`.
 
@@ -44,7 +44,7 @@ The `github-copilot-sdk` 1.0.28 wheel has no packaged root legal text. Its MIT l
 
 The separate AtMem environment is pinned in `server/memory-requirements.txt`. Its installed package/version/licence inventory is `docs/memory-dependency-inventory.json`; wheel-provided legal texts are preserved in `public/licenses/memory-dependency-notices.txt`. Regenerate with `.memory-venv/bin/python scripts/python-notices.py --environment memory`. AtMem is accessed through its core SDK, not a redistributed native control-plane UI.
 
-Pinned reference documents from AWS, Microsoft, Google, HashiCorp and Pulumi are listed with exact commits and SHA256 hashes in `agent-skills/upstream/manifest.json`. Each reference retains its repository licence in the corresponding provider directory. These documents are reference-only; companion scripts, tools and vendor assets are not bundled. The runtime loads Atforma's separately reviewed first-party specialist guidance, never arbitrary fetched code.
+Pinned reference documents from AWS, Microsoft, Google, HashiCorp and Pulumi are listed with exact commits and SHA256 hashes in `agent-skills/upstream/manifest.json`. Each reference retains its repository licence in the corresponding provider directory. These documents are reference-only; companion scripts, tools and vendor assets are not bundled. The runtime loads AtMem AI Architect's separately reviewed first-party specialist guidance, never arbitrary fetched code.
 
 ## PDF export font
 

@@ -1,6 +1,6 @@
 # 009 — From design conversation to delivery
 
-The user works with Atforma as a design partner: clarify an idea, evolve the diagram,
+The user works with AtMem AI Architect as a design partner: clarify an idea, evolve the diagram,
 compare options, record decisions, choose a cloud, refine a ROM, and hand off a
 versioned specification and infrastructure sketch. Existing discovery stays in place.
 

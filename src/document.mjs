@@ -59,7 +59,7 @@ export function deploymentDocument(project, run, now = new Date()) {
 
   return `# ${project.name} — deployment document
 
-Generated ${now.toISOString().slice(0, 16).replace("T", " ")} UTC from design revision r${project.revision} · project format ${FORMAT_VERSION} · AtForma workbench
+Generated ${now.toISOString().slice(0, 16).replace("T", " ")} UTC from design revision r${project.revision} · project format ${FORMAT_VERSION} · AtMem AI Architect workbench
 
 > ${blocking.length ? `**Not ready for deployment.** ${blocking.length} blocker${blocking.length > 1 ? "s" : ""}: ${blocking.map((f) => f.statement).join(" ")}` : "No blockers found by the automated review. Human review and the open questions below still apply."}
 >

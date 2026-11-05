@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: Product roles — "Adbot: the agent framework used internally by Atforma." "Adflow: configured agent-run tracing and cost visibility. This is separate from the estimated cost of the customer's cloud architecture." Action 5 — "use the Adbot framework for the agent and Adflow for run traces where configured."
+**Input**: Product roles — "Adbot: the agent framework used internally by AtMem AI Architect." "Adflow: configured agent-run tracing and cost visibility. This is separate from the estimated cost of the customer's cloud architecture." Action 5 — "use the Adbot framework for the agent and Adflow for run traces where configured."
 
 ## User Scenarios & Testing *(mandatory)*
 

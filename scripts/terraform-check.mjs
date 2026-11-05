@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { terraformSketch } from '../src/terraform.mjs';
-const binary=process.env.ATFORMA_TERRAFORM_BIN || 'terraform';
+const binary=(process.env.ATMEM_ARCHITECT_TERRAFORM_BIN || process.env.ATFORMA_TERRAFORM_BIN) || 'terraform';
 const folder=fs.mkdtempSync(path.join(os.tmpdir(),'atforma-terraform-check-'));
 const command=(...args)=>{
  const r=spawnSync(binary,[`-chdir=${folder}`,...args],{stdio:'inherit',env:process.env});

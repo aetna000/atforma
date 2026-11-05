@@ -32,7 +32,7 @@ The estimate highlights the top three drivers and lets the user vary a usage inp
 
 ### User Story 3 — Prices from a source, not invented (Priority: P2)
 
-Unit prices come from a price book: entered by the user, imported from a file, or (when connected) retrieved from the provider's published pricing with URL and retrieval date. Atforma never fills a price without a source.
+Unit prices come from a price book: entered by the user, imported from a file, or (when connected) retrieved from the provider's published pricing with URL and retrieval date. AtMem AI Architect never fills a price without a source.
 
 **Acceptance Scenarios**:
 

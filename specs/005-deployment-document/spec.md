@@ -31,7 +31,7 @@ The user reopens a saved project file (002), changes a requirement and a decisio
 
 ### User Story 3 — Export formats (Priority: P2)
 
-Export as Markdown (with Mermaid diagram), Word (.docx) and PDF. The document is always generated, never hand-edited inside Atforma; edits go into project data.
+Export as Markdown (with Mermaid diagram), Word (.docx) and PDF. The document is always generated, never hand-edited inside AtMem AI Architect; edits go into project data.
 
 ### Edge Cases
 
@@ -42,7 +42,7 @@ Export as Markdown (with Mermaid diagram), Word (.docx) and PDF. The document is
 
 - **FR-001**: The document MUST be generated solely from project data (Principle III).
 - **FR-002**: Each statement MUST be marked as fact (from project data), assumption, or open question; agent-generated text is labelled.
-- **FR-003**: The document MUST print the project file format version, design revision, generation time and Atforma version.
+- **FR-003**: The document MUST print the project file format version, design revision, generation time and AtMem AI Architect version.
 - **FR-004**: Deployment steps MUST come from the deployment plan (007) and never include credentials.
 - **FR-005**: Markdown export MUST be available in release 1; Word and PDF MAY follow.
 

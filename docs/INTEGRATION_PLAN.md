@@ -1,4 +1,4 @@
-# AtForma integration plan
+# AtMem AI Architect integration plan
 
 ## Current local milestone
 
@@ -20,4 +20,4 @@
 6. Add resource-aware staging deployment, actual endpoint evaluation, revision-bound promotion, approvals, rollback/recovery and cost bounds. Production changes require explicit user action.
 7. For hosted or commercial multi-user distribution, implement backend identity, workspace ownership, per-user credentials, isolation, quotas, security/release review and distribution-target licensing.
 
-Future atmem.ai/AtForma integration remains deferred. Do not push or publish this local milestone without a new request.
+Future atmem.ai/AtMem AI Architect integration remains deferred. Do not push or publish this local milestone without a new request.

@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://atmem.ai/schemas/atforma.project-2.0.0.json",
-  "title": "Atforma project file 2.0.0",
+  "title": "AtMem AI Architect project file 2.0.0",
   "type": "object",
   "required": ["format", "formatVersion", "meta", "design"],
   "properties": {
-    "format": { "const": "atforma.project" },
+    "format": { "enum": ["atmem.ai-architect.project", "atforma.project"] },
     "formatVersion": { "type": "string", "pattern": "^2\\.\\d+\\.\\d+$" },
     "meta": {
       "type": "object",

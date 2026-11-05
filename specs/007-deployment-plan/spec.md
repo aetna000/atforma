@@ -23,7 +23,7 @@ The user generates a deployment plan for an environment (staging, production): o
 
 ### User Story 2 — Controlled deployment of one example (Priority: P2)
 
-For the first validated provider and one representative scenario, the user previews (`pulumi preview`-equivalent) and then applies the plan to a sandbox account, step by step, approving each step. Atforma shows the outcome and records it as evidence.
+For the first validated provider and one representative scenario, the user previews (`pulumi preview`-equivalent) and then applies the plan to a sandbox account, step by step, approving each step. AtMem AI Architect shows the outcome and records it as evidence.
 
 **Acceptance Scenarios**:
 

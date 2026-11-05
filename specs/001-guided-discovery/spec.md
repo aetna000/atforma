@@ -28,7 +28,7 @@ A user describes what they want in their own words. The agent plays back what it
 
 ### User Story 2 — Start from what already exists (Priority: P1)
 
-A user starts by importing a design (Atforma file, OpenArchFlow JSON, Mermaid, SQL DDL, Pulumi stack export) or by marking current systems on the canvas. Imported components are marked *existing*, and discovery questions about them are pre-answered where the import provides the information.
+A user starts by importing a design (AtMem AI Architect file, OpenArchFlow JSON, Mermaid, SQL DDL, Pulumi stack export) or by marking current systems on the canvas. Imported components are marked *existing*, and discovery questions about them are pre-answered where the import provides the information.
 
 **Independent Test**: Import a Mermaid diagram of an existing system; confirm the components are marked existing and "current systems" is filled.
 

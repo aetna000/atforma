@@ -6,7 +6,7 @@
 
 **Status**: Release-1 slice built — see tasks.md
 
-**Input**: Journey step 3 — "Atforma identifies gaps, limitations, opportunities and trade-offs. Design for security and controls, reliability, availability, scalability, performance and maintainability, with measurable requirements where possible, sources and clearly stated assumptions."
+**Input**: Journey step 3 — "AtMem AI Architect identifies gaps, limitations, opportunities and trade-offs. Design for security and controls, reliability, availability, scalability, performance and maintainability, with measurable requirements where possible, sources and clearly stated assumptions."
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -37,7 +37,7 @@ From a finding, the user (or the agent via proposal) creates a measurable requir
 
 ### User Story 3 — Sources and trade-offs (Priority: P2)
 
-Each finding and trade-off cites its source: an Atforma rule (ID and version), a provider document (title, URL, retrieved date), or the user. Trade-offs present at least two options with consequences. Provider-specific findings appear only for validated providers (Principle V).
+Each finding and trade-off cites its source: an AtMem AI Architect rule (ID and version), a provider document (title, URL, retrieved date), or the user. Trade-offs present at least two options with consequences. Provider-specific findings appear only for validated providers (Principle V).
 
 **Acceptance Scenarios**:
 

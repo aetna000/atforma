@@ -1,7 +1,7 @@
-# Install and start AtForma
+# Install and start AtMem AI Architect
 
-AtForma is a local, browser-based AI stack design workspace. Install it from
-source. There is no `pip install atforma` step and no hosted agent service on
+AtMem AI Architect is a local, browser-based AI stack design workspace. Install it from
+source. There is no pip package installation step and no hosted agent service on
 atmem.ai. The website provides information and training; the application and
 its model connections run on your machine.
 
@@ -20,8 +20,8 @@ git --version
 ## 2. Get the source
 
 ```sh
-git clone https://github.com/aetna000/atforma.git
-cd atforma
+git clone https://github.com/aetna000/atmem-ai-architect.git
+cd atmem-ai-architect
 npm ci --ignore-scripts
 ```
 
@@ -41,7 +41,7 @@ npm run setup:memory
 The architect service uses `.venv`. AtMem uses the separate `.memory-venv`
 because its cryptographic dependencies differ from the model SDK environment.
 Setup downloads dependencies; it does not sign in to a provider or provision
-cloud resources. AtForma currently pins its own tested AtMem runtime; do not
+cloud resources. AtMem AI Architect currently pins its own tested AtMem runtime; do not
 replace its memory requirements merely because a newer AtMem package exists.
 
 On Windows PowerShell, the corresponding source setup is:
@@ -65,7 +65,7 @@ npm run local
 Keep this terminal open and visit **http://127.0.0.1:5174**. The local agent
 service listens on **http://127.0.0.1:8766**. Use the numeric loopback address.
 Stop the launcher with **Ctrl+C** when finished. This does not delete saved
-project files or AtForma's memory store.
+project files or AtMem AI Architect's memory store.
 
 For a frontend-only local preview, `npm run dev` runs the zero-key interface.
 It does not start the Python service needed for connected model requests.
@@ -79,7 +79,7 @@ supported model API connection. Install and sign in to only the desired native
 client, then select an accessible model or its `default` setting.
 
 The existing README documents the Claude, Codex, Copilot and Gemini client
-sign-in commands. AtForma does not copy their account tokens. Account login,
+sign-in commands. AtMem AI Architect does not copy their account tokens. Account login,
 subscription entitlement and individual model availability are separate checks.
 API-key billing is separate from subscription usage. Enter keys through the
 local Connections dialog or the documented service environment, never in a
@@ -108,7 +108,7 @@ not apply cloud changes.
 - **Terraform checks unavailable:** Terraform is optional. A generated draft,
   provider schema check, real cloud plan and deployment are different stages.
 
-AtForma keeps app-owned memory under `~/.atforma/memory` (or the configured
-`ATFORMA_HOME`), separate from `~/.atmem`. Save an editable project file before
+AtMem AI Architect stores new app-owned memory under `~/.atmem-ai-architect/memory` (existing installations retain their previous directory) (or the configured
+`ATMEM_ARCHITECT_HOME`), separate from `~/.atmem`. Save an editable project file before
 upgrading or starting over. Preserve your files, memory store and keys.
 For backend hosting boundaries, read [self-hosting](SELF_HOSTING.md).

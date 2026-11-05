@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 const home=fs.mkdtempSync(path.join(os.tmpdir(),'atforma-memory-e2e-'));
 const root=path.resolve(import.meta.dirname,'..');
-const env={...process.env,ATFORMA_HOME:home,ATFORMA_PORT:'5175',ATFORMA_SIDECAR_PORT:'8767'};
+const env={...process.env,ATMEM_ARCHITECT_HOME:home,ATMEM_ARCHITECT_PORT:'5175',ATMEM_ARCHITECT_SIDECAR_PORT:'8767'};
 const logs=fs.openSync(path.join(home,'servers.log'),'a');
 const children=[];
 const start=(cmd,args)=>{const child=spawn(cmd,args,{cwd:root,env,stdio:['ignore',logs,logs]});children.push(child);return child;};

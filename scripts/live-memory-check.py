@@ -6,7 +6,7 @@ import tempfile
 from unittest.mock import AsyncMock, patch
 from server.memory_service import MemoryService
 from server.contracts import ChatRequest
-from server.architect import AtFormaArchitect
+from server.architect import AtMemArchitect
 from server.agent_runtime import run
 
 async def main():
@@ -17,7 +17,7 @@ async def main():
         memory.sync(project,{'format':'atforma.project','meta':{'id':project,'revision':1},'design':{'provider':'tools'},'decisions':[{'id':'region-choice','subject':'data.residency','decision':'Customer data must stay in Australia','status':'Accepted','reason':'User confirmed residency'}]})
         req=ChatRequest(projectId=project,provider='claude-code',model='default',effort='low',message='Compare AWS, Azure, Google Cloud and IBM for our internal policy-document assistant. Populate optionAssessment for all four. Use my relevant context, keep the diagram unchanged, explain one key tradeoff and ask one useful next question. No cloud operation.',project={'version':1,'revision':1,'name':'Synthetic policy assistant','provider':'tools','requirements':'Internal document assistant for staff','nodes':[],'edges':[]})
         with patch('server.agent_runtime.service',return_value=memory):
-            result=await run(AtFormaArchitect(),req,AsyncMock(return_value=False))
+            result=await run(AtMemArchitect(),req,AsyncMock(return_value=False))
         providers={r['provider'] for r in result.get('optionAssessment',[])}
         assert {'aws','azure','gcp','ibm'} <= providers, providers
         assert result['contextUsed']['recordsUsed'], 'Real account request received no memory'

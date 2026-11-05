@@ -2,15 +2,16 @@
    One definition per token; light and dark in a single light-dark() call. */
 :root {
   color-scheme: light dark;
-  --color-bg: light-dark(#FFFFFF, #0D1011);
+  --color-bg: light-dark(#F3F6F6, #0D1011);
   --color-card: light-dark(#FFFFFF, #0D1011);
-  --color-card-raised: light-dark(#F5F8F8, #151A1C);
+  --color-card-raised: light-dark(#D9EDED, #151A1C);
   --color-ink: light-dark(#101314, #F3F7F7);
   --color-muted: light-dark(#4B5659, #A9BABC);
   --color-line: light-dark(#B3C1C2, #687779);
-  --color-line-strong: light-dark(#7D7869, #6C7480);
+  --color-line-strong: light-dark(#687779, #7B8B8D);
   --color-brand: light-dark(#1F777C, #5FD0D6);
-  --color-brand-soft: light-dark(#DDF3F3, #12343A);
+  --color-brand-text: light-dark(#1D7176, #5FD0D6);
+  --color-brand-soft: light-dark(#D9EDED, #12343A);
   --color-brand-ink: light-dark(#FFFFFF, #082729);
   --color-good: light-dark(#166B45, #57C793);
   --color-good-soft: light-dark(#E1F1E8, #123528);

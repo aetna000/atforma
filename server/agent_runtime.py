@@ -78,7 +78,7 @@ async def run(architect, payload, disconnected):
             'status':status['status'],'enabled':status['enabled'],'engine':status['engine'],
             'recordsUsed':recalled,'knowledgeRecordIds':knowledge_ids,
             'skills':skills.public(chosen),'tools':observed,
-            'boundary':'Atforma → native client' if payload.provider in {'claude-code','codex','copilot','gemini-cli'} else 'Atforma → model SDK',
+            'boundary':'AtMem AI Architect → native client' if payload.provider in {'claude-code','codex','copilot','gemini-cli'} else 'AtMem AI Architect → model SDK',
             'contextDigest':digest(runtime), 'projectId':project,
         }
         output['contextUsed']=disclosure
