@@ -95,13 +95,26 @@ export function cleanEngagement(p) {
   if (p.estimate && typeof p.estimate === "object") {
     const num = (v) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : undefined);
     out.estimate = {
+      details: (Array.isArray(p.estimate.details) ? p.estimate.details : []).slice(0, 500).map((l, i) => ({
+        id: text(l?.id || `charge-${i + 1}`, 100), componentId: text(l?.componentId, 100),
+        description: text(l?.description, 200), quantity: num(l?.quantity), price: num(l?.price),
+        unit: text(l?.unit, 80), currency: text(l?.currency || "USD", 3).toUpperCase(),
+        source: text(l?.source, 500), date: text(l?.date, 10), region: text(l?.region, 80), service: text(l?.service, 200),
+      })),
+      ...(p.estimate.consulting ? { consulting: {
+        currency: text(p.estimate.consulting.currency || "USD", 3).toUpperCase(),
+        phases: Object.fromEntries(["discovery", "design", "build", "test", "deploy"].map((id) => {
+          const l = p.estimate.consulting.phases?.[id] || {};
+          return [id, { lowDays: num(l.lowDays), days: num(l.days), highDays: num(l.highDays), rate: num(l.rate), basis: text(l.basis, 1000) }];
+        })),
+      } } : {}),
       usage: Object.fromEntries(Object.entries(p.estimate.usage || {}).filter(([, v]) => num(v) !== undefined).slice(0, 20).map(([k, v]) => [text(k, 40), v])),
       prices: Object.fromEntries(
         Object.entries(p.estimate.prices || {})
           .slice(0, 200)
           .map(([k, v]) => [
             text(k, 100),
-            { price: num(v?.price), currency: text(v?.currency || "USD", 3).toUpperCase(), source: text(v?.source, 300), url: text(v?.url, 500), date: text(v?.date, 10), note: text(v?.note, 300) },
+            { price: num(v?.price), currency: text(v?.currency || "USD", 3).toUpperCase(), source: text(v?.source, 300), url: text(v?.url, 500), date: text(v?.date, 10), note: text(v?.note, 300), region: text(v?.region, 80), service: text(v?.service, 200) },
           ]),
       ),
       ...(num(p.estimate.low) !== undefined ? { low: p.estimate.low } : {}),

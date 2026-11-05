@@ -2,7 +2,7 @@
 import { validateImport } from "./core.mjs";
 
 export const FORMAT = "atforma.project";
-export const FORMAT_VERSION = "2.1.0";
+export const FORMAT_VERSION = "2.2.0";
 export const MAX_FILE_BYTES = 2_000_000;
 const GENERATOR = "atforma-workbench 0.2.0";
 

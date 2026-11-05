@@ -4,6 +4,8 @@ import { ATTRIBUTES, acceptRisk, blockers } from "./review.mjs";
 import { DISCLAIMER, INPUTS, setPrice, setUsage } from "./estimate.mjs";
 import { deploymentSteps } from "./document.mjs";
 import { GATE } from "./engagement.mjs";
+import { DetailedCharges, ConsultingView, ResourcesView } from "./DeliveryViews.jsx";
+import { resourcePlan } from "./resources.mjs";
 
 const money = (v, c) => (v == null ? "—" : `${c || ""} ${v.toLocaleString("en", { maximumFractionDigits: 2 })}`.trim());
 
@@ -94,6 +96,7 @@ export function EstimateView({ project, result, onChange }) {
       <header className="doc-head">
         <h2>Estimate</h2>
         <p className="muted">{DISCLAIMER} Monthly run cost from your usage and the prices you enter, each with a source.</p>
+        <p><strong>{e.maturity}</strong> · Start with a rough order of magnitude; refine each charge as the design becomes clear.</p>
       </header>
       <div className="totals">
         <div>
@@ -109,7 +112,7 @@ export function EstimateView({ project, result, onChange }) {
         <div>
           <small className="muted">Status</small>
           <span className={e.complete ? "ok-text" : "warn-text"}>
-            {e.complete ? "Complete" : e.mixedCurrencies ? "Mixed currencies" : "Incomplete"}
+            {e.complete ? "Complete worksheet" : e.mixedCurrencies ? "Mixed currencies" : "Incomplete"}
           </span>
         </div>
         {e.budget && (
@@ -122,16 +125,18 @@ export function EstimateView({ project, result, onChange }) {
           </div>
         )}
       </div>
+      <p className="muted small">Worksheet completion covers the entered lines. It does not establish a full cloud quote; confirm every billable dimension, region and price source.</p>
       {e.drivers.length > 0 && (
         <p className="small">
           Biggest drivers: {e.drivers.map((d) => `${d.component} (${money(d.cost, d.price.currency)})`).join(", ")}
         </p>
       )}
+      {e.lines.some((l) => !l.detailed) && <>
       <div className="doc-sub">
         <h3>Usage</h3>
       </div>
       <div className="usage">
-        {INPUTS.map((i) => {
+        {INPUTS.filter((i) => e.lines.some((l) => l.inputs.includes(i.id))).map((i) => {
           const u = e.usage[i.id];
           return (
             <label key={i.id} className="field">
@@ -151,13 +156,16 @@ export function EstimateView({ project, result, onChange }) {
           );
         })}
       </div>
+      </>}
+      {e.lines.some((l) => !l.detailed) &&
       <div className="doc-sub">
         <h3>Lines</h3>
         <span className="muted small">Price per unit, with where it came from.</span>
       </div>
-      {e.lines.length ? (
+      }
+      {e.lines.some((l) => !l.detailed) ? (
         <div className="lines">
-          {e.lines.map((l) => {
+          {e.lines.filter((l) => !l.detailed).map((l) => {
             const p = project.estimate?.prices?.[l.id] || {};
             const set = (patch) => onChange(setPrice(project, l.id, patch));
             return (
@@ -183,7 +191,7 @@ export function EstimateView({ project, result, onChange }) {
           })}
         </div>
       ) : (
-        <p className="muted">Sketch a design first; lines appear for each component that has a running cost.</p>
+        !project.nodes.length && <p className="muted">Sketch a design first; lines appear for each component that has a running cost.</p>
       )}
       {e.notCosted.length > 0 && <p className="muted small">Not costed in this release: {e.notCosted.join(", ")}.</p>}
       <div className="row small">
@@ -196,12 +204,17 @@ export function EstimateView({ project, result, onChange }) {
           <input aria-label="High factor" value={e.factors.high} onChange={(ev) => onChange({ ...project, estimate: { ...(project.estimate || {}), high: Number(ev.target.value) || 0 } })} />
         </label>
       </div>
+      <DetailedCharges project={project} onChange={onChange} />
+      {e.lines.some((l) => l.detailed) && <div className="resource-schedule" aria-label="Detailed cost breakdown">{e.lines.filter((l) => l.detailed).map((l) => <article key={l.id}><strong>{l.component} · {l.driver}</strong><span>{l.quantity ?? "?"} {l.unit} × {l.price ? money(l.price.price, l.price.currency) : "price needed"} = {l.cost == null ? l.status : money(l.cost, l.price.currency)}/month</span></article>)}</div>}
+      <details className="extra"><summary>What we still need for a full estimate · {e.gaps.length} worksheet gaps</summary><ul>{e.gaps.map((g,i) => <li key={i}>{g}</li>)}</ul><p className="muted small">Check networking, security, logging, backups, support, licences, taxes and delivery effort. A detailed worksheet still needs validation against the selected services.</p></details>
+      <ConsultingView project={project} onChange={onChange} />
     </section>
   );
 }
 
-export function DeployView({ project, findings, environment, onEnvironment, onPlan, onPulumi, onDocument, onChange }) {
+export function DeployView({ project, findings, environment, onEnvironment, onPlan, onPulumi, onDocument, onPack, onTerraform, onChange }) {
   const block = blockers(findings);
+  const infrastructure = resourcePlan(project);
   const gate = project.gate || {};
   return (
     <section className="doc" aria-label="Deploy">
@@ -209,8 +222,9 @@ export function DeployView({ project, findings, environment, onEnvironment, onPl
         <h2>Deploy</h2>
         <p className="muted">A reviewable plan and document. Atforma never provisions anything on its own.</p>
       </header>
-      <div className={`ready ${block.length ? "no" : "yes"}`}>
-        <strong>{block.length ? "Not ready for deployment" : "No blockers"}</strong>
+      <div className="ready no">
+        <strong>{block.length ? "Not ready for deployment" : "No automated review blockers"}</strong>
+        {!block.length && <p className="small">{infrastructure.gaps.length ? `${infrastructure.gaps.length} infrastructure and integration tasks remain.` : "Infrastructure and account validation are still required."}</p>}
         {block.length > 0 && (
           <ul>
             {block.map((f) => (
@@ -230,6 +244,8 @@ export function DeployView({ project, findings, environment, onEnvironment, onPl
         <button className="btn primary" onClick={onDocument}>
           Deployment document
         </button>
+        <button className="btn primary" onClick={onPack}>Download delivery pack</button>
+        <button className="btn" onClick={onTerraform}>Terraform sketch</button>
         <button className="btn" onClick={onPlan}>
           Export {environment} plan
         </button>
@@ -237,6 +253,9 @@ export function DeployView({ project, findings, environment, onEnvironment, onPl
           Pulumi
         </button>
       </div>
+      <p className="muted small">The delivery pack includes the specification, diagram, decisions, estimates, resource schedule, editable project and Terraform sketch, all from the current snapshot. Change the project and regenerate it.</p>
+      <p className="warn-text small">Deployment access and execution are not connected. Resource coverage and implementation work are listed below; automated review alone cannot establish deployment readiness.</p>
+      <ResourcesView project={project} />
       <div className="doc-sub">
         <h3>Draft steps</h3>
         <span className="muted small">Validate against the provider's documentation before use.</span>

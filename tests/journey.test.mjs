@@ -100,7 +100,7 @@ test('estimate: quantity × sourced price; missing inputs and prices leave it in
   p=setUsage(p,'tokens_per_request',3000);
   e=estimate(p);assert.equal(e.lines.find(l=>l.driver==='Model tokens').quantity,6000);assert.equal(e.lines.find(l=>l.driver==='Model tokens').status,'price needed');
   for(const l of e.lines)p=setPrice(p,l.id,{price:l.driver==='Model tokens'?0.01:0.5,currency:'USD'});
-  e=estimate(p);assert.equal(e.complete,true);
+  e=estimate(p);assert.equal(e.complete,false);assert.ok(e.gaps.length>0); // Coarse lines still need service/region and full component coverage.
   const expected=e.lines.reduce((s,l)=>s+l.cost,0);assert.equal(e.expected,Math.round(expected*100)/100);
   assert.equal(e.low,Math.round(expected*0.7*100)/100);assert.equal(e.drivers[0].driver,'Model tokens');
   assert.ok(e.lines.every(l=>l.price.source==='entered by you'&&l.price.date));

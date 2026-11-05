@@ -39,12 +39,14 @@ For API access, enter a Claude/OpenAI/Gemini key in the local dialog (sidecar me
 1. **Discover.** Answer "What would you like to build?" in a sentence. Answer the follow-ups, or press **Not sure**, **Why?** or **Skip**. What you say appears under *What I understand so far* (editable); numbers become usage inputs and statements like "within 5 seconds" become requirements. Press **Sketch it** when offered.
 2. **Design.** The board starts at **System**; double-click to open a layer, then a block. *Draft on AWS / Azure / Google Cloud / IBM* proposes alternatives; every applied change is a decision you can revise. Requirements, Options and Decisions sit beside the board.
 3. **Review.** Findings grouped by security, reliability, availability, scalability, performance, maintainability and cost, each with its rule and an action. Accept a risk with a reason and an owner. **Test run** runs designs that have sample-data fixtures (predictive-maintenance and analytics templates).
-4. **Estimate.** Monthly run cost from your usage and the unit prices you enter, each with a source. No prices are built in; missing ones keep the estimate marked incomplete.
-5. **Deploy.** Readiness, draft steps, a plan, a Pulumi scaffold and the **deployment document** — generated from the project every time. Nothing is provisioned.
+4. **Estimate.** Start with a ROM using visible low/high factors. Refine with detailed cloud charge lines (input/output tokens, compute, requests, storage and transfer), each with quantity, unit, currency, service, region, date and price source. Detailed lines replace the coarse ROM line for that component. Mixed currencies are never summed; stale prices and uncosted components are flagged. Enter one-off consulting/build person-days, rates and scope separately; no prices or effort are invented.
+5. **Deploy.** Inspect the diagram-derived resource schedule and engineering gaps. **Download delivery pack** exports the specification, diagram, architecture/deployment document, decisions, estimate JSON, resource schedule, handoff checklist, editable project and Terraform sketch from one snapshot. Change the project and regenerate. A manifest identifies each snapshot, design revision and generation time. Nothing is provisioned.
+
+Use **Undo / Redo** for board changes (Cmd/Ctrl+Z and Cmd/Ctrl+Shift+Z). A new board edit clears redo; discovery records and estimates stay intact. **Start over** in the top bar offers to save a project file, or cancel, before clearing the board, chat, requirements, decisions and estimates. The model connection stays. Project boundaries start a separate undo history.
 
 ## Project files
 
-**⋯ → Save project file** writes `<name>.atforma.json` (format `atforma.project` 2.0.0): design, discovery, requirements, assumptions, open questions, decisions with history, and options. **Open project file** restores it exactly, upgrades older workbench files, refuses newer major versions, and keeps unknown fields. Files containing anything that looks like a credential are refused on save and open. Schema: [`specs/002-project-model/contracts/project-file.schema.json`](specs/002-project-model/contracts/project-file.schema.json).
+**⋯ → Save project file** writes `<name>.atforma.json` (format `atforma.project` 2.2.0): design, discovery, requirements, assumptions, open questions, decisions with history, and options. **Open project file** restores it exactly, upgrades older workbench files, refuses newer major versions, and keeps unknown fields. Files containing anything that looks like a credential are refused on save and open. Schema: [`specs/002-project-model/contracts/project-file.schema.json`](specs/002-project-model/contracts/project-file.schema.json).
 
 ## Specifications
 
@@ -55,7 +57,8 @@ Product direction lives in Spec Kit: the [constitution](.specify/memory/constitu
 ```sh
 npm test
 npm run test:server
-npm run test:browser  # uses locally installed Chrome on macOS, otherwise Playwright Chromium
+npm run test:browser  # full journey + delivery scenarios; Chrome on macOS or Playwright Chromium
+npm run test:terraform # optional: Terraform 1.7+, provider schema and mock-plan checks only
 npm run build
 npm run notices
 ```
@@ -64,7 +67,7 @@ npm run notices
 
 ## Scope and deployment
 
-Local fixture runs are deterministic examples, not cloud tests. Architect model requests are real only when explicitly selected and sent. Cloud inventory discovery, MCP tools, live pricing, provider-native Pulumi resources, real staging tests and deployment remain unimplemented. Pulumi output is a metadata scaffold, not a provisioned AI system. Imported stack metadata is not a live refresh or a complete round trip.
+Local fixture runs are deterministic examples, not cloud tests. Architect model requests are real only when explicitly selected and sent. Cloud inventory discovery, MCP tools, live pricing, provider-native Pulumi resources, real staging tests and deployment remain unimplemented. Pulumi output is a metadata scaffold. Terraform JSON exports native S3 bucket foundations (public-access block, encryption and versioning) for explicitly drawn proposed AWS S3 blocks. Other resources, existing-resource references and every application connection are listed as unfinished; a review gate blocks planning until reviewed and completed. It is not a complete deployable AI application. Imported stack metadata is not a live refresh or a complete round trip.
 
 The browser stores projects locally; there is no workspace account service or cross-device sync. This is a single-user localhost application. See [self-hosting](docs/SELF_HOSTING.md) before deploying the workbench yourself. The browser application and the infrastructure drawn on its canvas have separate deployment lifecycles.
 

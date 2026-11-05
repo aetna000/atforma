@@ -140,18 +140,18 @@ await page.getByRole('button',{name:'Rule out',exact:true}).nth(1).click();
 // ESTIMATE: quantities from the conversation and usage inputs; prices only with a source.
 await tab('Estimate');
 const est=page.getByRole('region',{name:'Estimate'});
-assert.match(await est.locator('.totals').innerText(),/Incomplete/);
+assert.match(await est.locator('.totals').first().innerText(),/Incomplete/);
 await est.getByLabel('Tokens per request (in + out)').fill('3000');
 await est.getByLabel('Data stored').fill('40');
 for(const [component,price] of [['SharePoint & OneDrive files',0.03],['Microsoft Foundry models',0.004],['Azure AI Content Safety',0.75]])await est.getByLabel(`${component} unit price`).fill(String(price));
 await est.getByLabel('Microsoft Foundry models price source').fill('https://example.com/pricing');
-assert.match(await est.locator('.totals').innerText(),/Complete/);
+assert.match(await est.locator('.totals').first().innerText(),/Incomplete/); // Priced ROM lines still leave coverage/provenance gaps.
 // 40×0.03 + 6000×0.004 + 2×0.75 = 1.2 + 24 + 1.5
-assert.match(await est.locator('.totals').innerText(),/USD 26\.7/);
+assert.match(await est.locator('.totals').first().innerText(),/USD 26\.7/);
 await page.screenshot({path:'/tmp/forma-qa/estimate.png'});
 // DEPLOY: readiness, draft steps, document from project data only.
 await tab('Deploy');
-await page.getByRole('region',{name:'Deploy'}).getByText('No blockers',{exact:true}).waitFor();
+await page.getByRole('region',{name:'Deploy'}).getByText('No automated review blockers',{exact:true}).waitFor();
 let dl=page.waitForEvent('download');
 await page.getByRole('button',{name:'Deployment document',exact:true}).click();
 let file=await dl;await file.saveAs('/tmp/forma-qa/document.md');let doc=fs.readFileSync('/tmp/forma-qa/document.md','utf8');
@@ -215,7 +215,7 @@ await runTest();
 await page.locator('.run-summary.passed').waitFor({timeout:20000});
 // Deliverables: plan, scale gate and the regenerated document.
 await tab('Deploy');
-await page.getByRole('region',{name:'Deploy'}).locator('details.extra summary').click();
+await page.getByRole('region',{name:'Deploy'}).locator('details.extra summary').filter({hasText:'Scale gate'}).click();
 await page.getByLabel('Adoption evidence').fill('Two planners used it for a week');
 await page.getByRole('button',{name:'Production',exact:true}).click();
 dl=page.waitForEvent('download');
@@ -258,7 +258,7 @@ dl=page.waitForEvent('download');
 await page.getByRole('menuitem',{name:'Save project file'}).click();
 file=await dl;assert.match(file.suggestedFilename(),/\.atforma\.json$/);await file.saveAs('/tmp/forma-qa/project.atforma.json');
 const saved=JSON.parse(fs.readFileSync('/tmp/forma-qa/project.atforma.json','utf8'));
-assert.equal(saved.format,'atforma.project');assert.equal(saved.formatVersion,'2.1.0');assert.equal(saved.requirements.at(-1).measure.target,2);assert.ok(saved.discovery.facts.length>=2);assert.equal(saved.discovery.workflow,'knowledge-assistant');assert.ok(Object.keys(saved.estimate.prices).length>=3);
+assert.equal(saved.format,'atforma.project');assert.equal(saved.formatVersion,'2.2.0');assert.equal(saved.requirements.at(-1).measure.target,2);assert.ok(saved.discovery.facts.length>=2);assert.equal(saved.discovery.workflow,'knowledge-assistant');assert.ok(Object.keys(saved.estimate.prices).length>=3);
 await page.evaluate(()=>localStorage.clear());await page.reload();
 await connect();
 await page.locator('input[type=file]').setInputFiles('/tmp/forma-qa/project.atforma.json');
@@ -331,6 +331,7 @@ const firstName=await page.locator('.project-name').inputValue();const firstBloc
 await page.getByRole('button',{name:'Projects'}).first().click();
 await page.locator('.project-list li.current',{hasText:'open now'}).waitFor();
 await page.getByRole('dialog').getByRole('button',{name:'New project'}).click();
+await page.getByRole('dialog').getByRole('button',{name:'Start over without download',exact:true}).click();
 assert.equal(await nodes(),0);assert.equal(await page.locator('.project-name').inputValue(),'New project');
 await chat('A chatbot for our sales playbooks');
 await page.locator('.blk').first().waitFor();await page.waitForTimeout(1200);

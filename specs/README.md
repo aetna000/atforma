@@ -15,6 +15,8 @@ Source: *Atforma product summary and action plan* (2026-11-05). Principles: [con
 | Memory | [006 AtMem project memory](006-atmem-memory/spec.md) | Spec |
 | Agent runtime and tracing | [008 Adbot agent and Adflow traces](008-agent-runtime/spec.md) | Spec |
 
+Delivery handoff and progressive estimates: [009 Consulting delivery](009-consulting-delivery/spec.md).
+
 ## Build order
 
 1. **002** — one versioned project file: requirements, assumptions, open questions and decisions with history. Everything else reads it.
@@ -35,5 +37,5 @@ These block parts of the specs and are marked `[NEEDS CLARIFICATION]` where they
 | OD-1 | First target user and first supported provider (AWS, Azure/Foundry, Google, IBM, Databricks) | 003 provider rules, 004 price book, 007 |
 | OD-2 | Representative deployment scenarios for testing | 007, research |
 | OD-3 | Product and umbrella naming. UI now says **Atforma** (working name) | Branding only |
-| OD-4 | Project file format and versioning — **implemented as proposed in 002** (`atforma.project` 2.1.0, JSON, `.atforma.json`); confirm or change | 002 sign-off |
+| OD-4 | Project file format and versioning — **implemented as proposed in 002** (`atforma.project` 2.2.0, JSON, `.atforma.json`); confirm or change | 002 sign-off |
 | OD-5 | Deployment permissions and how far release 1 automates execution | 007 |

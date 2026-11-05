@@ -1,0 +1,46 @@
+// All deliverables are generated from one project snapshot, never independently edited copies.
+import { toProjectFile } from "./project-file.mjs";
+import { deploymentDocument } from "./document.mjs";
+import { mermaid, adrMarkdown, OPTION_NAMES } from "./pack.mjs";
+import { OPTIONS, CRITERIA, optionScore } from "./engagement.mjs";
+import { estimate, consultingEstimate, DISCLAIMER } from "./estimate.mjs";
+import { resourcePlan, resourceMarkdown } from "./resources.mjs";
+import { terraformSketch } from "./terraform.mjs";
+import { review, blockers } from "./review.mjs";
+
+const text = (s) => String(s ?? "").replaceAll("|", "\\|").replaceAll("\n", " ");
+const json = (v) => JSON.stringify(v, null, 2);
+const list = (items) => items.length ? items.map((x) => `- ${x}`).join("\n") : "None recorded.";
+export function solutionSpecification(project) {
+  const a = project.assessment;
+  return `# ${project.name} — solution specification\n\n## Problem and intended outcome\n\n${project.brief?.application || project.requirements || "To be clarified in the conversation."}\n\n## Scope\n\n${list((project.useCases || []).map((u) => `${u.title}: ${u.verdict}${u.reason ? ` — ${u.reason}` : ""}`))}\n\n## Requirements and acceptance criteria\n\n${list((project.needs || []).map((r) => `[${r.id}] ${r.statement} (${r.priority}, ${r.status}); target: ${r.measure ? `${r.measure.metric} ${r.measure.op} ${r.measure.target}${r.measure.unit || ""}` : "acceptance target needed"}; linked blocks: ${r.links?.join(", ") || "not linked"}`))}\n\n## Architecture\n\n\`\`\`mermaid\n${mermaid(project)}\n\`\`\`\n\n${resourceMarkdown(project)}\n\n## Options and tradeoffs\n\n${a ? `Scores are entered judgements (1–5), not provider benchmarks or prices. Unscored options remain open.\n\n| Option | ${CRITERIA.map((c) => c.label).join(" | ")} | Weighted score | Rationale |\n|---|${CRITERIA.map(() => "---|").join("")}---|---|\n${OPTIONS.map((o) => `| ${OPTION_NAMES[o]} | ${CRITERIA.map((c) => a.scores?.[o]?.[c.id] ?? "—").join(" | ")} | ${optionScore(a, o) ?? "—"} | ${text(a.notes?.[o])} |`).join("\n")}` : "Use Design → Options to compare cloud choices and record the rationale before choosing."}\n\n## Decisions and change history\n\n${adrMarkdown(project.decisions)}\n\n## Assumptions\n\n${list((project.assumptions || []).map((a) => `[${a.id}] ${a.statement} (${a.madeAt})`))}\n\n## Questions to resolve\n\n${list((project.openQuestions || []).filter((q) => q.status === "open").map((q) => `[${q.id}] ${q.question}${q.owner ? ` — ${q.owner}` : ""}`))}\n`;
+}
+
+export function deliveryPack(project, run, environment = "staging", now = new Date()) {
+  // Credential refusal runs before producing any files, including the plain-language outputs.
+  const file = toProjectFile(project, now);
+  const cloud = estimate(project, now), consulting = consultingEstimate(project), resources = resourcePlan(project);
+  const findings = review(project);
+  const snapshotId = crypto.randomUUID();
+  const stamp = `Snapshot ${snapshotId} · design r${project.revision} · generated ${now.toISOString()}`;
+  const outstanding = [
+    ...blockers(findings).map((f) => `Architecture: ${f.statement}`), ...cloud.gaps,
+    ...resources.gaps,
+    ...consulting.lines.filter((l) => !l.complete).map((l) => `${l.label}: effort, rate, ordered day range and basis needed.`),
+    ...(project.openQuestions || []).filter((q) => q.status === "open").map((q) => q.question),
+  ];
+  const files = {
+    "project.atforma.json": json(file),
+    "specification.md": `${stamp}\n\n${solutionSpecification(project)}`,
+    "architecture-and-deployment.md": `${stamp}\n\n${deploymentDocument(project, run, now)}`,
+    "diagram.mmd": mermaid(project),
+    "decisions.md": `${stamp}\n\n${adrMarkdown(project.decisions)}`,
+    "resource-schedule.json": json(resources),
+    "estimate.json": json({ snapshotId, revision: project.revision, generatedAt: now.toISOString(), disclaimer: DISCLAIMER, cloud, consulting }),
+    "handoff.md": `# Delivery handoff\n\n${stamp}\n\nThis is a reviewable design handoff, not deployment evidence.\n\n## Work remaining\n\n${list(outstanding)}\n\n## Before deployment\n\n- Confirm provider, region, data residency, account owner and environment.\n- Complete the resource implementations, application code, IAM and data-flow integrations.\n- Validate the estimate against every billable dimension and a current provider quote.\n- Review least-privilege access, quotas, secrets handling and Terraform state storage.\n- Run and review the infrastructure plan in the intended account.\n- Agree acceptance tests, rollback and an explicit deployment approval.\n- Capture results and handover ownership. No cloud operation has been performed by this export.\n`,
+    ...Object.fromEntries(Object.entries(terraformSketch(project, environment)).map(([name, content]) => [`terraform/${name}`, content])),
+    "README.md": `# ${project.name} — delivery pack\n\n${stamp}\n\nOpen specification.md for scope, requirements, options and decisions; architecture-and-deployment.md for the diagram, review, costs and steps. estimate.json separates monthly cloud cost and one-off consulting/build cost. resource-schedule.json links resources to diagram IDs. terraform/ is a partial AWS foundation sketch with an explicit review gate.\n\nReopen project.atforma.json in Atforma to change requirements, assumptions, decisions, prices or the diagram, then regenerate this pack. All files come from the same snapshot; do not maintain edited copies as the source of truth. Design revision tracks board changes; snapshot ID and generation time identify exports including changes to costs and requirements.\n\nCloud prices and professional-service rates are only those entered in the project. A ROM or detailed worksheet is not a fixed-price quote. No cloud access, deployment or successful infrastructure validation is implied.\n`,
+  };
+  files["manifest.json"] = json({ format: "atforma.delivery", version: "1.0.0", snapshotId, projectId: file.meta.id, designRevision: project.revision, generatedAt: now.toISOString(), environment: environment === "production" ? "production" : "staging", estimateStage: cloud.maturity, deploymentExecuted: false, files: [...Object.keys(files), "manifest.json"] });
+  return files;
+}

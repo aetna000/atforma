@@ -4,7 +4,8 @@ import { layerOf } from "./levels.mjs";
 import { BRIEF_FIELDS, CRITERIA, OPTIONS, optionScore } from "./engagement.mjs";
 import { OPTION_NAMES, adrMarkdown, mermaid, measuresSection } from "./pack.mjs";
 import { ATTRIBUTES, blockers, review, roleOf } from "./review.mjs";
-import { DISCLAIMER, INPUTS, estimate } from "./estimate.mjs";
+import { DISCLAIMER, INPUTS, estimate, consultingEstimate } from "./estimate.mjs";
+import { resourceMarkdown } from "./resources.mjs";
 import { FORMAT_VERSION } from "./project-file.mjs";
 
 const cell = (s) => String(s ?? "").replace(/\|/g, "\\|").replace(/\n/g, " ");
@@ -38,7 +39,8 @@ export function deploymentSteps(project) {
 export function deploymentDocument(project, run, now = new Date()) {
   const findings = review(project);
   const blocking = blockers(findings);
-  const est = estimate(project);
+  const est = estimate(project, now);
+  const work = consultingEstimate(project);
   const brief = project.brief || {};
   const names = Object.fromEntries(project.nodes.map((n) => [n.id, n]));
   const nfr = (project.needs || []).filter((r) => r.kind === "nonfunctional");
@@ -86,6 +88,7 @@ ${[...new Set(project.nodes.map((n) => layerOf(n).label))]
 \`\`\`mermaid
 ${mermaid(project)}
 \`\`\`
+${resourceMarkdown(project)}
 ${scored ? `\n**Options compared** (scores 1–5, higher is better; judgement, not quotes)\n\n| Criterion | ${OPTIONS.map((o) => OPTION_NAMES[o]).join(" | ")} |\n|---|${OPTIONS.map(() => "---").join("|")}|\n${CRITERIA.map((c) => `| ${c.label} ×${a.weights[c.id]} | ${OPTIONS.map((o) => a.scores[o][c.id] ?? "—").join(" | ")} |`).join("\n")}\n| **Weighted** | ${OPTIONS.map((o) => optionScore(a, o) ?? "—").join(" | ")} |\n` : ""}
 ## 4. Data flows
 
@@ -126,11 +129,25 @@ ${ATTRIBUTES.map(([id, label]) => {
 
 ${DISCLAIMER} Monthly run cost only. Prices are as entered, with their sources.
 
+**Estimate stage:** ${est.maturity}. ${est.maturity === "Detailed worksheet" ? "User-entered charge coverage; still needs engineering and pricing validation." : "Rough order of magnitude, refined as scope and charge dimensions become known."}
+
 ${est.lines.length ? ["| Component | Driver | Quantity | Unit price | Monthly | Source |", "|---|---|---|---|---|---|", ...est.lines.map((l) => `| ${cell(l.component)} | ${l.driver} | ${l.quantity == null ? `needs ${l.missing.join(", ")}` : `${l.quantity.toLocaleString("en")} ${l.unit}`} | ${l.price ? `${l.price.currency} ${l.price.price} / ${l.unit}` : "price needed"} | ${l.cost == null ? "—" : money(l.cost, l.price.currency)} | ${l.price ? cell(`${l.price.source}${l.price.url ? ` ${l.price.url}` : ""}, ${l.price.date}`) : "—"} |`)].join("\n") : "_No costed components._"}
 
-**Usage inputs:** ${INPUTS.map((i) => `${i.label}: ${est.usage[i.id].value ?? "—"} (${est.usage[i.id].source})`).join("; ")}.
+**Usage inputs:** ${INPUTS.filter((i) => est.lines.some((l) => l.inputs.includes(i.id))).map((i) => `${i.label}: ${est.usage[i.id].value ?? "—"} (${est.usage[i.id].source})`).join("; ") || "Quantities are entered directly on detailed charge lines above"}.
 
 **Range:** low ×${est.factors.low}, high ×${est.factors.high} of expected.${est.notCosted.length ? ` Not costed in this release: ${est.notCosted.join(", ")}.` : ""}${est.budget ? ` Budget stated: ${est.budget.currency} ${est.budget.amount}/month${est.budget.comparable ? (est.expected > est.budget.amount ? " — **expected cost is over budget**" : " — within budget") : " (different currency; not compared)"}.` : ""}
+
+**Estimate gaps:**\n\n${est.gaps.map((g) => `- ${g}`).join("\n") || "No worksheet gaps detected; validate dimensions, quotations and assumptions before treating this as a full estimate."}
+
+### Consulting and build estimate (one-off)
+
+${work.expected == null ? "Not estimated; enter work-package days, rates and a basis." : `${money(work.expected, work.currency)} expected; ${money(work.low, work.currency)}–${money(work.high, work.currency)} range. ${work.complete ? "All five work packages entered." : "Incomplete subtotal; work packages remain unestimated."}`}
+
+| Work package | Low / expected / high days | Rate / day | Expected | Basis and exclusions |
+|---|---|---|---|---|
+${work.lines.map((l) => `| ${l.label} | ${l.lowDays ?? "—"} / ${l.days ?? "—"} / ${l.highDays ?? "—"} | ${money(l.rate, work.currency)} | ${money(l.expected, work.currency)} | ${cell(l.basis || "Needed")} |`).join("\n")}
+
+One-off effort is separate from monthly cloud charges. Days are person-days, not elapsed time. Taxes, support, licences and migration are excluded unless explicitly included in the basis or charge lines.
 
 ## 9. Deployment steps
 
@@ -144,7 +161,7 @@ ${adrMarkdown(project.decisions)}
 ## 11. Assumptions
 
 ${(project.assumptions || []).length ? project.assumptions.map((x) => `- _Assumption:_ ${x.statement} _(stated ${x.madeAt}${x.owner ? `, ${x.owner}` : ""})_`).join("\n") : "_None recorded._"}
-${INPUTS.filter((i) => est.usage[i.id].source.startsWith("assumption")).map((i) => `- _Assumption:_ ${i.label} = ${est.usage[i.id].value} (${i.assumptionText})`).join("\n")}
+${INPUTS.filter((i) => est.lines.some((l) => l.inputs.includes(i.id)) && est.usage[i.id].source.startsWith("assumption")).map((i) => `- _Assumption:_ ${i.label} = ${est.usage[i.id].value} (${i.assumptionText})`).join("\n")}
 
 ## 12. Open questions
 

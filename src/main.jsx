@@ -28,6 +28,8 @@ import {
   Search,
   Trash2,
   Undo2,
+  Redo2,
+  RotateCcw,
   X,
   Database,
   Activity,
@@ -76,6 +78,8 @@ import { layerOf, proposalDiff, systemView } from "./levels.mjs";
 import { consult, keepEngagement, newDecision, recommendationDecision } from "./engagement.mjs";
 import { adrMarkdown, OPTION_NAMES } from "./pack.mjs";
 import { deploymentDocument } from "./document.mjs";
+import { deliveryPack } from "./delivery.mjs";
+import { terraformSketch } from "./terraform.mjs";
 import { WORKFLOWS, conceptSignature, essentialsKnown, nextQuestion, opening, progress, sketch, understand } from "./discovery.mjs";
 import { review } from "./review.mjs";
 import { estimate } from "./estimate.mjs";
@@ -597,6 +601,7 @@ function App() {
     [run, setRun] = useState(null),
     [runStates, setRunStates] = useState({}),
     [history, setHistory] = useState([]),
+    [future, setFuture] = useState([]),
     [toast, setToast] = useState(""),
     [modal, setModal] = useState(() => (readConnection() ? null : "welcome")),
     [menu, setMenu] = useState(false),
@@ -727,7 +732,10 @@ function App() {
     (next, remember = true) => {
       if (busy) return;
       const current = projectRef.current;
-      if (remember) setHistory((h) => [...h.slice(-29), structuredClone(current)]);
+      if (remember) {
+        setHistory((h) => [...h.slice(-29), structuredClone(current)]);
+        setFuture([]);
+      }
       const updated = { ...next, revision: current.revision + 1 };
       projectRef.current = updated;
       setProject(updated);
@@ -804,6 +812,10 @@ function App() {
         e.preventDefault();
         setLevel("flow");
         setPicked(new Set(projectRef.current.nodes.map((n) => n.id)));
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" && !typing && !modal) {
+        e.preventDefault();
+        if (e.shiftKey) redo(); else undo();
       }
       if ((e.key === "Delete" || e.key === "Backspace") && !typing && picked.size > 1) {
         e.preventDefault();
@@ -936,11 +948,25 @@ function App() {
     goFlow(focus);
   }
   function undo() {
-    if (!history.length || busy) return;
+    if (!history.length || busy || agentBusy) return;
     const previous = history.at(-1);
+    setFuture((f) => [...f.slice(-29), structuredClone(projectRef.current)]);
     setHistory((h) => h.slice(0, -1));
     // Undo takes back the design, never what the user has told us since.
     commit(keepEngagement(previous, projectRef.current), false);
+    setSelected(null);
+    setPending(null);
+    notify("Board change undone. Redo restores it.");
+  }
+  function redo() {
+    if (!future.length || busy || agentBusy) return;
+    const next = future.at(-1);
+    setHistory((h) => [...h.slice(-29), structuredClone(projectRef.current)]);
+    setFuture((f) => f.slice(0, -1));
+    commit(keepEngagement(next, projectRef.current), false);
+    setSelected(null);
+    setPending(null);
+    notify("Board change redone.");
   }
   function download(data, name, type = "application/json") {
     const url = URL.createObjectURL(
@@ -983,13 +1009,15 @@ function App() {
     }
     // A project file brings its own engagement; templates and imports keep the current one.
     if (own) {
-      // Opening a file restores its revision exactly; the previous project stays undoable.
-      setHistory((h) => [...h.slice(-29), structuredClone(projectRef.current)]);
+      // Project boundaries keep separate history; never blend records from different projects.
+      setHistory([]);
+      setFuture([]);
       projectRef.current = next;
       setProject(next);
       setRunStates({});
       setRun(null);
       setProbe(null);
+      setMessages([welcome(next)]);
     } else commit(validateImport(keepEngagement(next, projectRef.current)));
     setSelected(null);
     setPending(null);
@@ -1219,6 +1247,22 @@ function App() {
     download(deploymentDocument(project, run), `${slug}-deployment-document.md`, "text/markdown");
     notify("Deployment document generated from the current project.");
   };
+  const exportFiles = (files, suffix) => {
+    download(zipSync(Object.fromEntries(Object.entries(files).map(([name, content]) => [name, strToU8(content)]))), `${slug}-r${project.revision}-${suffix}.zip`, "application/zip");
+  };
+  const exportPack = () => {
+    try {
+      exportFiles(deliveryPack(project, run, environment), "delivery");
+      notify("Delivery pack generated from the current project snapshot.");
+    } catch (e) { notify(e.message); }
+  };
+  const exportTerraform = () => {
+    try {
+      toProjectFile(project); // Apply the same credential refusal as every project export.
+      exportFiles(terraformSketch(project, environment), "terraform");
+      notify("Terraform sketch exported with resource coverage and unfinished work.");
+    } catch (e) { notify(e.message); }
+  };
   // One short real request proves the sign-in, model ID and local service all work.
   async function verifyConnection(choice) {
     let live = session;
@@ -1275,7 +1319,8 @@ function App() {
     const leaving = projectRef.current;
     if (session && !binned.current.has(leaving.id) && (leaving.nodes.length || leaving.brief?.application?.trim()))
       projectStore(session, "save", { id: leaving.id, file: toProjectFile(leaving) }).catch(() => {});
-    setHistory((h) => [...h.slice(-29), structuredClone(projectRef.current)]);
+    setHistory([]);
+    setFuture([]);
     projectRef.current = next;
     seen.current = structuredClone(next);
     setProject(next);
@@ -1290,6 +1335,10 @@ function App() {
     setDesignView("board");
     setPeek(null);
     setMessages([welcome(next)]);
+    setInput("");
+    setProbe(null);
+    setSnapshot(null);
+    setCtx(null);
     refit();
   }
   async function openSaved(id) {
@@ -1302,8 +1351,7 @@ function App() {
     }
   }
   function newProject() {
-    switchTo(validateImport(emptyProject()));
-    setModal(null);
+    setModal("start-over");
   }
   async function binProject(id) {
     try {
@@ -1343,8 +1391,10 @@ function App() {
     try {
       download(JSON.stringify(toProjectFile(project), null, 2), `${slug}.atforma.json`);
       notify("Project file saved. Open it later from ⋯ → Open project file.");
+      return true;
     } catch (error) {
       notify(error.message);
+      return false;
     }
   }
   const exportDecisions = () =>
@@ -1420,6 +1470,7 @@ function App() {
         </div>
         <div className="bar-actions">
           {storageError && <span className="warn-text">Not saved</span>}
+          <button className="icon" title="Start over" aria-label="Start over" disabled={busy || agentBusy} onClick={() => setModal("start-over")}><RotateCcw size={16} /></button>
           <button className="icon" title="More" aria-label="More" onClick={() => setMenu((m) => !m)}>
             <MoreHorizontal size={16} />
           </button>
@@ -1442,7 +1493,9 @@ function App() {
             <button role="menuitem" onClick={() => fileRef.current.click()} disabled={busy}>Open project file</button>
             <button role="menuitem" onClick={saveProjectFile}>Save project file</button>
             <button role="menuitem" onClick={exportDocument}>Deployment document</button>
+            <button role="menuitem" onClick={exportPack}>Download delivery pack</button>
             <button role="menuitem" onClick={exportDecisions}>Export decisions</button>
+            <button role="menuitem" onClick={() => setModal("start-over")} disabled={busy || agentBusy}>Start over</button>
             <hr />
             <button role="menuitem" onClick={() => setModal("connections")}>Connections</button>
             <button role="menuitem" onClick={() => setModal("licenses")}>Licences</button>
@@ -1531,9 +1584,10 @@ function App() {
           <button className="icon" title="Clear board" aria-label="Clear board" disabled={!project.nodes.length || busy} onClick={clearBoard}>
             <Eraser size={17} />
           </button>
-          <button className="icon" title="Undo" aria-label="Undo" disabled={!history.length || busy} onClick={undo}>
+          <button className="icon" title="Undo board change" aria-label="Undo" disabled={!history.length || busy || agentBusy} onClick={undo}>
             <Undo2 size={17} />
           </button>
+          <button className="icon" title="Redo board change" aria-label="Redo" disabled={!future.length || busy || agentBusy} onClick={redo}><Redo2 size={17} /></button>
         </div>
         {level !== "block" && (
           <div className="zoom">
@@ -1746,6 +1800,8 @@ function App() {
             }}
             onPulumi={() => setModal("pulumi")}
             onDocument={exportDocument}
+            onPack={exportPack}
+            onTerraform={exportTerraform}
             onChange={updateEngagement}
           />
         )}
@@ -1985,35 +2041,27 @@ function App() {
             ) : modal === "start-over" ? (
               <>
                 <h2>Start over?</h2>
-                <p>This clears the board, notes and chat. Your connection stays.</p>
+                <p>Start a new idea with an empty board and chat. Requirements, decisions and estimates start fresh too. Your model connection stays.</p>
                 <div className="row">
+                  <button className="button run-button" onClick={() => {
+                    if (!saveProjectFile()) return;
+                    switchTo(validateImport(emptyProject()));
+                    setModal(null);
+                  }}>Save project and start over</button>
                   <button
-                    className="button run-button"
+                    className="button subtle"
                     onClick={() => {
-                      const fresh = validateImport(emptyProject());
-                      setHistory((h) => [...h.slice(-29), structuredClone(projectRef.current)]);
-                      projectRef.current = fresh;
-                      setProject(fresh);
-                      setRun(null);
-                      setRunStates({});
-                      setPending(null);
-                      setSelected(null);
-                      setLevel("flow");
-                      setFocus(null);
-                      setMode("design");
-                      setDesignView("board");
-                      setPeek(null);
-                      setMessages([welcome(fresh)]);
+                      switchTo(validateImport(emptyProject()));
                       setModal(null);
                     }}
                   >
-                    Start over
+                    Start over without download
                   </button>
                   <button className="button subtle" onClick={() => setModal(null)}>
                     Keep working
                   </button>
                 </div>
-                <p className="modal-fine">Want to keep this one? ⋯ → Save project file first.</p>
+                <p className="modal-fine">Save a project file to reopen this engagement later. Undo and redo apply within the current project.</p>
               </>
             ) : modal === "connections" || modal === "welcome" ? (
               <Connections

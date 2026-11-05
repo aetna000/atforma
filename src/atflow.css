@@ -737,3 +737,13 @@ label.inline input { width: 60px; }
   .modes button { padding: 5px 9px; }
   .brand span { display: none; }
 }
+
+/* Progressive delivery details stay collapsed until requested. */
+.delivery-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.charge-editor { min-width: 0; margin: 16px 0; padding: 14px; border: 1px solid var(--border, #d5dbd8); border-radius: 8px; }
+.charge-editor legend { padding: 0 6px; font-weight: 600; }
+.delivery-basis { grid-column: 1 / -1; }
+.resource-schedule { display: grid; gap: 10px; margin: 16px 0; }
+.resource-schedule article { display: grid; gap: 5px; padding: 12px; border: 1px solid var(--border, #d5dbd8); border-radius: 8px; overflow-wrap: anywhere; }
+.resource-schedule article span, .resource-schedule article small { color: var(--muted, #58645e); }
+@media (max-width: 600px) { .delivery-fields { grid-template-columns: minmax(0, 1fr); } }
