@@ -1,3 +1,5 @@
+import { OutputsView } from "./OutputsView.jsx";
+import { outputBundle } from "./output-bundle.mjs";
 import { TerraformView } from "./TerraformView.jsx";
 import { journey, advanceJourney } from "./journey.mjs";
 import "@xyflow/react/dist/style.css";
@@ -86,7 +88,6 @@ import { defaultAssessment } from "./engagement.mjs";
 import { setUsage } from "./estimate.mjs";
 import { applyPriceQuotes, fetchStoragePrices, storageNodes } from "./pricing.mjs";
 import { applyDecisionUpdates, applyRequirementDrafts, proposeCommentRevisions } from "./consultation.mjs";
-import { deliveryPack } from "./delivery.mjs";
 import { terraformSketch } from "./terraform.mjs";
 import { WORKFLOWS, conceptSignature, essentialsKnown, nextQuestion, opening, progress, sketch, understand } from "./discovery.mjs";
 import { review } from "./review.mjs";
@@ -1290,18 +1291,15 @@ function App() {
   const exportFiles = (files, suffix) => {
     download(zipSync(Object.fromEntries(Object.entries(files).map(([name, content]) => [name, typeof content === "string" ? strToU8(content) : content]))), `${slug}-r${project.revision}-${suffix}.zip`, "application/zip");
   };
+  const downloadBundle = bundle => {
+    download(zipSync(Object.fromEntries(Object.entries(bundle.files).map(([name,content])=>[name,typeof content === "string"?strToU8(content):content]))),bundle.filename,"application/zip");
+    notify("Reviewed output package downloaded.");
+  };
   const exportPack = async () => {
     try {
       notify("Preparing documents and diagram exports…");
-      const snapshot=structuredClone(project);
-      const files=deliveryPack(snapshot, run, environment);
-      const {visualFiles}=await import('./visual-export.mjs');
-      Object.assign(files,await visualFiles(snapshot,files['specification.md'],files['spec-kit/implementation-spec.md']));
-      const manifest=JSON.parse(files['manifest.json']);
-      manifest.files=Object.keys(files);files['manifest.json']=JSON.stringify(manifest,null,2);
-      exportFiles(files, "delivery");
-      notify("Delivery pack generated from the current project snapshot.");
-    } catch (e) { notify(e.message); }
+      downloadBundle(await outputBundle(project,run,environment));
+    } catch(e) { notify(e.message); }
   };
   const exportTerraform = () => {
     try {
@@ -1629,6 +1627,7 @@ function App() {
           <div className="journey-actions">
             <button className="btn primary" disabled={busy||agentBusy||!!pending} onClick={()=>guidance.checkpoint?continueJourney():followJourney()}>{guidance.checkpoint?guidance.continueLabel+' →':guidance.action}</button>
             {guidance.checkpoint&&<button className="link" disabled={busy||agentBusy} onClick={()=>followJourney()}>{guidance.action}</button>}
+            {project.nodes.length>0&&<button className="btn" onClick={()=>{setMode("design");setDesignView("outputs");}}>Outputs</button>}
             {["architecture","review","estimate","delivery"].includes(guidance.id)&&<>
               <button className="btn" onClick={()=>{setMode("design");setDesignView("terraform");}}>Terraform</button>
               <button className="btn" onClick={exportPack} title="Download the current architecture, requirements and infrastructure draft as a ZIP">Download</button>
@@ -1943,6 +1942,7 @@ function App() {
           </div>
         )}
 
+        {mode === "design" && designView === "outputs" && <OutputsView project={project} run={run} environment={environment} onDownload={downloadBundle} onBack={()=>setDesignView("board")} />}
         {mode === "design" && designView === "terraform" && <TerraformView project={project} environment={environment} session={session} onDownload={exportTerraform} onBack={()=>setDesignView("board")} />}
         {mode === "design" && designView === "options" && (
           <OptionsView project={project} busy={busy||agentBusy||!!pending} onChoose={chooseCloud} onContinue={()=>{setChatOpen(true);setMode("design");setDesignView("board");followJourney();}} onPreview={(provider)=>{setDesignView("board");setLevel("flow");setChatOpen(true);send(`Preview a concrete ${OPTION_NAMES[provider]} implementation of our working scope, using actual named services in data.service and explicit connections. Keep existing systems and comments. Use the known country/residency constraints, or leave region undecided and ask the country question. This is an alternative preview, not a cloud choice or deployment. Return a graph proposal and explain key integration assumptions.`,"preview",{mode:"design",view:"board"});}} onDiscuss={(question) => { setChatOpen(true); send(question, "workflow"); }} />

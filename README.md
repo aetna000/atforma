@@ -123,3 +123,7 @@ The recipient should begin with: “Read START_HERE.md and AGENTS.md, review the
 ## Product theme
 
 The header reads **AtMem · AtForma**. The UI uses the existing shared AtMem tokens for neutral surfaces and teal actions (`#1F777C` in light mode, `#5FD0D6` in dark mode), matching atmem.ai. Canvas interactions and stored project identifiers are preserved.
+
+## Review outputs before downloading
+
+Choose **Outputs** in the journey strip once a diagram exists. The directory opens on the Spec Kit implementation specification and groups files into Spec Kit, Specification & handoff, Design and Terraform. Markdown is shown as a readable document, JSON/Terraform as code, SVG/PNG as images and PDFs in an embedded viewer. **Download reviewed ZIP** downloads the exact generated snapshot displayed in that directory. Edits to the project regenerate the output bundle; while generation is pending or fails, the reviewed-download action is disabled. No review checkbox implies validation or deployment approval.

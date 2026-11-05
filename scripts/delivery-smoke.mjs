@@ -76,6 +76,30 @@ assert.match(read('START_HERE.md'),/coding agent/);assert.match(read('spec-kit/t
 assert.equal(manifest.designRevision,4);assert.equal(costs.cloud.expected,11.6);assert.equal(costs.consulting.expected,10000);assert.match(read('specification.md'),/Answer staff policy questions/);assert.match(read('handoff.md'),/Confirm data retention/);assert.equal(Object.keys(JSON.parse(read('terraform/main.tf.json')).resource.aws_s3_bucket).length,1);
 assert.deepEqual(JSON.parse(read('project.atforma.json')).estimate.details.length,5);
 await page.screenshot({path:`${out}/delivery-desktop.png`,fullPage:true});
+await page.getByRole('region',{name:'Architecture journey'}).getByRole('button',{name:'Outputs',exact:true}).click();
+const outputs=page.getByRole('region',{name:'Outputs',exact:true});
+await outputs.getByRole('heading',{name:'Implementation Spec Kit',exact:true}).waitFor();
+const directory=outputs.getByRole('navigation',{name:'Output files'});
+await directory.getByRole('button',{name:'tasks.md',exact:true}).click();
+await outputs.getByRole('heading',{name:'Detailed implementation tasks',exact:true}).waitFor();
+await directory.getByRole('button',{name:'diagram.svg',exact:true}).click();
+await outputs.getByRole('img',{name:'Preview diagram.svg'}).waitFor();
+await page.waitForFunction(()=>document.querySelector('.output-image')?.naturalWidth>0);
+await directory.getByRole('button',{name:'main.tf.json',exact:true}).click();
+assert.match(await outputs.locator('.output-code').innerText(),/aws_s3_bucket/);
+await directory.getByRole('button',{name:'implementation-spec.pdf',exact:true}).click();
+await outputs.locator('iframe[title="Preview spec-kit/implementation-spec.pdf"]').waitFor();
+await directory.getByRole('button',{name:'implementation-spec.md',exact:true}).click();
+const reviewedSnapshot=await outputs.locator('.outputs-browser').getAttribute('data-snapshot-id');
+const reviewedDownload=page.waitForEvent('download');await outputs.getByRole('button',{name:'Download reviewed ZIP',exact:true}).click();
+await(await reviewedDownload).saveAs(`${out}/reviewed.zip`);
+const reviewedZip=unzipSync(fs.readFileSync(`${out}/reviewed.zip`));
+assert.equal(JSON.parse(strFromU8(reviewedZip['manifest.json'])).snapshotId,reviewedSnapshot);
+await page.screenshot({path:`${out}/outputs-directory.png`,fullPage:true});
+await page.setViewportSize({width:390,height:844});
+assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false);
+await page.setViewportSize({width:1440,height:1000});
+
 await page.getByRole('region',{name:'Architecture journey'}).getByRole('button',{name:'Terraform',exact:true}).click();
 const tf=page.getByRole('region',{name:'Terraform',exact:true});
 await tf.getByRole('heading',{name:'Resource coverage'}).waitFor();assert.match(await tf.innerText(),/Implementation needed/);
@@ -95,6 +119,13 @@ await tab('Estimate');await est.getByLabel('Detailed cloud charges').locator('su
 await est.getByLabel('Charge 1 monthly quantity',{exact:true}).fill('200');
 await delivery();dl=page.waitForEvent('download');await page.getByRole('button',{name:'Download delivery pack',exact:true}).click();file=await dl;await file.saveAs(`${out}/pack-revised.zip`);
 const revised=unzipSync(fs.readFileSync(`${out}/pack-revised.zip`));assert.equal(JSON.parse(strFromU8(revised['estimate.json'])).cloud.expected,13.6);assert.notEqual(JSON.parse(strFromU8(revised['manifest.json'])).snapshotId,manifest.snapshotId);
+await page.getByRole('region',{name:'Architecture journey'}).getByRole('button',{name:'Outputs',exact:true}).click();
+await outputs.getByRole('heading',{name:'Implementation Spec Kit',exact:true}).waitFor();
+assert.notEqual(await outputs.locator('.outputs-browser').getAttribute('data-snapshot-id'),reviewedSnapshot);
+await outputs.getByRole('navigation',{name:'Output files'}).getByRole('button',{name:'estimate.json',exact:true}).click();
+assert.equal(JSON.parse(await outputs.locator('.output-code').innerText()).cloud.expected,13.6);
+await outputs.getByRole('button',{name:'Back to architecture',exact:true}).click();
+
 // Undo/redo and a branching edit: redo cannot reapply a discarded branch.
 await tab('Design');const count=(await state()).nodes.length;
 await page.getByRole('button',{name:'Clear board',exact:true}).click();assert.equal((await state()).nodes.length,0);

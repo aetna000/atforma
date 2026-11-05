@@ -852,3 +852,25 @@ label.inline input { width: 60px; }
 .brand { white-space:nowrap; }
 .brand-divider { color:var(--color-brand); padding:0 3px; }
 @media(max-width:900px){.brand span{display:inline;}}
+
+.outputs-view { overflow:auto; }
+.outputs-browser { display:grid; grid-template-columns:220px minmax(0,1fr); gap:20px; align-items:start; margin-top:20px; }
+.outputs-directory { border:1px solid var(--line); border-radius:8px; padding:12px; min-width:0; }
+.outputs-directory details+details { margin-top:16px; }
+.outputs-directory summary { font-weight:600; cursor:pointer; margin-bottom:8px; }
+.outputs-directory button { display:block; width:100%; text-align:left; padding:7px 8px; overflow-wrap:anywhere; font-size:12px; border-radius:4px; }
+.outputs-directory button[aria-current=page] { background:var(--accent-soft); color:var(--accent); }
+.output-preview { min-width:0; }
+.output-preview > h3 { overflow-wrap:anywhere; margin-top:0; }
+.output-document { background:var(--paper); border:1px solid var(--line); padding:28px; border-radius:6px; overflow-wrap:anywhere; line-height:1.65; }
+.output-document h2,.output-document h3,.output-document h4 { margin:26px 0 12px; }
+.output-document h2:first-child { margin-top:0; }
+.output-document ul { padding-left:22px; }
+.output-document pre,.output-code { white-space:pre-wrap; overflow-wrap:anywhere; font-size:12px; padding:16px; background:var(--paper); border:1px solid var(--line); border-radius:6px; }
+.output-table-row { font-family:var(--type-family-mono); font-size:12px; }
+.output-image { display:block; width:100%; height:auto; background:white; border:1px solid var(--line); }
+.output-pdf { width:100%; height:70vh; border:1px solid var(--line); background:white; }
+@media(max-width:900px){.outputs-browser{grid-template-columns:minmax(0,1fr);}.outputs-directory{max-height:250px;overflow:auto;}.output-document{padding:18px;}}
+
+.outputs-directory { position:sticky; top:12px; max-height:65vh; overflow:auto; }
+@media(max-width:900px){.outputs-directory{position:static;max-height:250px;}}
