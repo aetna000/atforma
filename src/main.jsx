@@ -1894,7 +1894,7 @@ function App() {
           <DecisionsView project={project} onDiscuss={(question) => { setChatOpen(true); send(question, "workflow"); }} />
         )}
         {mode === "design" && designView === "requirements" && (
-          <RequirementsView project={project} onChange={updateEngagement} reviewing={agentBusy} onReview={(comments)=>{setChatOpen(true);send("Review these user comments on the requirements document. Return requirementUpdates for the existing IDs where the feedback is clear, quoting the user's comment exactly in sourceText. Preserve other requirements and the diagram. Ask one question if a comment is ambiguous.\n" + comments.map(c=>`Requirement ${c.requirementId} — comment: ${c.text}`).join("\n"), "document");}} onDiscuss={(question) => { setChatOpen(true); send(question, "workflow"); }} />
+          <RequirementsView project={project} onChange={updateEngagement} reviewing={agentBusy} onReview={(comments)=>{setChatOpen(true);send("Review these user comments on the requirements document. Return requirementUpdates for the existing IDs where the feedback is clear, quoting the user's comment exactly in sourceText. Preserve other requirements and the diagram. Ask one question if a comment is ambiguous.\n" + comments.map(c=>`Requirement ${c.requirementId}${c.selectedText ? ` (selected text: ${c.selectedText.slice(0,300)})` : ""} — comment: ${c.text}`).join("\n"), "document");}} onDiscuss={(question) => { setChatOpen(true); send(question, "workflow"); }} />
         )}
       </main>
 

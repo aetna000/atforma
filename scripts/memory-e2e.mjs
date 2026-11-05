@@ -32,10 +32,15 @@ await req.getByRole('button',{name:'Let’s discuss more in chat',exact:true}).c
 const originalNodes=JSON.stringify((await project()).nodes);
 const originalNumbers=(await project()).extensions.requirementNumbers;
 assert.match(await req.locator(".requirement-number").first().innerText(),/^REQ-\d+$/);
-await req.getByRole('button',{name:'Comment on this paragraph',exact:true}).first().click();
+await req.getByRole('button',{name:/Add comment to REQ-/}).first().waitFor();
+const paragraph=req.locator('.requirement-text').first();
+await paragraph.evaluate(el=>{const range=document.createRange();range.selectNodeContents(el);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);});
+await paragraph.click({button:'right'});
+await page.getByRole('menuitem',{name:'Comment on selected text',exact:true}).click();
 await req.getByRole('textbox',{name:/Comment on/}).fill('Restrict this to HR managers, not everyone in HR.');
 await req.getByRole('button',{name:'Save comment',exact:true}).click();
 assert.equal((await project()).extensions.requirementComments.length,1);
+assert.ok((await project()).extensions.requirementComments[0].selectedText.includes('Only the HR team'));
 await req.getByRole('button',{name:/Review comments and revise/}).click();
 await page.waitForFunction(()=>JSON.parse(localStorage.getItem('atforma-workspace-v3')).extensions.requirementComments[0].status==='reviewed');
 await finished();

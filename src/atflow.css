@@ -791,3 +791,9 @@ label.inline input { width: 60px; }
 .comment-composer .btn { background:#235f83; color:white; margin-right:12px; }
 
 .requirements-paper .requirement-number { color:#235f83; font-size:12px; letter-spacing:.06em; margin:0 0 8px; }
+
+.requirement-add-comment { display:inline-flex; align-items:center; padding:7px 12px; border:1px solid #9eb6c7; border-radius:5px; background:#edf4f9; color:#194e70; font-size:12px; font-weight:600; cursor:pointer; }
+.requirement-add-comment:hover { background:#dcecf6; }
+.requirement-comments blockquote { border-left:3px solid #91a9b8; margin:8px 0; padding:6px 12px; color:#52616c; font-size:13px; white-space:pre-wrap; }
+.requirement-text-menu { z-index:100; }
+.requirement-text::selection { background:#c6e4fa; color:#17384d; }
