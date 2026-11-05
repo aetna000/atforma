@@ -7,7 +7,7 @@ import { toProjectFile } from '../src/project-file.mjs';
 import { WORK_PHASES } from '../src/estimate.mjs';
 const out='/tmp/forma-qa/delivery';fs.mkdirSync(out,{recursive:true});
 const node=(id,label,kind,x)=>({id,type:'resource',position:{x,y:100},data:{label,kind,provider:'aws',description:label,origin:'proposed',config:{region:'ap-southeast-2',classification:'Internal',timeout:5000}}});
-const project={id:'browser-delivery',version:1,revision:4,name:'AWS policy assistant',provider:'aws',requirements:'Answer staff policy questions',nodes:[node('files','Amazon S3','source',0),node('llm','Amazon Bedrock','agent',300),node('guard','Bedrock Guardrails','guard',600),node('api','AWS Lambda','tool',900)],edges:[['files','llm'],['llm','guard'],['guard','api']].map(([source,target],i)=>({id:`e${i}`,source,target,type:'smoothstep',label:'policy context'})),needs:[],assumptions:[],openQuestions:[{id:'region',question:'Confirm data retention with the customer',status:'open'}],decisions:[]};
+const project={id:'browser-delivery',version:1,revision:4,name:'AWS policy assistant',provider:'aws',requirements:'Answer staff policy questions',nodes:[node('files','Amazon S3','source',0),node('llm','Amazon Bedrock','agent',300),node('guard','Bedrock Guardrails','guard',600),node('api','AWS Lambda','tool',900)],edges:[['files','llm'],['llm','guard'],['guard','api']].map(([source,target],i)=>({id:`e${i}`,source,target,type:'smoothstep',label:'policy context'})),needs:[],assumptions:[],openQuestions:[{id:'region',question:'Confirm data retention with the customer',status:'open'}],decisions:[{id:'cloud',title:'Cloud',subject:'platform.cloud',decision:'aws',status:'Accepted'},{id:'location',title:'Region',subject:'cloud.region',decision:'ap-southeast-2',status:'Accepted'}]};
 fs.writeFileSync(`${out}/input.atforma.json`,JSON.stringify(toProjectFile(project)));
 const browser=await chromium.launch({...(fs.existsSync('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome')?{executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'}:{}),headless:true});
 const page=await browser.newPage({viewport:{width:1440,height:1000}});
@@ -24,7 +24,14 @@ await page.locator('input[type=file]').setInputFiles(`${out}/input.atforma.json`
 await page.getByText('Project opened.',{exact:true}).waitFor();
 const state=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('atforma-workspace-v3')));
 const tab=(name)=>page.locator('.modes').getByRole('tab',{name}).click();
-await tab('Estimate');
+await page.getByRole('tab',{name:'Requirements',exact:true}).click();
+await page.getByRole('button',{name:'Explore cloud solutions with this scope →',exact:true}).click();
+await page.waitForFunction(()=>!document.querySelector('.msg.working'));
+await page.getByRole('button',{name:'Review this cloud design →',exact:true}).click();
+await page.waitForFunction(()=>!document.querySelector('.msg.working'));
+await page.getByRole('button',{name:'Estimate with the remaining risks recorded →',exact:true}).click();
+await page.waitForFunction(()=>!document.querySelector('.msg.working'));
+const delivery=async()=>{const button=page.getByRole('button',{name:'Prepare a delivery draft with cost gaps noted →',exact:true});if(await button.count()){await button.click();await page.waitForFunction(()=>!document.querySelector('.msg.working'));}else await tab('Delivery draft');};
 const est=page.getByRole('region',{name:'Estimate',exact:true});
 assert.match(await est.locator('.totals').first().innerText(),/Incomplete/);
 await est.getByText('Inspect or edit estimate inputs and sources',{exact:true}).click();
@@ -49,7 +56,7 @@ for(const [,label] of WORK_PHASES){
 }
 assert.match(await consulting.innerText(),/USD 10,000/);assert.match(await consulting.innerText(),/All work packages estimated/);
 await page.screenshot({path:`${out}/estimates-desktop.png`,fullPage:true});
-await tab('Deploy');await page.getByLabel('Cloud resource schedule').locator('summary').click();
+await delivery();await page.getByLabel('Cloud resource schedule').locator('summary').click();
 await page.getByText('S3 foundation generated',{exact:false}).first().waitFor();
 let dl=page.waitForEvent('download');await page.getByRole('button',{name:'Download delivery pack',exact:true}).click();let file=await dl;await file.saveAs(`${out}/pack.zip`);
 const zip=unzipSync(fs.readFileSync(`${out}/pack.zip`)),read=(n)=>strFromU8(zip[n]);
@@ -60,7 +67,7 @@ await page.screenshot({path:`${out}/delivery-desktop.png`,fullPage:true});
 // Change an entered charge and regenerate: outputs follow the project, not an edited document.
 await tab('Estimate');await est.getByLabel('Detailed cloud charges').locator('summary').click(); // view remounts collapsed
 await est.getByLabel('Charge 1 monthly quantity',{exact:true}).fill('200');
-await tab('Deploy');dl=page.waitForEvent('download');await page.getByRole('button',{name:'Download delivery pack',exact:true}).click();file=await dl;await file.saveAs(`${out}/pack-revised.zip`);
+await delivery();dl=page.waitForEvent('download');await page.getByRole('button',{name:'Download delivery pack',exact:true}).click();file=await dl;await file.saveAs(`${out}/pack-revised.zip`);
 const revised=unzipSync(fs.readFileSync(`${out}/pack-revised.zip`));assert.equal(JSON.parse(strFromU8(revised['estimate.json'])).cloud.expected,13.6);assert.notEqual(JSON.parse(strFromU8(revised['manifest.json'])).snapshotId,manifest.snapshotId);
 // Undo/redo and a branching edit: redo cannot reapply a discarded branch.
 await tab('Design');const count=(await state()).nodes.length;

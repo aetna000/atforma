@@ -34,6 +34,18 @@ class FixtureArchitect:
             import re
             match=re.search(r'Requirement (\S+)(?: \(selected text: .*?\))? — comment: (.+)',request.message)
             return ArchitectResponse(message='I proposed new wording from your comment; review it in the document. What else should we clarify?',requirementUpdates=[RequirementUpdate(id=match[1],statement='Only HR managers may retrieve policy documents.',sourceText=match[2])])
+        if request.origin=='preview':
+            provider='azure' if 'azure' in msg else 'gcp' if 'google' in msg else 'ibm' if 'ibm' in msg else 'aws'
+            labels={'aws':{'files':'Amazon S3','assistant':'Amazon Bedrock','chat':'Amazon API Gateway'},'azure':{'files':'Azure Blob Storage','assistant':'Azure OpenAI','chat':'Azure App Service'},'gcp':{'files':'Google Cloud Storage','assistant':'Vertex AI','chat':'Cloud Run'},'ibm':{'files':'IBM Cloud Object Storage','assistant':'watsonx.ai','chat':'IBM Cloud Code Engine'}}
+            p['provider']=provider
+            for n in p['nodes']:
+                if n['data']['kind']=='note':continue
+                n['data']['provider']=provider;n['data']['label']=labels[provider].get(n['id'],n['data']['label']);n['data']['service']=n['data']['label']
+            return ArchitectResponse(message='Here is an alternative service architecture. Which country should we plan for?',proposal={'baseRevision':p['revision'],'title':'Preview service architecture','body':'Alternative only; regional availability unverified.','next':p})
+        if request.message=='Use AWS for this project.':
+            return ArchitectResponse(message='We can explore AWS. Which country should the data stay in?',decisionUpdates=[DecisionUpdate(subject='platform.cloud',value='aws',sourceText=request.message)])
+        if 'ask which country' in msg:
+            return ArchitectResponse(message='Country and residency shape our regional options. Which country should the data stay in?')
         if request.origin=='canvas':
             return ArchitectResponse(message='I can see your edits and comments in our shared diagram. Which of these constraints matters most for the first release?')
         if request.stage=='estimate' and not runtime.get('toolResults'):
@@ -58,7 +70,8 @@ class FixtureArchitect:
             for n in p['nodes']:
                 if n['data']['kind']=='note':continue
                 n['data']['provider']=provider;n['data']['config']['region']=region
-                if n['id']=='files':n['data']['label']={'aws':'Amazon S3','azure':'Azure Blob Storage','gcp':'Google Cloud Storage','ibm':'IBM Cloud Object Storage'}[provider]
+                labels={'aws':{'files':'Amazon S3','assistant':'Amazon Bedrock','chat':'Amazon API Gateway'},'azure':{'files':'Azure Blob Storage','assistant':'Azure OpenAI','chat':'Azure App Service'},'gcp':{'files':'Google Cloud Storage','assistant':'Vertex AI','chat':'Cloud Run'},'ibm':{'files':'IBM Cloud Object Storage','assistant':'watsonx.ai','chat':'IBM Cloud Code Engine'}}
+                n['data']['label']=labels[provider].get(n['id'],n['data']['label']);n['data']['service']=n['data']['label']
             updates=[DecisionUpdate(subject='platform.cloud',value=provider,sourceText=request.message),DecisionUpdate(subject='cloud.region',value=region,sourceText=request.message)]
             return ArchitectResponse(message='We can use that cloud and region for this design. How many people will use it?',decisionUpdates=updates,proposal={'baseRevision':p['revision'],'title':'Apply your cloud and region choice','body':'Based on your explicit choice.','next':p})
         if not any(n['data']['kind']!='note' for n in p['nodes']):

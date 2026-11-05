@@ -1,3 +1,4 @@
+import { journey } from "./journey.mjs";
 import { requirementNumber } from "./derive.mjs";
 import { estimate, consultingEstimate } from "./estimate.mjs";
 import { resourcePlan } from "./resources.mjs";
@@ -52,9 +53,11 @@ export function toAgentProject(p) {
 export function agentContext(p) {
   const item = (type, id, text) => ({ type, id: String(id).slice(0, 60), text: String(text).slice(0, 1000) });
   const measure = (m) => (m ? ` [${m.metric} ${m.op} ${m.target}${m.unit || ""}]` : "");
+  const next = journey(p);
   const costs = estimate(p), work = consultingEstimate(p), resources = resourcePlan(p);
   return [
-    item("discovery", "estimate-summary", `Current estimate stage: ${costs.maturity}. Monthly cloud subtotal ${costs.expected ?? "unknown"} ${costs.currency || "currency unresolved"}; range ${costs.low ?? "?"}–${costs.high ?? "?"}; ${costs.gaps.length} worksheet gaps. One-off consulting/build subtotal ${work.expected ?? "unknown"} ${work.currency}; ${work.complete ? "all phases entered" : "incomplete"}. Values are user inputs, not provider quotes. UI: Estimate for charges/effort; Deploy for the downloadable delivery pack and Terraform sketch.`),
+    item("discovery","guided-journey",`Current journey step: ${next.id} — ${next.title}. ${next.reason} Next action: ${next.action}. Lead with one useful question and update the board/document from the answer. Later stages remain hidden until the working draft progresses; never direct the user to a hidden tab. Named service mapping is not verified cloud compatibility.`),
+    item("discovery", "estimate-summary", `Current estimate stage: ${costs.maturity}. Monthly cloud subtotal ${costs.expected ?? "unknown"} ${costs.currency || "currency unresolved"}; range ${costs.low ?? "?"}–${costs.high ?? "?"}; ${costs.gaps.length} worksheet gaps. One-off consulting/build subtotal ${work.expected ?? "unknown"} ${work.currency}; ${work.complete ? "all phases entered" : "incomplete"}. Values are user inputs, not provider quotes. Later journey stages provide costs and a downloadable delivery draft with a Terraform sketch. Follow guided-journey before directing the user to those stages.`),
     ...costs.gaps.slice(0, 5).map((g, i) => item("question", `cost-gap-${i}`, g)),
     item("discovery", "infrastructure-coverage", `${resources.rows.length} diagram components; ${resources.gaps.length} infrastructure/integration gaps. Native Terraform coverage is AWS S3 foundations only. Deployment is not connected.`),
     ...(p.needs || []).map((r) => item("requirement", r.id, `${requirementNumber(p,r.id)} — ${r.priority} ${r.kind} ${r.category}: ${r.statement}${measure(r.measure)} (${r.status})`)),

@@ -129,7 +129,7 @@ export function DiscoverView({ project, onChange, topics, open = true, onToggle 
   );
 }
 
-export function OptionsView({ project, onDiscuss }) {
+export function OptionsView({ project, onDiscuss, onPreview }) {
   const notes = project.assessment?.notes || {};
   const ready = Object.values(notes).some(Boolean);
   return <section className="doc" aria-label="Options">
@@ -139,6 +139,7 @@ export function OptionsView({ project, onDiscuss }) {
     {['current','aws','azure','gcp','ibm'].filter(id => notes[id]).map(id => <article className="consultation-summary" key={id}>
       <h3>{OPTION_NAMES[id]}</h3><p>{notes[id].replace(/^Atforma proposal — confirm: /,'')}</p>
       <button className="link" onClick={() => onDiscuss(`Explain how ${OPTION_NAMES[id]} fits our design and the main tradeoff. Ask one question to help me decide; keep this as a discussion until I explicitly choose.`)}>Discuss this option</button>
+      {id!=="current" && <button className="link" onClick={()=>onPreview(id)}>Preview service architecture</button>}
     </article>)}
   </section>;
 }
@@ -148,7 +149,7 @@ export function DecisionsView({ project, onDiscuss }) {
   const choices = all.filter(d => !d.subject?.startsWith('design.'));
   const current = choices.filter(d => d.status !== 'Superseded');
   const sketches = all.filter(d => d.subject?.startsWith('design.'));
-  const labels = {'platform.cloud':'Cloud provider','cloud.region':'Region','infrastructure.tool':'Infrastructure tool'};
+  const labels = {'platform.cloud':'Cloud provider','cloud.region':'Region','data.country':'Country / data residency','infrastructure.tool':'Infrastructure tool'};
   return <section className="doc" aria-label="Decisions">
     <header className="doc-head"><h2>Choices we’ve made</h2><p className="muted">Atforma records your choices and explains why they fit. You can revisit them in chat.</p></header>
     <button className="btn" onClick={() => onDiscuss('Review our current design and explicit choices. Explain the next choice we need to make and ask me one useful question. Do not treat a sketch or a suggestion as an accepted decision.')}>Discuss the next choice</button>

@@ -121,7 +121,7 @@ class RequirementDraft(Strict):
     measure:RequirementTarget|None=None
 
 class DecisionUpdate(Strict):
-    subject:Literal['platform.cloud','cloud.region','infrastructure.tool']
+    subject:Literal['platform.cloud','cloud.region','data.country','infrastructure.tool']
     value:str=Field(min_length=1,max_length=100)
     sourceText:str=Field(min_length=1,max_length=500)
 
@@ -146,7 +146,7 @@ class ContextItem(Strict):
     text:str=Field(max_length=1000)
 
 class ChatRequest(Strict):
-    origin:Literal['chat','canvas','workflow','document']='chat'
+    origin:Literal['chat','canvas','workflow','document','preview']='chat'
     projectId:str|None=Field(default=None,pattern=r'^[A-Za-z0-9-]{8,64}$')
     message:str=Field(min_length=1,max_length=8000)
     provider:Literal['claude-code','codex','copilot','gemini-cli','anthropic','openai','gemini-api','xai','bedrock']='claude-code'

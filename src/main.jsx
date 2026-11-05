@@ -1,3 +1,4 @@
+import { journey, advanceJourney } from "./journey.mjs";
 import "@xyflow/react/dist/style.css";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -165,7 +166,7 @@ const MODES = [
   ["design", "Design"],
   ["review", "Review"],
   ["estimate", "Estimate"],
-  ["deploy", "Deploy"],
+  ["deploy", "Delivery draft"],
 ];
 const PROMPTS = {
   design: ["Compare all four clouds"],
@@ -1042,7 +1043,7 @@ function App() {
     if (next.importReport) notify(next.importReport.notice);
   }
 
-  async function send(text = input, origin = "chat") {
+  async function send(text = input, origin = "chat", destination = null) {
     if (!text.trim() || busy || agentBusy) return;
     const message = text.trim();
     if (origin === "chat") {
@@ -1081,13 +1082,13 @@ function App() {
       const edits = canvasChanges(projectRef.current);
       seen.current = structuredClone(projectRef.current);
       const result = await requestArchitect({
-        extra: [{type:"discovery",id:"active-view",text:`The user is working in ${mode === "design" ? designView : mode}. Focus help on this view using the shared diagram and conversation; ask one useful question and update the relevant working outputs.`}, ...(edits.length ? [{ type: "discovery", id: "canvas-changes", text: `Since your last reply the user ${edits.join("; ")}. Build on these changes.` }] : [])],
+        extra: [{type:"discovery",id:"active-view",text:`The user is working in ${destination ? (destination.mode === "design" ? destination.view : destination.mode) : mode === "design" ? designView : mode}. Focus help on this view using the shared diagram and conversation; ask one useful question and update the relevant working outputs.`}, ...(edits.length ? [{ type: "discovery", id: "canvas-changes", text: `Since your last reply the user ${edits.join("; ")}. Build on these changes.` }] : [])],
         session,
         connection,
         message: spoken ? `${message}\n\n(Dictated by voice: interpret obvious speech-recognition errors, e.g. "rang" for "RAG".)` : message,
         project: projectRef.current,
         history: messages,
-        stage: mode,
+        stage: destination?.mode || mode,
         origin,
         signal: controller.signal,
       });
@@ -1123,10 +1124,10 @@ function App() {
       if (result.proposal && origin !== "document") {
         const proposal = { ...result.proposal, next: validateImport(result.proposal.next) };
         // "Draw as we talk": the design evolves with the conversation; each step is undoable.
-        if (drawLive) applyProposal(proposal, { live: true });
+        if (drawLive && origin !== "preview") applyProposal(proposal, { live: true });
         else setPending(proposal);
       }
-      if (origin !== "document" && result.requirementDrafts?.length) updateEngagement(applyRequirementDrafts(projectRef.current,result.requirementDrafts));
+      if (!["document","preview"].includes(origin) && result.requirementDrafts?.length) updateEngagement(applyRequirementDrafts(projectRef.current,result.requirementDrafts));
     } catch (error) {
       setMessages((m) => [
         ...m,
@@ -1420,6 +1421,23 @@ function App() {
       notify(e.message);
     }
   }
+  const guidance = useMemo(()=>journey(project),[project]);
+  useEffect(()=>{
+    if(!guidance.availableModes.includes(mode)){setMode(guidance.mode);setDesignView(guidance.view);}
+    if(guidance.id==='scope' && ['options','decisions'].includes(designView))setDesignView('requirements');
+  },[guidance.id,mode,designView]);
+  function followJourney(next=guidance){
+    if(busy||agentBusy)return;
+    setChatOpen(true);
+    consultationAttempts.current.add(`${projectRef.current.id}:${projectRef.current.revision}:${next.mode}:${next.view}`);
+    setMode(next.mode);setDesignView(next.view);if(next.mode==='review')setReviewView('findings');
+    send(next.prompt,'workflow',next);
+  }
+  function continueJourney(){
+    if(!guidance.checkpoint||busy||agentBusy)return;
+    const next=advanceJourney(projectRef.current,guidance.checkpoint);
+    updateEngagement(next);followJourney(journey(next));
+  }
   const findings = useMemo(() => review(project), [project]);
   const costs = useMemo(() => estimate(project), [project]);
   useEffect(() => {
@@ -1522,7 +1540,7 @@ function App() {
           )}
         </nav>
         <div className="modes" role="tablist">
-          {MODES.map(([id, label]) => (
+          {MODES.filter(([id])=>guidance.availableModes.includes(id)).map(([id, label]) => (
             <button
               key={id}
               role="tab"
@@ -1560,8 +1578,8 @@ function App() {
             <button role="menuitem" onClick={() => setModal("import")} disabled={busy}>Import diagram</button>
             <button role="menuitem" onClick={() => fileRef.current.click()} disabled={busy}>Open project file</button>
             <button role="menuitem" onClick={saveProjectFile}>Save project file</button>
-            <button role="menuitem" onClick={exportDocument}>Deployment document</button>
-            <button role="menuitem" onClick={exportPack}>Download delivery pack</button>
+            {guidance.availableModes.includes("deploy") && <><button role="menuitem" onClick={exportDocument}>Deployment document</button>
+            <button role="menuitem" onClick={exportPack}>Download delivery pack</button></>}
             <button role="menuitem" onClick={exportDecisions}>Export decisions</button>
             <button role="menuitem" onClick={() => setModal("memory")} disabled={!session}>AtMem dashboard</button>
             <button role="menuitem" onClick={() => setModal("start-over")} disabled={busy || agentBusy}>Start over</button>
@@ -1821,7 +1839,7 @@ function App() {
             {[
               ["findings", "Findings"],
               ["test", "Test run"],
-            ].map(([id, label]) => (
+            ].filter(([id])=>!["options","decisions"].includes(id) || !["idea","scope"].includes(guidance.id)).map(([id, label]) => (
               <button key={id} role="tab" aria-selected={reviewView === id} className={reviewView === id ? "on" : ""} onClick={() => setReviewView(id)}>
                 {label}
               </button>
@@ -1839,20 +1857,8 @@ function App() {
               openBlock(id);
             }}
             onAddRequirement={(category) => {
-              updateEngagement({
-                ...projectRef.current,
-                needs: [
-                  ...(projectRef.current.needs || []),
-                  newRequirement(
-                    category === "availability"
-                      ? { category, statement: "Available during business hours", measure: { metric: "monthly availability", op: ">=", target: 99.5, unit: "%" } }
-                      : { category, statement: "Responds quickly enough for people to wait", measure: { metric: "p95 response time", op: "<=", target: 10, unit: "s" } },
-                  ),
-                ],
-              });
-              setMode("design");
-              setDesignView("requirements");
-              notify("Requirement added with a suggested target — adjust it to what you need.");
+              setMode("design");setDesignView("requirements");setChatOpen(true);
+              send(`Help us establish the ${category} requirement for this architecture. Explain why it matters and ask for the target we actually need; do not insert a default SLA.`,"workflow",{mode:"design",view:"requirements"});
             }}
           />
         )}
@@ -1882,7 +1888,7 @@ function App() {
               ["requirements", "Requirements"],
               ["options", "Options"],
               ["decisions", "Design choices"],
-            ].map(([id, label]) => (
+            ].filter(([id])=>!["options","decisions"].includes(id) || !["idea","scope"].includes(guidance.id)).map(([id, label]) => (
               <button key={id} role="tab" aria-selected={designView === id} className={designView === id ? "on" : ""} onClick={() => setDesignView(id)}>
                 {label}
               </button>
@@ -1891,7 +1897,7 @@ function App() {
         )}
 
         {mode === "design" && designView === "options" && (
-          <OptionsView project={project} onDiscuss={(question) => { setChatOpen(true); send(question, "workflow"); }} />
+          <OptionsView project={project} onPreview={(provider)=>{setDesignView("board");setLevel("flow");setChatOpen(true);send(`Preview a concrete ${OPTION_NAMES[provider]} implementation of our working scope, using actual named services in data.service and explicit connections. Keep existing systems and comments. Use the known country/residency constraints, or leave region undecided and ask the country question. This is an alternative preview, not a cloud choice or deployment. Return a graph proposal and explain key integration assumptions.`,"preview",{mode:"design",view:"board"});}} onDiscuss={(question) => { setChatOpen(true); send(question, "workflow"); }} />
         )}
         {mode === "design" && designView === "decisions" && (
           <DecisionsView project={project} onDiscuss={(question) => { setChatOpen(true); send(question, "workflow"); }} />
@@ -1943,7 +1949,7 @@ function App() {
                 Skill: {w.name}
               </button>
             ))}
-            {project.nodes.length > 0 && (
+            {guidance.availableModes.includes("review") && (
               <button className="skill" title="Review rules check the design on every change" onClick={() => setMode("review")}>
                 Review {findings.filter((f) => f.status === "open").length}
               </button>
@@ -2018,6 +2024,11 @@ function App() {
             )}
             <div ref={chatEnd} />
           </div>
+          <section className="journey-guide" aria-label="Your next step">
+            <small>Next step · {guidance.title}</small><p>{guidance.reason}</p>
+            <button className="btn primary" disabled={busy||agentBusy} onClick={()=>followJourney()}>{guidance.action}</button>
+            {guidance.checkpoint && mode===guidance.mode && designView===guidance.view && <button className="link journey-continue" disabled={busy||agentBusy||!!pending} onClick={continueJourney}>{guidance.continueLabel} →</button>}
+          </section>
           <div className="prompts">
             {mode === "design" && brief(project) && ask && (
               <>
@@ -2029,7 +2040,7 @@ function App() {
             {mode === "design" && project.workflow && !project.nodes.length && !pending && (
               <button className="primary-chip" disabled={busy || agentBusy} onClick={sketchIt}>Sketch it →</button>
             )}
-            {PROMPTS[mode].filter(() => project.nodes.length > 0).map((s) => (
+            {PROMPTS[mode].filter(() => project.nodes.length > 0 && !["idea","scope"].includes(guidance.id)).map((s) => (
               <button key={s} disabled={busy || agentBusy} onClick={() => send(s)}>
                 {s}
               </button>
