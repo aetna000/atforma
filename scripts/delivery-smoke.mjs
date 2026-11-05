@@ -19,6 +19,7 @@ await page.route('**/api/models',r=>r.fulfill({json:{models:[]}}));
 await page.route('**/api/architect',r=>r.fulfill({json:{message:'Which usage assumption should we clarify first?',phase:'Estimate',proposal:null}}));
 await page.route('**/api/memory/*',r=>r.fulfill({json:{status:'disabled'}}));
 await page.route('**/api/pricing/*',r=>r.fulfill({json:{available:false,reason:'Synthetic test uses explicitly entered prices.'}}));
+let validationCalls=0;await page.route('**/api/terraform/validate',r=>{validationCalls++;return r.fulfill({json:validationCalls===1?{status:'passed',message:'Configuration schema passed. No cloud plan was run.',checks:[{name:'Terraform schema validation',passed:true,output:'Fixture validation result'}]}:{status:'unavailable',message:'Terraform is not installed. No CLI validation was run.',checks:[]}});});
 await page.goto('http://127.0.0.1:5174');
 await page.locator('input[type=file]').setInputFiles(`${out}/input.atforma.json`);
 await page.getByText('Project opened.',{exact:true}).waitFor();
@@ -58,12 +59,35 @@ assert.match(await consulting.innerText(),/USD 10,000/);assert.match(await consu
 await page.screenshot({path:`${out}/estimates-desktop.png`,fullPage:true});
 await delivery();await page.getByLabel('Cloud resource schedule').locator('summary').click();
 await page.getByText('S3 foundation generated',{exact:false}).first().waitFor();
-let dl=page.waitForEvent('download');await page.getByRole('button',{name:'Download delivery pack',exact:true}).click();let file=await dl;await file.saveAs(`${out}/pack.zip`);
+let dl=page.waitForEvent('download');await page.getByRole('button',{name:'Download delivery pack',exact:true}).click();let file=await dl.catch(async error=>{console.error(await page.locator('body').innerText(),errors);await page.screenshot({path:`${out}/export-failure.png`});throw error;});await file.saveAs(`${out}/pack.zip`);
 const zip=unzipSync(fs.readFileSync(`${out}/pack.zip`)),read=(n)=>strFromU8(zip[n]);
 const manifest=JSON.parse(read('manifest.json')),costs=JSON.parse(read('estimate.json'));
+for(const name of ['specification.pdf','diagram.pdf','diagram.svg','diagram.png']){
+ assert.ok(zip[name]?.length>100,`${name} must have content`);
+ assert.ok(manifest.files.includes(name),`${name} must be in the manifest`);
+ fs.writeFileSync(`${out}/${name}`,zip[name]);
+}
+assert.equal(read('specification.pdf').slice(0,5),'%PDF-');assert.equal(read('diagram.pdf').slice(0,5),'%PDF-');
+assert.deepEqual([...zip['diagram.png'].slice(0,8)],[137,80,78,71,13,10,26,10]);
+assert.match(read('diagram.svg'),/Amazon S3/);
+
 assert.equal(manifest.designRevision,4);assert.equal(costs.cloud.expected,11.6);assert.equal(costs.consulting.expected,10000);assert.match(read('specification.md'),/Answer staff policy questions/);assert.match(read('handoff.md'),/Confirm data retention/);assert.equal(Object.keys(JSON.parse(read('terraform/main.tf.json')).resource.aws_s3_bucket).length,1);
 assert.deepEqual(JSON.parse(read('project.atforma.json')).estimate.details.length,5);
 await page.screenshot({path:`${out}/delivery-desktop.png`,fullPage:true});
+await page.getByRole('region',{name:'Architecture journey'}).getByRole('button',{name:'Terraform',exact:true}).click();
+const tf=page.getByRole('region',{name:'Terraform',exact:true});
+await tf.getByRole('heading',{name:'Resource coverage'}).waitFor();assert.match(await tf.innerText(),/Implementation needed/);
+assert.match(await tf.getByLabel('main.tf.json',{exact:true}).innerText(),/aws_s3_bucket/);
+await tf.getByRole('button',{name:'Continue to Test Terraform →',exact:true}).click();
+await tf.getByRole('button',{name:'Run Terraform checks',exact:true}).click();
+await tf.getByRole('heading',{name:'Configuration validated',exact:true}).waitFor();
+assert.match(await tf.innerText(),/Incomplete/);
+assert.equal(await tf.getByRole('button',{name:'Run cloud plan (under development)',exact:true}).isDisabled(),true);
+await page.screenshot({path:`${out}/terraform-tests.png`,fullPage:true});
+await tf.getByRole('button',{name:'Run Terraform checks',exact:true}).click();
+await tf.getByRole('heading',{name:'Terraform validation not run',exact:true}).waitFor();
+assert.equal(await tf.getByRole('heading',{name:'Configuration validated',exact:true}).count(),0);
+
 // Change an entered charge and regenerate: outputs follow the project, not an edited document.
 await tab('Estimate');await est.getByLabel('Detailed cloud charges').locator('summary').click(); // view remounts collapsed
 await est.getByLabel('Charge 1 monthly quantity',{exact:true}).fill('200');

@@ -839,3 +839,6 @@ label.inline input { width: 60px; }
 
 .journey-actions { flex-wrap:wrap; justify-content:flex-end; flex-shrink:1; }
 @media(max-width:900px){.journey-actions{justify-content:flex-start;}}
+
+.terraform-code { white-space:pre-wrap; overflow-wrap:anywhere; max-height:55vh; overflow:auto; padding:18px; background:var(--paper); border:1px solid var(--line); border-radius:8px; font-size:12px; line-height:1.6; }
+.terraform-view .row, .terraform-view .seg { margin:16px 0; flex-wrap:wrap; }

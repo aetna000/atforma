@@ -1,3 +1,4 @@
+import { TerraformView } from "./TerraformView.jsx";
 import { journey, advanceJourney } from "./journey.mjs";
 import "@xyflow/react/dist/style.css";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -1287,11 +1288,18 @@ function App() {
     notify("Deployment document generated from the current project.");
   };
   const exportFiles = (files, suffix) => {
-    download(zipSync(Object.fromEntries(Object.entries(files).map(([name, content]) => [name, strToU8(content)]))), `${slug}-r${project.revision}-${suffix}.zip`, "application/zip");
+    download(zipSync(Object.fromEntries(Object.entries(files).map(([name, content]) => [name, typeof content === "string" ? strToU8(content) : content]))), `${slug}-r${project.revision}-${suffix}.zip`, "application/zip");
   };
-  const exportPack = () => {
+  const exportPack = async () => {
     try {
-      exportFiles(deliveryPack(project, run, environment), "delivery");
+      notify("Preparing documents and diagram exports…");
+      const snapshot=structuredClone(project);
+      const files=deliveryPack(snapshot, run, environment);
+      const {visualFiles}=await import('./visual-export.mjs');
+      Object.assign(files,await visualFiles(snapshot,files['specification.md']));
+      const manifest=JSON.parse(files['manifest.json']);
+      manifest.files=Object.keys(files);files['manifest.json']=JSON.stringify(manifest,null,2);
+      exportFiles(files, "delivery");
       notify("Delivery pack generated from the current project snapshot.");
     } catch (e) { notify(e.message); }
   };
@@ -1622,6 +1630,7 @@ function App() {
             <button className="btn primary" disabled={busy||agentBusy||!!pending} onClick={()=>guidance.checkpoint?continueJourney():followJourney()}>{guidance.checkpoint?guidance.continueLabel+' →':guidance.action}</button>
             {guidance.checkpoint&&<button className="link" disabled={busy||agentBusy} onClick={()=>followJourney()}>{guidance.action}</button>}
             {["architecture","review","estimate","delivery"].includes(guidance.id)&&<>
+              <button className="btn" onClick={()=>{setMode("design");setDesignView("terraform");}}>Terraform</button>
               <button className="btn" onClick={exportPack} title="Download the current architecture, requirements and infrastructure draft as a ZIP">Download</button>
               <button className="btn" disabled title="Cloud deployment is under development">Deploy (under development)</button>
             </>}
@@ -1934,6 +1943,7 @@ function App() {
           </div>
         )}
 
+        {mode === "design" && designView === "terraform" && <TerraformView project={project} environment={environment} session={session} onDownload={exportTerraform} onBack={()=>setDesignView("board")} />}
         {mode === "design" && designView === "options" && (
           <OptionsView project={project} busy={busy||agentBusy||!!pending} onChoose={chooseCloud} onContinue={()=>{setChatOpen(true);setMode("design");setDesignView("board");followJourney();}} onPreview={(provider)=>{setDesignView("board");setLevel("flow");setChatOpen(true);send(`Preview a concrete ${OPTION_NAMES[provider]} implementation of our working scope, using actual named services in data.service and explicit connections. Keep existing systems and comments. Use the known country/residency constraints, or leave region undecided and ask the country question. This is an alternative preview, not a cloud choice or deployment. Return a graph proposal and explain key integration assumptions.`,"preview",{mode:"design",view:"board"});}} onDiscuss={(question) => { setChatOpen(true); send(question, "workflow"); }} />
         )}

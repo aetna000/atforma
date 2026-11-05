@@ -45,3 +45,7 @@ The `github-copilot-sdk` 1.0.28 wheel has no packaged root legal text. Its MIT l
 The separate AtMem environment is pinned in `server/memory-requirements.txt`. Its installed package/version/licence inventory is `docs/memory-dependency-inventory.json`; wheel-provided legal texts are preserved in `public/licenses/memory-dependency-notices.txt`. Regenerate with `.memory-venv/bin/python scripts/python-notices.py --environment memory`. AtMem is accessed through its core SDK, not a redistributed native control-plane UI.
 
 Pinned reference documents from AWS, Microsoft, Google, HashiCorp and Pulumi are listed with exact commits and SHA256 hashes in `agent-skills/upstream/manifest.json`. Each reference retains its repository licence in the corresponding provider directory. These documents are reference-only; companion scripts, tools and vendor assets are not bundled. The runtime loads Atforma's separately reviewed first-party specialist guidance, never arbitrary fetched code.
+
+## PDF export font
+
+`public/fonts/NotoSans-Regular.ttf` is Noto Sans from the Noto Project, distributed under the SIL Open Font License 1.1. The full license is included at `public/fonts/OFL.txt`. Source: https://github.com/notofonts/noto-fonts/tree/main/hinted/ttf/NotoSans . PDF generation uses jsPDF; its license and dependency notices are included in `public/licenses/dependency-notices.txt`.

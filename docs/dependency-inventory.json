@@ -1,5 +1,14 @@
 [
   {
+    "name": "@babel/runtime",
+    "version": "7.29.13",
+    "license": "MIT",
+    "dev": false,
+    "licenseFiles": [
+      "LICENSE"
+    ]
+  },
+  {
     "name": "@esbuild/darwin-arm64",
     "version": "0.25.12",
     "license": "MIT",
@@ -87,6 +96,33 @@
     ]
   },
   {
+    "name": "@types/pako",
+    "version": "2.0.4",
+    "license": "MIT",
+    "dev": false,
+    "licenseFiles": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "@types/raf",
+    "version": "3.4.3",
+    "license": "MIT",
+    "dev": false,
+    "licenseFiles": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "@types/trusted-types",
+    "version": "2.0.7",
+    "license": "MIT",
+    "dev": false,
+    "licenseFiles": [
+      "LICENSE"
+    ]
+  },
+  {
     "name": "@xyflow/react",
     "version": "12.10.0",
     "license": "MIT",
@@ -105,12 +141,48 @@
     ]
   },
   {
+    "name": "base64-arraybuffer",
+    "version": "1.0.2",
+    "license": "MIT",
+    "dev": false,
+    "licenseFiles": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "canvg",
+    "version": "3.0.11",
+    "license": "MIT",
+    "dev": false,
+    "licenseFiles": [
+      "LICENSE"
+    ]
+  },
+  {
     "name": "classcat",
     "version": "5.0.5",
     "license": "MIT",
     "dev": false,
     "licenseFiles": [
       "LICENSE.md"
+    ]
+  },
+  {
+    "name": "core-js",
+    "version": "3.51.0",
+    "license": "MIT",
+    "dev": false,
+    "licenseFiles": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "css-line-break",
+    "version": "2.1.0",
+    "license": "MIT",
+    "dev": false,
+    "licenseFiles": [
+      "LICENSE"
     ]
   },
   {
@@ -204,12 +276,31 @@
     ]
   },
   {
+    "name": "dompurify",
+    "version": "3.4.17",
+    "license": "(MPL-2.0 OR Apache-2.0)",
+    "dev": false,
+    "licenseFiles": [
+      "LICENSE",
+      "LICENSE-MPL"
+    ]
+  },
+  {
     "name": "esbuild",
     "version": "0.25.12",
     "license": "MIT",
     "dev": true,
     "licenseFiles": [
       "LICENSE.md"
+    ]
+  },
+  {
+    "name": "fast-png",
+    "version": "6.4.0",
+    "license": "MIT",
+    "dev": false,
+    "licenseFiles": [
+      "LICENSE"
     ]
   },
   {
@@ -249,6 +340,33 @@
     ]
   },
   {
+    "name": "html2canvas",
+    "version": "1.4.1",
+    "license": "MIT",
+    "dev": false,
+    "licenseFiles": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "iobuffer",
+    "version": "5.4.0",
+    "license": "MIT",
+    "dev": false,
+    "licenseFiles": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "jspdf",
+    "version": "4.2.1",
+    "license": "MIT",
+    "dev": false,
+    "licenseFiles": [
+      "LICENSE"
+    ]
+  },
+  {
     "name": "lodash",
     "version": "4.18.1",
     "license": "MIT",
@@ -273,6 +391,24 @@
     "dev": true,
     "licenseFiles": [
       "LICENSE"
+    ]
+  },
+  {
+    "name": "pako",
+    "version": "2.2.0",
+    "license": "(MIT AND Zlib)",
+    "dev": false,
+    "licenseFiles": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "performance-now",
+    "version": "2.1.0",
+    "license": "MIT",
+    "dev": false,
+    "licenseFiles": [
+      "license.txt"
     ]
   },
   {
@@ -323,6 +459,15 @@
     ]
   },
   {
+    "name": "raf",
+    "version": "3.4.1",
+    "license": "MIT",
+    "dev": false,
+    "licenseFiles": [
+      "LICENSE"
+    ]
+  },
+  {
     "name": "react",
     "version": "19.2.0",
     "license": "MIT",
@@ -338,6 +483,24 @@
     "dev": false,
     "licenseFiles": [
       "LICENSE"
+    ]
+  },
+  {
+    "name": "regenerator-runtime",
+    "version": "0.13.11",
+    "license": "MIT",
+    "dev": false,
+    "licenseFiles": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "rgbcolor",
+    "version": "1.0.1",
+    "license": "MIT OR SEE LICENSE IN FEEL-FREE.md",
+    "dev": false,
+    "licenseFiles": [
+      "LICENSE.md"
     ]
   },
   {
@@ -368,6 +531,33 @@
     ]
   },
   {
+    "name": "stackblur-canvas",
+    "version": "2.7.0",
+    "license": "MIT",
+    "dev": false,
+    "licenseFiles": [
+      "LICENSE-MIT.txt"
+    ]
+  },
+  {
+    "name": "svg-pathdata",
+    "version": "6.0.3",
+    "license": "MIT",
+    "dev": false,
+    "licenseFiles": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "text-segmentation",
+    "version": "1.0.3",
+    "license": "MIT",
+    "dev": false,
+    "licenseFiles": [
+      "LICENSE"
+    ]
+  },
+  {
     "name": "tinyglobby",
     "version": "0.2.17",
     "license": "MIT",
@@ -379,6 +569,15 @@
   {
     "name": "use-sync-external-store",
     "version": "1.7.0",
+    "license": "MIT",
+    "dev": false,
+    "licenseFiles": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "utrie",
+    "version": "1.0.2",
     "license": "MIT",
     "dev": false,
     "licenseFiles": [

@@ -11,6 +11,8 @@ from .memory_service import service as memory_service, safe as memory_safe
 
 app=FastAPI(title='Atforma helper',docs_url=None,redoc_url=None,openapi_url=None)
 app.include_router(memory_router)
+from .terraform_routes import router as terraform_router
+app.include_router(terraform_router)
 TOKEN=secrets.token_urlsafe(32)
 ARCHITECT=AtFormaArchitect()
 ALLOWED_HOSTS={'127.0.0.1:5174','localhost:5174','127.0.0.1:8766','localhost:8766','testserver'}
