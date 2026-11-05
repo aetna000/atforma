@@ -760,3 +760,23 @@ label.inline input { width: 60px; }
 .requirements-summary li > .link { margin-left: .75rem; }
 
 .consultation-summary { padding: 1rem 0; border-bottom: 1px solid var(--border, #334155); }
+
+/* Requirements read as a continuous document, while chat stays alongside it. */
+.requirements-document { background: var(--board); }
+.requirements-actions { width: min(100%, 850px); margin: 0 auto 20px; }
+.requirements-paper { box-sizing: border-box; width: min(100%, 850px); margin: 0 auto 32px; padding: 56px 64px; background: #fffefa; color: #24313c; box-shadow: 0 4px 24px #0002; overflow-wrap: anywhere; }
+.requirements-paper p { font-family: Georgia, 'Times New Roman', serif; font-size: 16px; line-height: 1.8; margin: 0 0 16px; white-space: pre-line; }
+.requirements-cover { border-bottom: 2px solid #263b4b; padding-bottom: 24px; margin-bottom: 32px; }
+.requirements-paper h2 { color: #182e3e; font-size: 32px; line-height: 1.25; margin: 16px 0; }
+.requirements-paper .document-kicker, .requirements-paper .document-meta, .requirements-paper .document-subtitle { font-family: inherit; }
+.requirements-paper .document-kicker { text-transform: uppercase; letter-spacing: .14em; font-size: 11px; color: #52616c; }
+.requirements-paper .document-subtitle { font-size: 19px; color: #52616c; }
+.requirements-paper .document-meta { font-size: 11px; line-height: 1.6; color: #63717b; }
+.requirements-chapter { margin: 30px 0; }
+.requirements-paper h3 { font-size: 19px; line-height: 1.4; color: #223d50; margin: 0 0 16px; }
+.requirement-paragraph { margin-bottom: 24px; }
+.requirement-paragraph > p:first-child { margin-bottom: 8px; }
+.requirements-paper .acceptance-target { font-size: 14px; }
+.requirements-paper .document-discuss { color: #235f83; font-size: 12px; text-align: left; }
+.document-footer { border-top: 1px solid #d8dee1; padding-top: 16px; margin-top: 44px; font-size: 10px; color: #63717b; }
+@media (max-width: 700px) { .requirements-paper { padding: 28px 22px; } .requirements-paper h2 { font-size: 25px; } }

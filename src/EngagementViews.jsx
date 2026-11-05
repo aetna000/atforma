@@ -274,16 +274,41 @@ export function MeasuresEditor({ measures = [], disabled, onChange }) {
 export function RequirementsView({ project, onDiscuss }) {
   const needs = project.needs || [];
   const names = Object.fromEntries(project.nodes.map(n => [n.id, n.data.label]));
-  const requirements = (list) => <ul className="requirements-summary">{list.map(r => <li key={r.id}>
-    <p>{r.statement}</p>
-    <small className="muted">{r.source === 'agent' ? 'Proposed from the design and conversation' : 'From our conversation'}{r.measure ? ` · ${r.measure.metric} ${r.measure.op} ${r.measure.target}${r.measure.unit || ''}` : ''}{r.links?.length ? ` · ${r.links.map(id => names[id] || 'earlier component').join(', ')}` : ''}</small>
-    <button className="link small" onClick={() => onDiscuss(`Let's discuss requirement ${r.id}: ${r.statement}. Help me clarify it with one question and update the working requirement from my answer.`)}>Discuss this further in chat</button>
-  </li>)}</ul>;
-  return <section className="doc" aria-label="Requirements">
-    <header className="doc-head"><h2>Where we’ve reached</h2><p className="muted">A summary of what we’ve established from our board and discussion. Proposed requirements and open questions show what we still need to work through together.</p></header>
-    <button className="btn" onClick={() => onDiscuss('Summarise where we have reached from the current board and our discussion. Distinguish what I have confirmed from your proposals and unresolved questions. Then ask ONE useful question to develop the requirements further, and update the summary as we discuss.')}>Let’s discuss more in chat</button>
-    {needs.length ? <>{requirements(needs.slice(0,6))}{needs.length > 6 && <details className="extra"><summary>{needs.length-6} more requirements in our summary</summary>{requirements(needs.slice(6))}</details>}</> : <p className="muted">Describe your idea in the chat or add to the diagram. Atforma will develop the requirements with you.</p>}
-    {!!project.assumptions?.length && <details className="extra"><summary>Assumptions to check · {project.assumptions.length}</summary><ul>{project.assumptions.map(a => <li key={a.id}>{a.statement}</li>)}</ul></details>}
-    {!!project.openQuestions?.filter(q=>q.status==='open').length && <details className="extra"><summary>Questions still open</summary><ul>{project.openQuestions.filter(q=>q.status==='open').map(q=><li key={q.id}><button className="link" onClick={()=>onDiscuss(`Let's resolve this question: ${q.question}`)}>{q.question}</button></li>)}</ul></details>}
+  const titles = {functional:'Functional requirements',security:'Security and access',compliance:'Data governance and compliance',availability:'Availability and recovery',reliability:'Reliability',performance:'Performance',scalability:'Capacity and growth',maintainability:'Operations and maintainability',cost:'Cost constraints',other:'Quality requirements'};
+  const groups = new Map();
+  for (const r of needs) {
+    const key = r.kind === 'functional' ? 'functional' : r.category || 'other';
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(r);
+  }
+  const questions = (project.openQuestions || []).filter(q=>q.status==='open');
+  const purpose = project.brief?.application || project.requirements;
+  return <section className="doc requirements-document" aria-label="Requirements">
+    <div className="requirements-actions"><button className="btn" onClick={() => onDiscuss('Summarise where we have reached from the current board and our discussion. Distinguish what I have confirmed from your proposals and unresolved questions. Then ask ONE useful question to develop the requirements further, and update the summary as we discuss.')}>Let’s discuss more in chat</button></div>
+    <article className="requirements-paper" aria-label="Requirements document">
+      <header className="requirements-cover">
+        <p className="document-kicker">Atforma · Working requirements</p>
+        <h2>{project.name || 'Solution requirements'}</h2>
+        <p className="document-subtitle">Where we’ve reached</p>
+        <p>This document brings together the requirements developed from our board and discussion. Proposed requirements remain open for review as the design evolves.</p>
+        <p className="document-meta">Design revision {project.revision || 1} · Working draft</p>
+      </header>
+      <section className="requirements-chapter"><h3>Purpose and scope</h3>
+        <p>{purpose || 'We are developing the scope together. Describe the outcome you want in chat, and this document will grow with the design.'}</p>
+      </section>
+      {[...groups].map(([key,rows])=><section className="requirements-chapter" key={key}>
+        <h3>{titles[key] || 'Additional requirements'}</h3>
+        {rows.map(r=><div className="requirement-paragraph" key={r.id}>
+          <p>{r.statement}</p>
+          {r.measure && <p className="acceptance-target">Acceptance target: {r.measure.metric} {r.measure.op} {r.measure.target} {r.measure.unit || ''}.</p>}
+          <p className="document-meta">{r.source === 'agent' ? 'Proposed for discussion' : 'Recorded from our discussion'}{r.links?.length ? ` · Related design: ${r.links.map(id=>names[id] || 'earlier component').join(', ')}` : ''}</p>
+        </div>)}
+        <button className="link document-discuss" onClick={()=>onDiscuss(`Let's discuss the ${titles[key] || key} section of our requirements document further. Current requirements: ${rows.map(r=>`${r.id}: ${r.statement}`).join('; ')}. Ask one useful question and refine the document from my answer.`)}>Discuss this section further in chat</button>
+      </section>)}
+      {!needs.length && <section className="requirements-chapter"><h3>Requirements to develop</h3><p>As we discuss the idea and shape the board, Atforma will summarise the functional requirements, constraints and acceptance targets here.</p></section>}
+      {!!project.assumptions?.length && <section className="requirements-chapter"><h3>Assumptions to validate</h3>{project.assumptions.map(a=><p key={a.id}>{a.statement}</p>)}</section>}
+      {!!questions.length && <section className="requirements-chapter"><h3>Open questions</h3>{questions.map(q=><p key={q.id}>{q.question}</p>)}<button className="link document-discuss" onClick={()=>onDiscuss(`Help resolve the open questions in our requirements document, one at a time. Start with the question that most affects the design.`)}>Let’s work through these in chat</button></section>}
+      <footer className="document-footer">Atforma · Requirements derived from the current design and discussion</footer>
+    </article>
   </section>;
 }
