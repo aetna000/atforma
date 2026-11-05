@@ -1,3 +1,4 @@
+import { requirementNumber } from "./derive.mjs";
 import { estimate, consultingEstimate } from "./estimate.mjs";
 import { resourcePlan } from "./resources.mjs";
 import { toProjectFile } from "./project-file.mjs";
@@ -56,7 +57,7 @@ export function agentContext(p) {
     item("discovery", "estimate-summary", `Current estimate stage: ${costs.maturity}. Monthly cloud subtotal ${costs.expected ?? "unknown"} ${costs.currency || "currency unresolved"}; range ${costs.low ?? "?"}–${costs.high ?? "?"}; ${costs.gaps.length} worksheet gaps. One-off consulting/build subtotal ${work.expected ?? "unknown"} ${work.currency}; ${work.complete ? "all phases entered" : "incomplete"}. Values are user inputs, not provider quotes. UI: Estimate for charges/effort; Deploy for the downloadable delivery pack and Terraform sketch.`),
     ...costs.gaps.slice(0, 5).map((g, i) => item("question", `cost-gap-${i}`, g)),
     item("discovery", "infrastructure-coverage", `${resources.rows.length} diagram components; ${resources.gaps.length} infrastructure/integration gaps. Native Terraform coverage is AWS S3 foundations only. Deployment is not connected.`),
-    ...(p.needs || []).map((r) => item("requirement", r.id, `${r.priority} ${r.kind} ${r.category}: ${r.statement}${measure(r.measure)} (${r.status})`)),
+    ...(p.needs || []).map((r) => item("requirement", r.id, `${requirementNumber(p,r.id)} — ${r.priority} ${r.kind} ${r.category}: ${r.statement}${measure(r.measure)} (${r.status})`)),
     ...(p.assumptions || []).map((a) => item("assumption", a.id, `${a.statement} (stated ${a.madeAt})`)),
     ...(p.openQuestions || []).filter((q) => q.status === "open").map((q) => item("question", q.id, q.question)),
     ...(p.decisions || [])

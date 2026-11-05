@@ -17,7 +17,7 @@ async def run(architect, payload, disconnected):
     project = payload.projectId
     if memory.enabled(project) and payload.origin=='chat' and payload.message.lower().startswith('remember about me:'):
         await asyncio.to_thread(memory.profile,project,'preferences',payload.message.split(':',1)[1].strip())
-    needs_memory = payload.origin != 'canvas' and not re.fullmatch(r'\s*(hi|hello|thanks|thank you|ok|okay)[.!\s]*',payload.message,re.I)
+    needs_memory = payload.origin not in {'canvas','document'} and not re.fullmatch(r'\s*(hi|hello|thanks|thank you|ok|okay)[.!\s]*',payload.message,re.I)
     recalled, status = await asyncio.to_thread(memory.recall, project, payload.message) if needs_memory else ([], memory.status(project))
     if status['enabled'] and status['status'] == 'ready':
         await asyncio.to_thread(skills.publish, memory, project)
@@ -87,7 +87,7 @@ async def run(architect, payload, disconnected):
             output['usageUpdates']=[u for u in output['usageUpdates'] if u['sourceText'] in payload.message and any(float(n.replace(',',''))==u['value'] for n in re.findall(r'\d+(?:,\d{3})*(?:\.\d+)?',u['sourceText']))]
         if output.get('requirementUpdates'):
             allowed = {c.id for c in payload.context if c.type=='requirement'}
-            output['requirementUpdates']=[u for u in output['requirementUpdates'] if u['id'] in allowed and u['sourceText'] in payload.message and payload.origin=='chat']
+            output['requirementUpdates']=[u for u in output['requirementUpdates'] if u['id'] in allowed and u['sourceText'] in payload.message and payload.origin in {'chat','document'}]
         if output.get('decisionUpdates'):
             output['decisionUpdates']=[u for u in output['decisionUpdates'] if u['sourceText'] in payload.message and payload.origin=='chat' and (u['subject']!='platform.cloud' or u['value'] in {'aws','azure','gcp','ibm'})]
         return output

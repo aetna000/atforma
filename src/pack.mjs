@@ -1,3 +1,4 @@
+import { requirementNumber } from "./derive.mjs";
 // Client pack: one Markdown document generated from the board.
 import { PROVIDERS, checkProject } from "./core.mjs";
 import { layerOf } from "./levels.mjs";
@@ -57,7 +58,7 @@ export function recordsSection(project) {
         "|---|---|---|---|---|---|",
         ...needs.map(
           (r) =>
-            `| ${cell(r.statement)} | ${r.kind === "nonfunctional" ? `NFR · ${r.category}` : `functional · ${r.category}`} | ${r.priority} | ${r.measure ? cell(`${r.measure.metric} ${r.measure.op} ${r.measure.target}${r.measure.unit}`) : "not measurable yet"} | ${r.status} | ${cell(linked(r))} |`,
+            `| ${project.extensions?.requirementNumbers?.[r.id] ? requirementNumber(project,r.id)+" — " : ""}${cell(r.statement)} | ${r.kind === "nonfunctional" ? `NFR · ${r.category}` : `functional · ${r.category}`} | ${r.priority} | ${r.measure ? cell(`${r.measure.metric} ${r.measure.op} ${r.measure.target}${r.measure.unit}`) : "not measurable yet"} | ${r.status} | ${cell(linked(r))} |`,
         ),
       ].join("\n")
     : "_No requirements recorded._";

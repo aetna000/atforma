@@ -780,3 +780,14 @@ label.inline input { width: 60px; }
 .requirements-paper .document-discuss { color: #235f83; font-size: 12px; text-align: left; }
 .document-footer { border-top: 1px solid #d8dee1; padding-top: 16px; margin-top: 44px; font-size: 10px; color: #63717b; }
 @media (max-width: 700px) { .requirements-paper { padding: 28px 22px; } .requirements-paper h2 { font-size: 25px; } }
+
+.requirements-actions { display:flex; flex-wrap:wrap; gap:12px; }
+.requirement-comments { margin-top:10px; }
+.requirement-comment { background:#f0f4f6; border-left:3px solid #91a9b8; padding:10px 14px; margin:8px 0; }
+.requirements-paper .requirement-comment p { font-family:inherit; font-size:13px; margin-bottom:4px; white-space:pre-wrap; }
+.requirement-comment small { color:#52616c; margin-right:16px; }
+.requirement-comments .link { color:#235f83; font-size:12px; }
+.comment-composer textarea { display:block; width:100%; min-height:80px; margin:10px 0; padding:10px; background:white; color:#24313c; border:1px solid #91a9b8; border-radius:4px; box-sizing:border-box; font:inherit; }
+.comment-composer .btn { background:#235f83; color:white; margin-right:12px; }
+
+.requirements-paper .requirement-number { color:#235f83; font-size:12px; letter-spacing:.06em; margin:0 0 8px; }

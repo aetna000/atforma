@@ -40,3 +40,13 @@ test('model requirements replace fallback labels, link real components and prese
  p.needs[0]={...p.needs[0],source:'user',statement:'Only HR can retrieve documents'};
  p=withDerived(applyRequirementDrafts(p,[draft]));assert.equal(p.needs[0].statement,'Only HR can retrieve documents');
 });
+
+test('requirement numbers remain stable across revisions, reorder and saved project round trip',async()=>{
+ const {toProjectFile,fromProjectFile}=await import('../src/project-file.mjs');
+ let p=withDerived(project());const numbers={...p.extensions.requirementNumbers};
+ p=withDerived({...p,nodes:[...p.nodes].reverse()});for(const r of p.needs)assert.equal(p.extensions.requirementNumbers[r.id],numbers[r.id]);
+ const previousMax=Math.max(...Object.values(numbers));p=withDerived(applyRequirementDrafts(p,[{id:'ai-audit',statement:'Record access decisions for audit',kind:'nonfunctional',category:'security',links:['files']}]));
+ assert.ok(p.extensions.requirementNumbers['ai-audit']>previousMax);
+ assert.deepEqual(fromProjectFile(toProjectFile(p)).project.extensions.requirementNumbers,p.extensions.requirementNumbers);
+ const {recordsSection}=await import("../src/pack.mjs");assert.ok(recordsSection(p).includes(`REQ-${String(p.extensions.requirementNumbers["ai-audit"]).padStart(3,"0")}`));
+});

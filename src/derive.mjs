@@ -17,5 +17,14 @@ export function deriveRequirements(project) {
 export function withDerived(project){
  const mine=(project.needs||[]).filter(r=>!(r.source==='agent'&&r.id.startsWith('drv-')));
  const excluded=new Set([...(project.extensions?.dismissedRequirements||[]),...mine.map(r=>r.id)]);
- return {...project,needs:[...mine,...(mine.some(r=>r.id.startsWith("ai-")) ? [] : deriveRequirements(project)).filter(r=>!excluded.has(r.id))].slice(0,300)};
+ const needs=[...mine,...(mine.some(r=>r.id.startsWith("ai-")) ? [] : deriveRequirements(project)).filter(r=>!excluded.has(r.id))].slice(0,300);
+ const numbers={...(project.extensions?.requirementNumbers || {})};
+ let next=Math.max(0,...Object.values(numbers).filter(n=>Number.isSafeInteger(n)&&n>0))+1;
+ for(const r of needs)if(!Number.isSafeInteger(numbers[r.id]) || numbers[r.id]<1)numbers[r.id]=next++;
+ return {...project,needs,extensions:{...project.extensions,requirementNumbers:numbers}};
+}
+
+export function requirementNumber(project,id) {
+ const value=project.extensions?.requirementNumbers?.[id];
+ return Number.isSafeInteger(value)&&value>0 ? `REQ-${String(value).padStart(3,'0')}` : 'Requirement';
 }

@@ -29,6 +29,20 @@ await page.screenshot({path:`${out}/canvas-comments.png`});
 await page.getByRole('tab',{name:'Requirements',exact:true}).click();const req=page.getByRole('region',{name:'Requirements',exact:true});
 assert.equal(await req.locator('input,select,textarea').count(),0,'no requirements form');assert.match(await req.innerText(),/Company policy documents/);
 await req.getByRole('button',{name:'Let’s discuss more in chat',exact:true}).click();await finished();await chat('Only the HR team should have access.');assert.ok((await project()).needs.some(r=>/Only the HR team/.test(r.statement)));
+const originalNodes=JSON.stringify((await project()).nodes);
+const originalNumbers=(await project()).extensions.requirementNumbers;
+assert.match(await req.locator(".requirement-number").first().innerText(),/^REQ-\d+$/);
+await req.getByRole('button',{name:'Comment on this paragraph',exact:true}).first().click();
+await req.getByRole('textbox',{name:/Comment on/}).fill('Restrict this to HR managers, not everyone in HR.');
+await req.getByRole('button',{name:'Save comment',exact:true}).click();
+assert.equal((await project()).extensions.requirementComments.length,1);
+await req.getByRole('button',{name:/Review comments and revise/}).click();
+await page.waitForFunction(()=>JSON.parse(localStorage.getItem('atforma-workspace-v3')).extensions.requirementComments[0].status==='reviewed');
+await finished();
+assert.ok((await project()).needs.some(r=>r.statement==='Only HR managers may retrieve policy documents.'));
+assert.equal(JSON.stringify((await project()).nodes),originalNodes,'comment review preserves board');
+await req.getByText('Used in revision',{exact:true}).waitFor();
+assert.deepEqual((await project()).extensions.requirementNumbers,originalNumbers);
 await page.screenshot({path:`${out}/requirements-conversation.png`});
 await tab('Design');await page.getByRole('tab',{name:'Board',exact:true}).click();await chat('Use AWS in Sydney for this project.');
 await page.waitForTimeout(1000);assert.equal((await project()).provider,'aws');assert.ok((await project()).decisions.some(d=>d.subject==='cloud.region'&&d.status==='Accepted'));
@@ -58,5 +72,6 @@ await page.getByRole('button',{name:'Turn memory off',exact:true}).click();await
 await chat('Remember about me: please retain this secret preference forever.');await openMemory();assert.equal(await page.getByText(/User-confirmed preferences/).count(),0);await page.getByRole('button',{name:'Turn memory on',exact:true}).click();await page.getByRole('button',{name:'Close dialog',exact:true}).click();
 // Save the project and reset through the existing flow; no default blocks on a fresh idea.
 await page.getByRole('button',{name:'Start over',exact:true}).click();const download=page.waitForEvent('download');await page.getByRole('button',{name:'Save project and start over',exact:true}).click();await(await download).saveAs(`${out}/project.atforma.json`);assert.equal((await project()).nodes.length,0);
+assert.equal(JSON.parse(fs.readFileSync(`${out}/project.atforma.json`)).extensions.requirementComments[0].status,'reviewed');
 await page.setViewportSize({width:390,height:844});await page.screenshot({path:`${out}/mobile-empty-canvas.png`});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
 assert.deepEqual(errors,[]);await browser.close();console.log('Real AtMem browser journey passed: idea → sketch, right-click comments/live feedback, form-free requirements, four-cloud comparison/choices, sourced-pricing boundary, conversational usage, memory/history/profile/forget/opt-out, save/reset and mobile. Model and numeric quotes are fixture-only.');

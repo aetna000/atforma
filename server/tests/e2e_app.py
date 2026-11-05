@@ -30,6 +30,10 @@ class FixtureArchitect:
         if msg.startswith('connection check'):return ArchitectResponse(message='Fixture connection ready.')
         if 'compare' in msg and 'optionassessment' in msg:
             return ArchitectResponse(message='All four clouds can support this design; existing systems and residency should drive the choice. Which cloud agreement do you already have?',optionAssessment=[OptionAssessment(provider=provider,scores=Scores(cost=3,risk=3,scalability=4,security=4),rationale=f'Provisional {provider} option for the current document assistant; exact cost and region still need verification.') for provider in ['current','aws','azure','gcp','ibm']])
+        if request.origin=='document':
+            import re
+            match=re.search(r'Requirement (\S+) — comment: (.+)',request.message)
+            return ArchitectResponse(message='I updated the requirement from your comment. What else should we clarify?',requirementUpdates=[RequirementUpdate(id=match[1],statement='Only HR managers may retrieve policy documents.',sourceText=match[2])])
         if request.origin=='canvas':
             return ArchitectResponse(message='I can see your edits and comments in our shared diagram. Which of these constraints matters most for the first release?')
         if request.stage=='estimate' and not runtime.get('toolResults'):

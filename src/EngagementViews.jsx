@@ -1,5 +1,6 @@
 // Consultant views: Discover (qualify), Options and Decisions (design), Build card.
 import React from "react";
+import { requirementNumber } from "./derive.mjs";
 import { Plus, Trash2 } from "lucide-react";
 import {
   BRIEF_FIELDS,
@@ -271,8 +272,24 @@ export function MeasuresEditor({ measures = [], disabled, onChange }) {
   );
 }
 
-export function RequirementsView({ project, onDiscuss }) {
+function RequirementComments({ requirement, comments, onSave, onRemove }) {
+  const [open,setOpen]=React.useState(false), [text,setText]=React.useState('');
+  return <aside className="requirement-comments" aria-label={`Comments on ${requirement.id}`}>
+    {comments.map(c=><div className="requirement-comment" key={c.id}><p>{c.text}</p><small>{c.status==='reviewed'?'Used in revision':'Awaiting review'}</small><button className="link" onClick={()=>onRemove(c.id)} aria-label={`Remove comment ${c.id}`}>Remove</button></div>)}
+    {!open ? <button className="link document-discuss" onClick={()=>setOpen(true)}>Comment on this paragraph</button> : <div className="comment-composer">
+      <textarea aria-label={`Comment on ${requirement.id}`} value={text} maxLength={700} onChange={e=>setText(e.target.value)} placeholder="What should we clarify or change?" autoFocus />
+      <button className="btn" disabled={!text.trim()} onClick={()=>{onSave(text.trim());setText('');setOpen(false);}}>Save comment</button>
+      <button className="link" onClick={()=>{setOpen(false);setText('');}}>Cancel</button>
+    </div>}
+  </aside>;
+}
+
+export function RequirementsView({ project, onDiscuss, onChange, onReview, reviewing }) {
   const needs = project.needs || [];
+  const comments = project.extensions?.requirementComments || [];
+  const pending = comments.filter(c=>c.status!=='reviewed' && needs.some(r=>r.id===c.requirementId));
+  const saveComments = value => onChange({...project,extensions:{...project.extensions,requirementComments:value}});
+
   const names = Object.fromEntries(project.nodes.map(n => [n.id, n.data.label]));
   const titles = {functional:'Functional requirements',security:'Security and access',compliance:'Data governance and compliance',availability:'Availability and recovery',reliability:'Reliability',performance:'Performance',scalability:'Capacity and growth',maintainability:'Operations and maintainability',cost:'Cost constraints',other:'Quality requirements'};
   const groups = new Map();
@@ -284,7 +301,9 @@ export function RequirementsView({ project, onDiscuss }) {
   const questions = (project.openQuestions || []).filter(q=>q.status==='open');
   const purpose = project.brief?.application || project.requirements;
   return <section className="doc requirements-document" aria-label="Requirements">
-    <div className="requirements-actions"><button className="btn" onClick={() => onDiscuss('Summarise where we have reached from the current board and our discussion. Distinguish what I have confirmed from your proposals and unresolved questions. Then ask ONE useful question to develop the requirements further, and update the summary as we discuss.')}>Let’s discuss more in chat</button></div>
+    <div className="requirements-actions"><button className="btn" onClick={() => onDiscuss('Summarise where we have reached from the current board and our discussion. Distinguish what I have confirmed from your proposals and unresolved questions. Then ask ONE useful question to develop the requirements further, and update the summary as we discuss.')}>Let’s discuss more in chat</button>
+      {!!pending.length && <button className="btn" disabled={reviewing} onClick={()=>onReview(pending.slice(0,6))}>{reviewing?'Reviewing comments…':'Review comments and revise'} ({Math.min(6,pending.length)})</button>}
+    </div>
     <article className="requirements-paper" aria-label="Requirements document">
       <header className="requirements-cover">
         <p className="document-kicker">Atforma · Working requirements</p>
@@ -299,9 +318,11 @@ export function RequirementsView({ project, onDiscuss }) {
       {[...groups].map(([key,rows])=><section className="requirements-chapter" key={key}>
         <h3>{titles[key] || 'Additional requirements'}</h3>
         {rows.map(r=><div className="requirement-paragraph" key={r.id}>
+          <h4 className="requirement-number">{requirementNumber(project,r.id)}</h4>
           <p>{r.statement}</p>
           {r.measure && <p className="acceptance-target">Acceptance target: {r.measure.metric} {r.measure.op} {r.measure.target} {r.measure.unit || ''}.</p>}
           <p className="document-meta">{r.source === 'agent' ? 'Proposed for discussion' : 'Recorded from our discussion'}{r.links?.length ? ` · Related design: ${r.links.map(id=>names[id] || 'earlier component').join(', ')}` : ''}</p>
+          <RequirementComments requirement={r} comments={comments.filter(c=>c.requirementId===r.id)} onSave={text=>saveComments([...comments,{id:crypto.randomUUID(),requirementId:r.id,text,statement:r.statement,status:'open',createdAt:new Date().toISOString()}])} onRemove={id=>saveComments(comments.filter(c=>c.id!==id))} />
         </div>)}
         <button className="link document-discuss" onClick={()=>onDiscuss(`Let's discuss the ${titles[key] || key} section of our requirements document further. Current requirements: ${rows.map(r=>`${r.id}: ${r.statement}`).join('; ')}. Ask one useful question and refine the document from my answer.`)}>Discuss this section further in chat</button>
       </section>)}

@@ -1109,7 +1109,9 @@ function App() {
       if (result.requirementUpdates?.length) {
         const p = projectRef.current;
         const updates = new Map(result.requirementUpdates.filter(u => message.includes(u.sourceText)).map(u => [u.id,u]));
-        updateEngagement({ ...p, needs: (p.needs || []).map(r => updates.has(r.id) ? { ...r, statement: updates.get(r.id).statement, source: "user" } : r) });
+        const applicable = new Map([...updates].filter(([id]) => was.needs?.find(r=>r.id===id)?.statement === p.needs?.find(r=>r.id===id)?.statement));
+        updateEngagement({ ...p, needs: (p.needs || []).map(r => applicable.has(r.id) ? { ...r, statement: applicable.get(r.id).statement, source: "user" } : r),
+          extensions: {...p.extensions,requirementComments:(p.extensions?.requirementComments || []).map(c=> applicable.has(c.requirementId) && applicable.get(c.requirementId).sourceText === c.text ? {...c,status:'reviewed',revisedStatement:applicable.get(c.requirementId).statement} : c)} });
         signals.push("requirements refined from your answer");
       }
       if (result.decisionUpdates?.length) updateEngagement(applyDecisionUpdates(projectRef.current,result.decisionUpdates,message));
@@ -1892,7 +1894,7 @@ function App() {
           <DecisionsView project={project} onDiscuss={(question) => { setChatOpen(true); send(question, "workflow"); }} />
         )}
         {mode === "design" && designView === "requirements" && (
-          <RequirementsView project={project} onDiscuss={(question) => { setChatOpen(true); send(question, "workflow"); }} />
+          <RequirementsView project={project} onChange={updateEngagement} reviewing={agentBusy} onReview={(comments)=>{setChatOpen(true);send("Review these user comments on the requirements document. Return requirementUpdates for the existing IDs where the feedback is clear, quoting the user's comment exactly in sourceText. Preserve other requirements and the diagram. Ask one question if a comment is ambiguous.\n" + comments.map(c=>`Requirement ${c.requirementId} — comment: ${c.text}`).join("\n"), "document");}} onDiscuss={(question) => { setChatOpen(true); send(question, "workflow"); }} />
         )}
       </main>
 
