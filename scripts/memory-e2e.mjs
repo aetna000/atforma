@@ -28,7 +28,7 @@ assert.ok((await project()).nodes.some(n=>n.data.kind==='note'&&/Australia/.test
 await page.screenshot({path:`${out}/canvas-comments.png`});
 await page.getByRole('tab',{name:'Requirements',exact:true}).click();const req=page.getByRole('region',{name:'Requirements',exact:true});
 assert.equal(await req.locator('input,select,textarea').count(),0,'no requirements form');assert.match(await req.innerText(),/Company policy documents/);
-await req.getByRole('button',{name:'Clarify with Atforma',exact:true}).click();await finished();await chat('Only the HR team should have access.');assert.ok((await project()).needs.some(r=>/Only the HR team/.test(r.statement)));
+await req.getByRole('button',{name:'Let’s discuss more in chat',exact:true}).click();await finished();await chat('Only the HR team should have access.');assert.ok((await project()).needs.some(r=>/Only the HR team/.test(r.statement)));
 await page.screenshot({path:`${out}/requirements-conversation.png`});
 await tab('Design');await page.getByRole('tab',{name:'Board',exact:true}).click();await chat('Use AWS in Sydney for this project.');
 await page.waitForTimeout(1000);assert.equal((await project()).provider,'aws');assert.ok((await project()).decisions.some(d=>d.subject==='cloud.region'&&d.status==='Accepted'));
