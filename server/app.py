@@ -5,12 +5,20 @@ from fastapi.responses import JSONResponse
 from .architect import AtFormaArchitect
 from .contracts import ChatRequest
 from .local_providers import capabilities, models, start_login
+from .memory_routes import router as memory_router
+from .agent_runtime import run as run_architect
+from .memory_service import service as memory_service, safe as memory_safe
 
 app=FastAPI(title='Atforma helper',docs_url=None,redoc_url=None,openapi_url=None)
+app.include_router(memory_router)
 TOKEN=secrets.token_urlsafe(32)
 ARCHITECT=AtFormaArchitect()
 ALLOWED_HOSTS={'127.0.0.1:5174','localhost:5174','127.0.0.1:8766','localhost:8766','testserver'}
 ALLOWED_ORIGINS={'http://127.0.0.1:5174','http://localhost:5174'}
+for _port in (os.getenv('ATFORMA_PORT'),os.getenv('ATFORMA_SIDECAR_PORT')):
+    if _port and _port.isdigit() and 1024 <= int(_port) <= 65535:
+        ALLOWED_HOSTS.update({f'127.0.0.1:{_port}',f'localhost:{_port}'})
+        ALLOWED_ORIGINS.update({f'http://127.0.0.1:{_port}',f'http://localhost:{_port}'})
 TURN_LOCK=asyncio.Lock()
 
 @app.middleware('http')
@@ -25,7 +33,7 @@ async def local_boundary(request:Request,call_next):
     if request.method=='POST':
         if not secrets.compare_digest(request.headers.get('authorization',''),f'Bearer {TOKEN}'):
             return JSONResponse({'detail':'Missing local session token'},status_code=401)
-        limit=2_100_000 if request.url.path=='/api/projects/save' else 250000
+        limit=2_100_000 if request.url.path in {'/api/projects/save','/api/memory/sync'} else 250000
         if len(await request.body())>limit:
             return JSONResponse({'detail':'Request too large'},status_code=413)
     response=await call_next(request)
@@ -51,8 +59,7 @@ async def architect(payload:ChatRequest,request:Request):
     if TURN_LOCK.locked():raise HTTPException(409,"We're still working on your last message — give it a moment.")
     async with TURN_LOCK:
         try:
-            result=await ARCHITECT.call(payload,request.is_disconnected)
-            return result.model_dump(exclude_none=True)
+            return await run_architect(ARCHITECT,payload,request.is_disconnected)
         except asyncio.CancelledError:
             return JSONResponse({'detail':'Request cancelled'},status_code=499)
         except (ValueError,TimeoutError) as exc:
@@ -152,10 +159,13 @@ async def projects_save(request:Request):
     payload=await request.json();pid=_pid(payload)
     file=payload.get('file')
     if not isinstance(file,dict) or file.get('format')!='atforma.project':raise HTTPException(422,'Not an Atforma project file.')
+    if not memory_safe(file):raise HTTPException(422,'Project content looks like a credential; remove it before saving.')
     if (_home()/'bin'/f'{pid}.atforma.json').exists():raise HTTPException(409,'This project is in the bin. Restore it first.')
     target=_home()/'projects'/f'{pid}.atforma.json';tmp=target.with_suffix('.tmp')
     tmp.write_text(_json.dumps(file,ensure_ascii=False),encoding='utf-8');tmp.replace(target)
-    return {'saved':True}
+    try:memory=await asyncio.to_thread(memory_service().sync,pid,file)
+    except Exception:memory={'status':'unavailable'}
+    return {'saved':True,'memory':memory}
 
 @app.post('/api/projects/trash')
 async def projects_trash(request:Request):

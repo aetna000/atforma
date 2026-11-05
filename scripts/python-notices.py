@@ -2,6 +2,11 @@
 from importlib import metadata
 from pathlib import Path
 import json
+import argparse
+parser=argparse.ArgumentParser()
+parser.add_argument("--environment",choices=["sidecar","memory"],default="sidecar")
+options=parser.parse_args()
+prefix="memory-" if options.environment=="memory" else "python-"
 inventory=[];notices=[]
 for dist in sorted(metadata.distributions(),key=lambda d:d.metadata['Name'].lower()):
     name=dist.metadata['Name'];version=dist.version
@@ -18,6 +23,6 @@ for dist in sorted(metadata.distributions(),key=lambda d:d.metadata['Name'].lowe
                 except UnicodeError:continue
                 files.append(str(file))
     inventory.append({'name':name,'version':version,'declaredLicense':licence,'wheelLegalFiles':files})
-Path('docs/python-dependency-inventory.json').write_text(json.dumps(inventory,indent=2)+'\n')
-Path('public/licenses/python-dependency-notices.txt').write_text('\n'.join(notices))
+Path(f'docs/{prefix}dependency-inventory.json').write_text(json.dumps(inventory,indent=2)+'\n')
+Path(f'public/licenses/{prefix}dependency-notices.txt').write_text('\n'.join(notices))
 print(json.dumps({'installedPackages':len(inventory),'missingDeclaredLicense':[x['name'] for x in inventory if x['declaredLicense']=='UNKNOWN'],'noWheelLegalFiles':[x['name'] for x in inventory if not x['wheelLegalFiles']]}))

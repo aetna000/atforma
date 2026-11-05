@@ -15,15 +15,8 @@ import {
 } from "./engagement.mjs";
 import { OPTION_NAMES } from "./pack.mjs";
 import {
-  CATEGORIES,
-  OPS,
-  PRIORITIES,
-  REQUIREMENT_STATUSES,
   decisionHistory,
   measureProblem,
-  newAssumption,
-  newQuestion,
-  newRequirement,
   reviseDecision,
 } from "./records.mjs";
 
@@ -470,162 +463,19 @@ export function MeasuresEditor({ measures = [], disabled, onChange }) {
   );
 }
 
-function LinkPicker({ project, links, onChange }) {
-  const label = (id) => project.nodes.find((n) => n.id === id)?.data.label;
-  return (
-    <div className="links">
-      {links.map((id) => (
-        <span key={id} className={`chip ${label(id) ? "" : "missing"}`} title={label(id) ? "" : "Component no longer on the canvas"}>
-          {label(id) || "removed component"}
-          <button aria-label={`Unlink ${label(id) || id}`} onClick={() => onChange(links.filter((l) => l !== id))}>
-            ×
-          </button>
-        </span>
-      ))}
-      <select
-        aria-label="Link a component"
-        value=""
-        onChange={(e) => e.target.value && onChange([...links, e.target.value])}
-      >
-        <option value="">+ link</option>
-        {project.nodes
-          .filter((n) => !links.includes(n.id))
-          .map((n) => (
-            <option key={n.id} value={n.id}>
-              {n.data.label}
-            </option>
-          ))}
-      </select>
-    </div>
-  );
-}
-
-function RecordList({ title, hint, items, onAdd, render }) {
-  return (
-    <>
-      <div className="doc-sub">
-        <h3>
-          {title} <span className="muted small">{items.length || ""}</span>
-        </h3>
-        <button className="btn ghost" onClick={onAdd}>
-          <Plus size={14} /> Add
-        </button>
-      </div>
-      {items.length ? <div className="records">{items.map(render)}</div> : <p className="muted small">{hint}</p>}
-    </>
-  );
-}
-
-export function RequirementsView({ project, onChange, topics }) {
-  const list = (key) => project[key] || [];
-  const set = (key, i, patch) => onChange({ ...project, [key]: list(key).map((r, j) => (j === i ? { ...r, ...patch } : r)) });
-  const add = (key, record) => onChange({ ...project, [key]: [...list(key), record] });
-  const remove = (key, i) => onChange({ ...project, [key]: list(key).filter((_, j) => j !== i) });
-  const del = (key, i, what) => (
-    <button className="icon" aria-label={`Remove ${what}`} onClick={() => remove(key, i)}>
-      <Trash2 size={14} />
-    </button>
-  );
-  return (
-    <section className="doc" aria-label="Requirements">
-      <header className="doc-head">
-        <h2>Requirements</h2>
-        <p className="muted">What it must do, what we're assuming, and what's still open.</p>
-      </header>
-      {topics && <DiscoverView project={project} topics={topics} onChange={onChange} />}
-      <RecordList
-        title="Requirements"
-        hint="Add functional and non-functional requirements. Give a measurable target where you can."
-        items={list("needs")}
-        onAdd={() => add("needs", newRequirement())}
-        render={(r, i) => {
-          const m = r.measure || { metric: "", op: "<=", target: "", unit: "" };
-          const setMeasure = (patch) => {
-            const next = { ...m, ...patch };
-            set("needs", i, { measure: next.metric || next.target !== "" ? next : undefined });
-          };
-          const problem = r.measure && measureProblem(r.measure);
-          return (
-            <article key={r.id} className="record">
-              <div className="record-row">
-                <input aria-label="Requirement" placeholder="e.g. Alerts reach planners within 2 seconds" value={r.statement} onChange={(e) => set("needs", i, { statement: e.target.value })} />
-                <select aria-label="Requirement kind" value={r.kind} onChange={(e) => set("needs", i, { kind: e.target.value })}>
-                  <option value="functional">Functional</option>
-                  <option value="nonfunctional">Non-functional</option>
-                </select>
-                <select aria-label="Requirement category" value={r.category} onChange={(e) => set("needs", i, { category: e.target.value })}>
-                  {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
-                </select>
-                <select aria-label="Requirement priority" value={r.priority} onChange={(e) => set("needs", i, { priority: e.target.value })}>
-                  {PRIORITIES.map((c) => <option key={c}>{c}</option>)}
-                </select>
-                <select aria-label="Requirement status" value={r.status} onChange={(e) => set("needs", i, { status: e.target.value })}>
-                  {REQUIREMENT_STATUSES.map((c) => <option key={c}>{c}</option>)}
-                </select>
-                {del("needs", i, "requirement")}
-              </div>
-              <div className="record-row measure-row">
-                <span className="muted small">Measure</span>
-                <input aria-label="Metric" placeholder="metric, e.g. p95 latency" value={m.metric} onChange={(e) => setMeasure({ metric: e.target.value })} />
-                <select aria-label="Measure comparison" value={m.op} onChange={(e) => setMeasure({ op: e.target.value })}>
-                  {OPS.map((o) => <option key={o}>{o}</option>)}
-                </select>
-                <input
-                  aria-label="Target"
-                  placeholder="target"
-                  value={String(m.target)}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setMeasure({ target: v === "true" ? true : v === "false" ? false : v !== "" && !isNaN(Number(v)) ? Number(v) : v });
-                  }}
-                />
-                <input aria-label="Unit" placeholder="unit" value={m.unit} onChange={(e) => setMeasure({ unit: e.target.value })} />
-                {problem && <span className="warn-text small">{problem}</span>}
-              </div>
-              <LinkPicker project={project} links={r.links} onChange={(links) => set("needs", i, { links })} />
-            </article>
-          );
-        }}
-      />
-      <RecordList
-        title="Assumptions"
-        hint="What we believe without evidence yet — usage, data volumes, team skills."
-        items={list("assumptions")}
-        onAdd={() => add("assumptions", newAssumption())}
-        render={(a, i) => (
-          <article key={a.id} className="record">
-            <div className="record-row">
-              <input aria-label="Assumption" placeholder="e.g. 500 pumps report every minute" value={a.statement} onChange={(e) => set("assumptions", i, { statement: e.target.value })} />
-              <input aria-label="Assumption owner" placeholder="Owner" value={a.owner} onChange={(e) => set("assumptions", i, { owner: e.target.value })} />
-              <input aria-label="Stated on" type="date" value={a.madeAt} onChange={(e) => set("assumptions", i, { madeAt: e.target.value })} />
-              {del("assumptions", i, "assumption")}
-            </div>
-            <LinkPicker project={project} links={a.links} onChange={(links) => set("assumptions", i, { links })} />
-          </article>
-        )}
-      />
-      <RecordList
-        title="Open questions"
-        hint="What still needs an answer before this can be built."
-        items={list("openQuestions")}
-        onAdd={() => add("openQuestions", newQuestion())}
-        render={(q, i) => (
-          <article key={q.id} className={`record ${q.status}`}>
-            <div className="record-row">
-              <input aria-label="Question" placeholder="e.g. Which region must data stay in?" value={q.question} onChange={(e) => set("openQuestions", i, { question: e.target.value })} />
-              <input aria-label="Question owner" placeholder="Who answers" value={q.owner} onChange={(e) => set("openQuestions", i, { owner: e.target.value })} />
-              <select aria-label="Question status" value={q.status} onChange={(e) => set("openQuestions", i, { status: e.target.value })}>
-                <option value="open">open</option>
-                <option value="answered">answered</option>
-              </select>
-              {del("openQuestions", i, "question")}
-            </div>
-            {q.status === "answered" && (
-              <input aria-label="Answer" placeholder="Answer" value={q.answer} onChange={(e) => set("openQuestions", i, { answer: e.target.value })} />
-            )}
-          </article>
-        )}
-      />
-    </section>
-  );
+export function RequirementsView({ project, onDiscuss }) {
+  const needs = project.needs || [];
+  const names = Object.fromEntries(project.nodes.map(n => [n.id, n.data.label]));
+  const requirements = (list) => <ul className="requirements-summary">{list.map(r => <li key={r.id}>
+    <p>{r.statement}</p>
+    <small className="muted">{r.source === 'agent' ? 'Proposed from the diagram' : 'From our conversation'}{r.measure ? ` · ${r.measure.metric} ${r.measure.op} ${r.measure.target}${r.measure.unit || ''}` : ''}{r.links?.length ? ` · ${r.links.map(id => names[id] || 'earlier component').join(', ')}` : ''}</small>
+    <button className="link small" onClick={() => onDiscuss(`Let's discuss requirement ${r.id}: ${r.statement}. Help me clarify it with one question and update the working requirement from my answer.`)}>Discuss</button>
+  </li>)}</ul>;
+  return <section className="doc" aria-label="Requirements">
+    <header className="doc-head"><h2>What the design needs to do</h2><p className="muted">We build these requirements together from the diagram and our conversation.</p></header>
+    <button className="btn" onClick={() => onDiscuss('Look at the current diagram and requirements. Explain the most important design requirement in plain language, then ask me ONE useful question to make it clearer. Keep the diagram central; do not ask me to fill a form.')}>Clarify with Atforma</button>
+    {needs.length ? <>{requirements(needs.slice(0,6))}{needs.length > 6 && <details className="extra"><summary>{needs.length-6} more working requirements</summary>{requirements(needs.slice(6))}</details>}</> : <p className="muted">Describe your idea in the chat or add to the diagram. Atforma will develop the requirements with you.</p>}
+    {!!project.assumptions?.length && <details className="extra"><summary>Assumptions to check · {project.assumptions.length}</summary><ul>{project.assumptions.map(a => <li key={a.id}>{a.statement}</li>)}</ul></details>}
+    {!!project.openQuestions?.filter(q=>q.status==='open').length && <details className="extra"><summary>Questions still open</summary><ul>{project.openQuestions.filter(q=>q.status==='open').map(q=><li key={q.id}><button className="link" onClick={()=>onDiscuss(`Let's resolve this question: ${q.question}`)}>{q.question}</button></li>)}</ul></details>}
+  </section>;
 }

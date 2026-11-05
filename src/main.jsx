@@ -78,6 +78,12 @@ import { layerOf, proposalDiff, systemView } from "./levels.mjs";
 import { consult, keepEngagement, newDecision, recommendationDecision } from "./engagement.mjs";
 import { adrMarkdown, OPTION_NAMES } from "./pack.mjs";
 import { deploymentDocument } from "./document.mjs";
+import { withDerived } from "./derive.mjs";
+import { MemoryPanel, ContextUsed } from "./MemoryPanel.jsx";
+import { defaultAssessment } from "./engagement.mjs";
+import { setUsage } from "./estimate.mjs";
+import { applyPriceQuotes, fetchStoragePrices, storageNodes } from "./pricing.mjs";
+import { applyDecisionUpdates } from "./consultation.mjs";
 import { deliveryPack } from "./delivery.mjs";
 import { terraformSketch } from "./terraform.mjs";
 import { WORKFLOWS, conceptSignature, essentialsKnown, nextQuestion, opening, progress, sketch, understand } from "./discovery.mjs";
@@ -211,7 +217,7 @@ function readSaved() {
   try {
     const raw = localStorage.getItem(STORAGE);
     const p = validateImport(raw ? JSON.parse(raw) : emptyProject());
-    return p.id ? p : { ...p, id: crypto.randomUUID() };
+    return withDerived(p.id ? p : { ...p, id: crypto.randomUUID() });
   } catch {
     return validateImport(emptyProject());
   }
@@ -279,6 +285,7 @@ function LayerNode({ data, selected }) {
 function NoteNode({ id, data, selected }) {
   const [text, setText] = useState(data.label);
   const box = useRef(null);
+  useEffect(() => { if (document.activeElement !== box.current) setText(data.label); }, [data.label]);
   // A comment you just added is ready to type into.
   useEffect(() => {
     if (data.fresh) setTimeout(() => box.current?.focus(), 30);
@@ -617,6 +624,7 @@ function App() {
   const [session, setSession] = useState(null),
     [connection, setConnection] = useState(readConnection),
     [agentBusy, setAgentBusy] = useState(false);
+  const consultationAttempts = useRef(new Set());
   const agentAbort = useRef(null);
   const recognition = useRef(null);
   const dictated = useRef(false);
@@ -736,7 +744,7 @@ function App() {
         setHistory((h) => [...h.slice(-29), structuredClone(current)]);
         setFuture([]);
       }
-      const updated = { ...next, revision: current.revision + 1 };
+      const updated = withDerived({ ...next, revision: current.revision + 1 });
       projectRef.current = updated;
       setProject(updated);
       setRunStates({});
@@ -748,8 +756,9 @@ function App() {
 
   // Brief, options, decisions and gate edits are not design changes: no revision bump, runs kept.
   const updateEngagement = useCallback((next) => {
-    projectRef.current = next;
-    setProject(next);
+    const updated = withDerived(next);
+    projectRef.current = updated;
+    setProject(updated);
   }, []);
   const allIssues = checkProject(project).filter((i) => i.level !== "info");
   // Fixture checks only matter for designs that can be test-run; sketches are reviewed in Review.
@@ -1007,13 +1016,14 @@ function App() {
       notify("Stop the run before replacing the design.");
       return;
     }
+    seen.current = structuredClone(next);
     // A project file brings its own engagement; templates and imports keep the current one.
     if (own) {
       // Project boundaries keep separate history; never blend records from different projects.
       setHistory([]);
       setFuture([]);
       projectRef.current = next;
-      setProject(next);
+      setProject(withDerived(next));
       setRunStates({});
       setRun(null);
       setProbe(null);
@@ -1032,12 +1042,14 @@ function App() {
     if (next.importReport) notify(next.importReport.notice);
   }
 
-  async function send(text = input) {
+  async function send(text = input, origin = "chat") {
     if (!text.trim() || busy || agentBusy) return;
     const message = text.trim();
-    setMessages((m) => [...m, { role: "user", text: message }]);
-    setInput("");
-    setChatOpen(true);
+    if (origin === "chat") {
+      setMessages((m) => [...m, { role: "user", text: message }]);
+      setInput("");
+    }
+    if (origin === "chat") setChatOpen(true);
     if (!connection) {
       setModal("welcome");
       return;
@@ -1059,15 +1071,10 @@ function App() {
     try {
       // Keep the discovery record current from the user's words, whatever model replies.
       const was = projectRef.current;
-      const heard = understand(message, was);
+      const heard = origin === "chat" ? understand(message, was) : { project: was };
       updateEngagement(heard.project);
       const signals = harnessSignals(was, heard.project);
-      // Draw the concept now, from the skills; the model refines it when it replies.
-      const concept = conceptFor(was, heard.project);
-      if (concept && drawLive) {
-        applyProposal(concept, { live: true, quiet: true });
-        signals.unshift(`sketched ${concept.next.nodes.length} blocks`);
-      }
+      // The connected architect draws from the user's idea. No local preset blocks.
       // Dictated text may contain speech-recognition slips; the model reads past them.
       const spoken = dictated.current;
       dictated.current = false;
@@ -1081,12 +1088,35 @@ function App() {
         project: projectRef.current,
         history: messages,
         stage: mode,
+        origin,
         signal: controller.signal,
       });
-      setMessages((m) => [...m, { role: "assistant", text: result.message, live: true, signals }]);
+      if (result.optionAssessment?.length) {
+        const p = projectRef.current, a = p.assessment || defaultAssessment();
+        const scores = structuredClone(a.scores), notes = { ...a.notes };
+        for (const option of result.optionAssessment) {
+          scores[option.provider] = { ...option.scores, ...Object.fromEntries(Object.entries(scores[option.provider]).filter(([,v]) => v != null)) };
+          if (!notes[option.provider]?.trim()) notes[option.provider] = `Atforma proposal — confirm: ${option.rationale}`;
+        }
+        updateEngagement({ ...p, assessment: { ...a, scores, notes } });
+        signals.push("cloud comparison updated");
+      }
+      if (result.usageUpdates?.length) {
+        let next = projectRef.current;
+        for (const update of result.usageUpdates) if (message.includes(update.sourceText)) next = setUsage(next, update.key, update.value);
+        updateEngagement(next);
+      }
+      if (result.requirementUpdates?.length) {
+        const p = projectRef.current;
+        const updates = new Map(result.requirementUpdates.filter(u => message.includes(u.sourceText)).map(u => [u.id,u]));
+        updateEngagement({ ...p, needs: (p.needs || []).map(r => updates.has(r.id) ? { ...r, statement: updates.get(r.id).statement, source: "user" } : r) });
+        signals.push("requirements refined from your answer");
+      }
+      if (result.decisionUpdates?.length) updateEngagement(applyDecisionUpdates(projectRef.current,result.decisionUpdates,message));
+      if (result.priceQuotes?.length) updateEngagement(applyPriceQuotes(projectRef.current, result.priceQuotes));
+      setMessages((m) => [...m, { role: "assistant", text: result.message, live: true, signals, contextUsed: result.contextUsed }]);
       if (result.proposal) {
         const proposal = { ...result.proposal, next: validateImport(result.proposal.next) };
-        seen.current = structuredClone(proposal.next);
         // "Draw as we talk": the design evolves with the conversation; each step is undoable.
         if (drawLive) applyProposal(proposal, { live: true });
         else setPending(proposal);
@@ -1124,6 +1154,7 @@ function App() {
     const change = proposalDiff(current, proposal.next);
     // Remember the concept we drew so we can keep evolving it until the user takes over.
     commit({ ...keepEngagement(proposal.next, current), decisions: [...(current.decisions || []), decision], conceptSig: quiet ? conceptSignature(proposal.next) : null });
+    seen.current = structuredClone(proposal.next);
     const summary = [
       ...change.added.map((l) => `+ ${l}`),
       ...change.changed.map((l) => `~ ${l}`),
@@ -1316,6 +1347,7 @@ function App() {
     }
   }
   function switchTo(next) {
+    next = withDerived(next);
     const leaving = projectRef.current;
     if (session && !binned.current.has(leaving.id) && (leaving.nodes.length || leaving.brief?.application?.trim()))
       projectStore(session, "save", { id: leaving.id, file: toProjectFile(leaving) }).catch(() => {});
@@ -1384,6 +1416,36 @@ function App() {
   }
   const findings = useMemo(() => review(project), [project]);
   const costs = useMemo(() => estimate(project), [project]);
+  useEffect(() => {
+    if (!drawLive || !session || !connection || busy || agentBusy || input.trim() || mode !== "design" || designView !== "board" || modal) return;
+    const edits = canvasChanges(project);
+    if (!edits.length || project.nodes.some(n => n.data.kind === "note" && !n.data.label.trim())) return;
+    const timer = setTimeout(() => send("The user changed the shared diagram: " + edits.join("; ") + ". Work with these edits, preserve their comments and blocks, refine only what follows from their intent, and ask one useful next question if needed.", "canvas"), 1200);
+    return () => clearTimeout(timer);
+  }, [project.nodes,project.edges,drawLive,session,connection,busy,agentBusy,input,mode,designView,modal]);
+  useEffect(() => {
+    if (!session || !connection || agentBusy || !project.nodes.length) return;
+    let active = true;
+    const key = `${project.id}:${project.revision}:${mode}:${designView}`;
+    if (consultationAttempts.current.has(key)) return;
+    if (mode === "design" && designView === "options" && !Object.values(project.assessment?.notes || {}).some(Boolean)) {
+      consultationAttempts.current.add(key);
+      send("Compare AWS, Azure, Google Cloud, IBM and the current approach for this diagram and requirements. Populate optionAssessment with provisional scores and explain the actual tradeoffs and uncertainties. Keep the diagram unchanged. Ask one question that would most improve the comparison.", "workflow");
+    } else if (mode === "estimate") {
+      consultationAttempts.current.add(key);
+      (async () => {
+        const id = project.id;
+        if (storageNodes(project).length) {
+          const prices = await fetchStoragePrices(session, project);
+          if (!active || projectRef.current.id !== id) return;
+          updateEngagement(applyPriceQuotes(projectRef.current, prices.quotes));
+        }
+        if (!active || projectRef.current.id !== id) return;
+        send("Help estimate this diagram on the selected cloud. Use current project usage, retrieve supported actual prices with tools, explain the major cost drivers and ask the single most important missing model, region or usage question. Treat AWS, Azure, Google Cloud and IBM fairly; do not invent prices or ask me to fill out a long form.", "workflow");
+      })();
+    }
+    return () => { active = false; };
+  }, [mode,designView,project.id,session,agentBusy]);
   const topics = progress(project);
   const blockerCount = findings.filter((f) => f.severity === "blocker" && f.status === "open").length;
   const ask = project.lastAsked?.question ? project.lastAsked : nextQuestion(project);
@@ -1495,6 +1557,7 @@ function App() {
             <button role="menuitem" onClick={exportDocument}>Deployment document</button>
             <button role="menuitem" onClick={exportPack}>Download delivery pack</button>
             <button role="menuitem" onClick={exportDecisions}>Export decisions</button>
+            <button role="menuitem" onClick={() => setModal("memory")} disabled={!session}>AtMem dashboard</button>
             <button role="menuitem" onClick={() => setModal("start-over")} disabled={busy || agentBusy}>Start over</button>
             <hr />
             <button role="menuitem" onClick={() => setModal("connections")}>Connections</button>
@@ -1544,8 +1607,8 @@ function App() {
           }}
           onNodeContextMenu={(e, n) => {
             e.preventDefault();
-            if (previewing || level === "system") return;
-            setCtx({ x: e.clientX, y: e.clientY, at: screenToFlowPosition({ x: e.clientX, y: e.clientY }), node: n });
+            if (previewing) return;
+            setCtx({ x: e.clientX, y: e.clientY, at: screenToFlowPosition({ x: e.clientX, y: e.clientY }), node: level === "system" ? null : n });
           }}
           onPaneClick={() => {
             setCtx(null);
@@ -1605,7 +1668,7 @@ function App() {
           <p className="hint">Double-click for detail · Esc back</p>
         )}
         {ctx && (
-          <div className="ctx-menu" role="menu" style={{ left: ctx.x, top: ctx.y }} onMouseLeave={() => setCtx(null)}>
+          <div className="ctx-menu" role="menu" style={{ left: Math.min(ctx.x,window.innerWidth-210), top: Math.min(ctx.y,window.innerHeight-200) }} onMouseLeave={() => setCtx(null)}>
             {ctx.node ? (
               <>
                 <button role="menuitem" onClick={() => (addNote({ x: ctx.at.x + 40, y: ctx.at.y - 120 }, ctx.node.id), setCtx(null))}>
@@ -1829,7 +1892,7 @@ function App() {
           <DecisionsView project={project} onChange={updateEngagement} onError={notify} />
         )}
         {mode === "design" && designView === "requirements" && (
-          <RequirementsView project={project} onChange={updateEngagement} topics={topics} />
+          <RequirementsView project={project} onDiscuss={(question) => { setChatOpen(true); send(question, "workflow"); }} />
         )}
       </main>
 
@@ -1919,6 +1982,7 @@ function App() {
                     ))}
                   </div>
                 )}
+                {m.contextUsed && <ContextUsed value={m.contextUsed} />}
               </div>
             ))}
             {pending && diff && (
@@ -2014,7 +2078,9 @@ function App() {
             {!(modal === "welcome" && !connection) && <button className="icon modal-close" onClick={() => setModal(null)} aria-label="Close dialog">
               <X size={16} />
             </button>}
-            {modal === "templates" ? (
+            {modal === "memory" ? (
+              <MemoryPanel session={session} project={project} onError={notify} />
+            ) : modal === "templates" ? (
               <TemplateDialog onLoad={loadDesign} />
             ) : modal === "import" ? (
               <ImportDialog onLoad={loadDesign} onNotify={notify} />

@@ -16,6 +16,9 @@ await page.addInitScript(()=>{localStorage.clear();localStorage.setItem('atforma
 await page.route('**/api/session',r=>r.fulfill({json:{token:'test-token',status:'local-sidecar',providers:{'claude-code':{installed:true,available:true,signedIn:true}}}}));
 await page.route('**/api/projects/*',r=>r.fulfill({json:{saved:true,projects:[],bin:[]}}));
 await page.route('**/api/models',r=>r.fulfill({json:{models:[]}}));
+await page.route('**/api/architect',r=>r.fulfill({json:{message:'Which usage assumption should we clarify first?',phase:'Estimate',proposal:null}}));
+await page.route('**/api/memory/*',r=>r.fulfill({json:{status:'disabled'}}));
+await page.route('**/api/pricing/*',r=>r.fulfill({json:{available:false,reason:'Synthetic test uses explicitly entered prices.'}}));
 await page.goto('http://127.0.0.1:5174');
 await page.locator('input[type=file]').setInputFiles(`${out}/input.atforma.json`);
 await page.getByText('Project opened.',{exact:true}).waitFor();
@@ -24,6 +27,7 @@ const tab=(name)=>page.locator('.modes').getByRole('tab',{name}).click();
 await tab('Estimate');
 const est=page.getByRole('region',{name:'Estimate',exact:true});
 assert.match(await est.locator('.totals').first().innerText(),/Incomplete/);
+await est.getByText('Inspect or edit estimate inputs and sources',{exact:true}).click();
 await est.getByLabel('Data stored').fill('100');await est.getByLabel('Amazon S3 unit price').fill('0.02');
 assert.match(await est.innerText(),/ROM/);assert.match(await est.locator('.totals').first().innerText(),/USD 2/);
 const detail=est.getByLabel('Detailed cloud charges');await detail.locator('summary').click();

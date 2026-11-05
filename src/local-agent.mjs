@@ -1,5 +1,6 @@
 import { estimate, consultingEstimate } from "./estimate.mjs";
 import { resourcePlan } from "./resources.mjs";
+import { toProjectFile } from "./project-file.mjs";
 
 export function toAgentProject(p) {
   return {
@@ -98,9 +99,15 @@ export async function requestArchitect({
   project,
   history,
   stage = "discover",
+  origin = "chat",
   extra = [],
   signal,
 }) {
+  const scoped = project.id && !/^Connection check/.test(message);
+  if (scoped) {
+    try { await memoryCall(session, "sync", { projectId: project.id, file: toProjectFile(project) }, signal); }
+    catch (error) { if (error.name === "AbortError") throw error; }
+  }
   const response = await fetch("/api/architect", {
     method: "POST",
     headers: {
@@ -109,6 +116,8 @@ export async function requestArchitect({
     },
     body: JSON.stringify({
       provider: connection.provider,
+      ...(scoped ? { projectId: project.id } : {}),
+      origin,
       model: connection.model,
       ...(connection.effort ? { effort: connection.effort } : {}),
       message,
@@ -124,6 +133,14 @@ export async function requestArchitect({
   const result = await response.json();
   if (!response.ok) throw Error(explain(response.status, result.detail));
   return result;
+}
+
+export async function memoryCall(session, action, payload, signal) {
+  if (!session?.token) throw Error("Atforma's local service is not connected.");
+  const response = await fetch(`/api/memory/${action}`, { method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.token}`},body:JSON.stringify(payload),signal:signal || AbortSignal.timeout(30000) });
+  const value = await response.json();
+  if (!response.ok) throw Error(typeof value.detail === "string" ? value.detail : "The memory request was rejected.");
+  return value;
 }
 
 // Projects saved by Atforma's helper under the user's account on this computer.

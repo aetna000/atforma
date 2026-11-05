@@ -13,7 +13,9 @@
     "test:browser": "node scripts/smoke.mjs && node scripts/delivery-smoke.mjs",
     "notices": "node scripts/dependency-notices.mjs",
     "test:delivery": "node scripts/delivery-smoke.mjs",
-    "test:terraform": "node scripts/terraform-check.mjs"
+    "test:terraform": "node scripts/terraform-check.mjs",
+    "setup:memory": "python3 scripts/setup-memory.py",
+    "test:memory": "node scripts/run-memory-e2e.mjs"
   },
   "dependencies": {
     "@xyflow/react": "12.10.0",

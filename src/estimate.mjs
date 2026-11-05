@@ -78,7 +78,7 @@ export function estimate(project, now = new Date()) {
     const missing = d.inputs.filter((k) => values[k] == null);
     const quantity = missing.length ? null : Math.round(d.qty(values) * 100) / 100;
     const price = est.prices?.[n.id];
-    const priced = price && Number.isFinite(price.price) && price.price >= 0 && /^[A-Z]{3}$/.test(price.currency || "") && String(price.source || "").trim();
+    const priced = price && Number.isFinite(price.price) && price.price >= 0 && /^[A-Z]{3}$/.test(price.currency || "") && String(price.source || "").trim() && !(price.tierLimit && quantity > price.tierLimit);
     lines.push({
       id: n.id,
       component: n.data.label,
@@ -126,13 +126,15 @@ export function estimate(project, now = new Date()) {
 
 export function setPrice(project, componentId, price) {
   const est = project.estimate || {};
+  const editedRate = ('price' in price || 'currency' in price) && !('source' in price);
+  const provenance = editedRate ? {source:'entered by you',url:undefined,tierLimit:undefined,note:undefined,date:new Date().toLocaleDateString('en-CA')} : {};
   return {
     ...project,
     estimate: {
       ...est,
       prices: {
         ...(est.prices || {}),
-        [componentId]: { source: "entered by you", date: new Date().toLocaleDateString("en-CA"), currency: "USD", ...(est.prices?.[componentId] || {}), ...price },
+        [componentId]: { source: "entered by you", date: new Date().toLocaleDateString("en-CA"), currency: "USD", ...(est.prices?.[componentId] || {}), ...provenance, ...price },
       },
     },
   };

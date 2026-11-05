@@ -32,4 +32,4 @@ No cloud logo packs, upstream screenshot/video assets, model weights, sample sec
 - Establish ownership/licensing for original code and contributions. AtForma is a requested working name; product-name/trademark clearance is not completed here.
 - Complete authentication, credential isolation, quotas, data handling and cloud execution controls for any multi-user hosting. The current sidecar is loopback-only, single-user.
 
-No atmem.ai integration or new publication is performed in this milestone. Local fixture tests do not establish cloud interoperability, real cost, compliance, model quality, deployment success or a complete Pulumi round trip.
+No atmem.ai website change or new publication is performed in this milestone. The local workbench now uses the pinned AtMem 2.3.10 core SDK in a separate environment, with scoped first-party dashboard routes. Memory dependency notices and pinned reference skill licences are recorded separately in THIRD_PARTY_NOTICES.md. Local fixture tests do not establish cloud interoperability, real cost, compliance, model quality, deployment success or a complete Pulumi round trip.

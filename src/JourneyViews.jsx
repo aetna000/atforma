@@ -95,7 +95,7 @@ export function EstimateView({ project, result, onChange }) {
     <section className="doc" aria-label="Estimate">
       <header className="doc-head">
         <h2>Estimate</h2>
-        <p className="muted">{DISCLAIMER} Monthly run cost from your usage and the prices you enter, each with a source.</p>
+        <p className="muted">{DISCLAIMER} We refine usage together in chat and attach sources to prices. Missing prices stay open; a partial estimate is not a full quote.</p>
         <p><strong>{e.maturity}</strong> · Start with a rough order of magnitude; refine each charge as the design becomes clear.</p>
       </header>
       <div className="totals">
@@ -131,6 +131,8 @@ export function EstimateView({ project, result, onChange }) {
           Biggest drivers: {e.drivers.map((d) => `${d.component} (${money(d.cost, d.price.currency)})`).join(", ")}
         </p>
       )}
+      <div className="resource-schedule" aria-label="Estimate breakdown">{e.lines.map(l=><article key={l.id}><strong>{l.component} · {l.driver}</strong><span>{l.cost==null?'We still need '+l.status.replace(' needed',''):money(l.cost,l.price.currency)+'/month'}</span>{l.price&&<small>{l.quantity??'Usage needed'} {l.unit} · {l.price.source}{l.price.url&&<> · <a href={l.price.url} target="_blank" rel="noreferrer">price source</a></>}</small>}</article>)}</div>
+      <details className="extra"><summary>Inspect or edit estimate inputs and sources</summary>
       {e.lines.some((l) => !l.detailed) && <>
       <div className="doc-sub">
         <h3>Usage</h3>
@@ -204,6 +206,7 @@ export function EstimateView({ project, result, onChange }) {
           <input aria-label="High factor" value={e.factors.high} onChange={(ev) => onChange({ ...project, estimate: { ...(project.estimate || {}), high: Number(ev.target.value) || 0 } })} />
         </label>
       </div>
+      </details>
       <DetailedCharges project={project} onChange={onChange} />
       {e.lines.some((l) => l.detailed) && <div className="resource-schedule" aria-label="Detailed cost breakdown">{e.lines.filter((l) => l.detailed).map((l) => <article key={l.id}><strong>{l.component} · {l.driver}</strong><span>{l.quantity ?? "?"} {l.unit} × {l.price ? money(l.price.price, l.price.currency) : "price needed"} = {l.cost == null ? l.status : money(l.cost, l.price.currency)}/month</span></article>)}</div>}
       <details className="extra"><summary>What we still need for a full estimate · {e.gaps.length} worksheet gaps</summary><ul>{e.gaps.map((g,i) => <li key={i}>{g}</li>)}</ul><p className="muted small">Check networking, security, logging, backups, support, licences, taxes and delivery effort. A detailed worksheet still needs validation against the selected services.</p></details>

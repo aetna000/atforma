@@ -747,3 +747,14 @@ label.inline input { width: 60px; }
 .resource-schedule article { display: grid; gap: 5px; padding: 12px; border: 1px solid var(--border, #d5dbd8); border-radius: 8px; overflow-wrap: anywhere; }
 .resource-schedule article span, .resource-schedule article small { color: var(--muted, #58645e); }
 @media (max-width: 600px) { .delivery-fields { grid-template-columns: minmax(0, 1fr); } }
+
+/* Keep existing document cards readable inside the page's scroll area. */
+.doc > * { flex-shrink: 0; }
+.doc .notes-card { overflow: visible; }
+.context-used { font-size: 11px; margin-top: 6px; overflow-wrap: anywhere; }
+.context-used p { font-size: 11px; }
+.memory-profile { display: grid; gap: 10px; margin: 14px 0; }
+
+.requirements-summary li { margin: 1rem 0; }
+.requirements-summary li > p { margin-bottom: .3rem; }
+.requirements-summary li > .link { margin-left: .75rem; }

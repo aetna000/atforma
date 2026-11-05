@@ -77,10 +77,45 @@ class Proposal(Strict):
     body:str=Field(max_length=4000)
     next:Project
 
+class ToolRequest(Strict):
+    name:Literal['memory.lookup','project.read','skills.lookup','pricing.lookup','pricing.aws_s3']
+    query:str=Field(default='',max_length=500)
+
+class Scores(Strict):
+    cost:int=Field(ge=1,le=5)
+    risk:int=Field(ge=1,le=5)
+    scalability:int=Field(ge=1,le=5)
+    security:int=Field(ge=1,le=5)
+
+class OptionAssessment(Strict):
+    provider:Literal['current','aws','azure','gcp','ibm']
+    scores:Scores
+    rationale:str=Field(min_length=1,max_length=1000)
+
+class UsageUpdate(Strict):
+    key:Literal['requests_per_month','tokens_per_request','data_gb','endpoint_hours','events_per_month','training_hours']
+    value:float=Field(ge=0,le=1e12,allow_inf_nan=False)
+    sourceText:str=Field(min_length=1,max_length=500)
+
+class RequirementUpdate(Strict):
+    id:str=Field(min_length=1,max_length=60)
+    statement:str=Field(min_length=1,max_length=1000)
+    sourceText:str=Field(min_length=1,max_length=500)
+
+class DecisionUpdate(Strict):
+    subject:Literal['platform.cloud','cloud.region','infrastructure.tool']
+    value:str=Field(min_length=1,max_length=100)
+    sourceText:str=Field(min_length=1,max_length=500)
+
 class ArchitectResponse(Strict):
     message:str=Field(min_length=1,max_length=16000)
     phase:Literal['Discovery','Architecture','Cost Analysis','Architecture Review']='Discovery'
     proposal:Proposal|None=None
+    toolRequests:list[ToolRequest]|None=Field(default=None,max_length=3)
+    optionAssessment:list[OptionAssessment]|None=Field(default=None,max_length=5)
+    usageUpdates:list[UsageUpdate]|None=Field(default=None,max_length=6)
+    requirementUpdates:list[RequirementUpdate]|None=Field(default=None,max_length=10)
+    decisionUpdates:list[DecisionUpdate]|None=Field(default=None,max_length=3)
 
 class Message(Strict):
     role:Literal['user','assistant']
@@ -92,6 +127,8 @@ class ContextItem(Strict):
     text:str=Field(max_length=1000)
 
 class ChatRequest(Strict):
+    origin:Literal['chat','canvas','workflow']='chat'
+    projectId:str|None=Field(default=None,pattern=r'^[A-Za-z0-9-]{8,64}$')
     message:str=Field(min_length=1,max_length=8000)
     provider:Literal['claude-code','codex','copilot','gemini-cli','anthropic','openai','gemini-api','xai','bedrock']='claude-code'
     model:str=Field(min_length=1,max_length=150)

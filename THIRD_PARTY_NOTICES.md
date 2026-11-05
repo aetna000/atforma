@@ -39,3 +39,9 @@ Claude Code, Codex, Gemini and Copilot CLI binaries are user-installed external 
 Cloud and model product names identify compatibility and architecture concepts, not affiliation, certification or endorsement.
 
 The `github-copilot-sdk` 1.0.28 wheel has no packaged root legal text. Its MIT licence was verified and supplemented from the matching upstream `v1.0.28` tag at `public/licenses/github-copilot-sdk-LICENSE.txt` (Copyright GitHub, Inc.). This supplementation does not clear external Copilot runtime distribution or model subscription rights.
+
+## AtMem runtime and specialist references
+
+The separate AtMem environment is pinned in `server/memory-requirements.txt`. Its installed package/version/licence inventory is `docs/memory-dependency-inventory.json`; wheel-provided legal texts are preserved in `public/licenses/memory-dependency-notices.txt`. Regenerate with `.memory-venv/bin/python scripts/python-notices.py --environment memory`. AtMem is accessed through its core SDK, not a redistributed native control-plane UI.
+
+Pinned reference documents from AWS, Microsoft, Google, HashiCorp and Pulumi are listed with exact commits and SHA256 hashes in `agent-skills/upstream/manifest.json`. Each reference retains its repository licence in the corresponding provider directory. These documents are reference-only; companion scripts, tools and vendor assets are not bundled. The runtime loads Atforma's separately reviewed first-party specialist guidance, never arbitrary fetched code.

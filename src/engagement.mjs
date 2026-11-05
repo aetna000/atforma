@@ -114,7 +114,7 @@ export function cleanEngagement(p) {
           .slice(0, 200)
           .map(([k, v]) => [
             text(k, 100),
-            { price: num(v?.price), currency: text(v?.currency || "USD", 3).toUpperCase(), source: text(v?.source, 300), url: text(v?.url, 500), date: text(v?.date, 10), note: text(v?.note, 300), region: text(v?.region, 80), service: text(v?.service, 200) },
+            { price: num(v?.price), currency: text(v?.currency || "USD", 3).toUpperCase(), source: text(v?.source, 300), url: text(v?.url, 500), date: text(v?.date, 10), note: text(v?.note, 300), region: text(v?.region, 80), service: text(v?.service, 200), ...(num(v?.tierLimit) !== undefined ? { tierLimit:v.tierLimit } : {}) },
           ]),
       ),
       ...(num(p.estimate.low) !== undefined ? { low: p.estimate.low } : {}),
