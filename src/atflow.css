@@ -901,3 +901,10 @@ h1, h2, h3, .brand, .doc-head h2, .modal h2, .detail-title input, .indicator str
 .journey-guide, .journey-wizard { border-color: transparent; }
 .composer textarea { border-radius: 18px; }
 .terraform-code { border-radius: 12px; }
+
+/* AtMem.ai lockup shared with the website and the other AtMem.ai apps. */
+.atmem-mark { flex: none; color: var(--color-ink); }
+.atmem-dot { fill: #1F777C; }
+:root[data-theme="dark"] .atmem-dot { fill: #5FD0D6; }
+.bar .brand { color: var(--color-ink); font-weight: 800; }
+.brand-divider { color: var(--color-muted); font-weight: 500; padding: 0 6px; }

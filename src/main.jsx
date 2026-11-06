@@ -184,18 +184,20 @@ const STATUS_GLYPH = {
   running: <Loader2 size={13} className="spin" />,
 };
 
-function Mark() {
+// The AtMem.ai mark, same artwork as atmem.ai/brand/icon-on-light.svg.
+// Ink follows currentColor; the dot follows the theme (see .atmem-dot).
+function Mark({ size = 20 }) {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M12 6.5 L5.5 17.5 M12 6.5 L18.5 17.5"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-      <circle cx="12" cy="5" r="2.6" fill="currentColor" />
-      <circle cx="5" cy="18.5" r="2.2" stroke="currentColor" strokeWidth="1.6" />
-      <circle cx="19" cy="18.5" r="2.2" stroke="currentColor" strokeWidth="1.6" />
+    <svg className="atmem-mark" width={size} height={size} viewBox="-154.35 -151.35 308.7 308.7" aria-hidden="true">
+      <g transform="translate(0 2)">
+        <path d="M-91.7 74.24 L0 -88 L91.7 74.24 M-66.7 30 H66.7" fill="none" stroke="currentColor" strokeWidth="26" strokeLinejoin="round" />
+        <path
+          d="M-142 96a38 38 0 1 0 76 0a38 38 0 1 0 -76 0ZM-116 96a12 12 0 1 0 24 0a12 12 0 1 0 -24 0ZM66 96a38 38 0 1 0 76 0a38 38 0 1 0 -76 0ZM92 96a12 12 0 1 0 24 0a12 12 0 1 0 -24 0Z"
+          fill="currentColor"
+          fillRule="evenodd"
+        />
+        <circle className="atmem-dot" cx="0" cy="-88" r="40" />
+      </g>
     </svg>
   );
 }
@@ -1539,7 +1541,9 @@ function App() {
       <header className="bar">
         <button className="brand" onClick={() => setModal("about")} title="About AtMem AI Architect">
           <Mark />
-          <span>AtMem AI Architect</span>
+          <span>
+            AtMem.ai<span className="brand-divider">|</span>AI Architect
+          </span>
         </button>
         <nav className="crumbs" aria-label="Level">
           <button className="projects-btn" aria-label="Projects" title="Your projects" onClick={() => (refreshProjects(), setModal("projects"))}>
@@ -1988,7 +1992,7 @@ function App() {
         <aside className="chat" aria-label="Chat">
           <div className="chat-head">
             <strong className="chat-title">
-              <Mark /> AtMem AI Architect
+              <Mark size={18} /> AI Architect
             </strong>
             <label className="live-toggle" title="On: changes are drawn as we talk, and you can undo any of them. Off: they wait as previews for you to apply.">
               <input
