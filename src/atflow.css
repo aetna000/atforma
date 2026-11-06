@@ -881,3 +881,19 @@ label.inline input { width: 60px; }
 
 /* ---------- Architecture Canvas type ---------- */
 h1, h2, h3, .brand, .doc-head h2, .modal h2, .detail-title input, .indicator strong { font-family: var(--type-family-display); letter-spacing: -0.01em; }
+
+/* ---------- Architecture Canvas: Miro-like, few edges ----------
+   Panels and controls separate by soft fills and shadow rather than outlines.
+   Text inputs keep a visible boundary so it stays obvious where to type. */
+.modes { border-color: transparent; background: var(--color-card-raised); border-radius: 12px; padding: 4px; }
+.modes button { border-radius: 9px; }
+.modes button.on { box-shadow: var(--elevation-card); }
+.seg { border-color: transparent; background: var(--color-card-raised); border-radius: 12px; padding: 3px; }
+.seg button { border-radius: 9px; }
+.seg button.on { background: var(--paper); color: var(--ink); box-shadow: var(--elevation-card); }
+.chat { border-left-color: transparent; box-shadow: -10px 0 30px rgba(23, 32, 51, 0.05); }
+.chips button, .prompts button, .skills, .linked, .notes-tab, .blk, .layer, .chat .notes-card, .cloud-selection, .outputs-directory, .output-document { border-color: transparent; background: var(--color-card-raised); border-radius: 12px; }
+.ctx-menu, .palette-search { border-color: transparent; border-radius: 14px; box-shadow: var(--elevation-raised); }
+.journey-guide, .journey-wizard { border-color: transparent; }
+.composer textarea { border-radius: 18px; }
+.terraform-code { border-radius: 12px; }
