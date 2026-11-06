@@ -1,3 +1,7 @@
+/* Light by default; the header toggle sets data-theme="dark". */
+:root { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
+
 /* AtFlow — Architecture Canvas shell. Tokens from atmem-tokens.css (generated from AtMem.ai packages/tokens). */
 @font-face { font-family: "DM Sans"; font-style: normal; font-display: swap; font-weight: 100 1000;
   src: url("/fonts/dm-sans-latin-wght-normal.woff2") format("woff2-variations"), url("/fonts/dm-sans-latin-wght-normal.woff2") format("woff2"); }

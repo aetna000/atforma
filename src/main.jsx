@@ -65,6 +65,8 @@ import {
   LayoutGrid,
   ArrowLeft,
   FolderOpen,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { roleOf } from "./review.mjs";
 import {
@@ -582,6 +584,17 @@ const welcome = (project) => ({
     : `Hi! What would you like to build? For example, a RAG system over your company's documents, or a chatbot for your team. “Not sure” is always a fine answer along the way.`,
 });
 
+const THEME = "atmem-architect-theme";
+// Light is the default; dark only when the user chose it.
+function savedTheme() {
+  try {
+    return localStorage.getItem(THEME) === "dark" ? "dark" : "light";
+  } catch {
+    return "light";
+  }
+}
+document.documentElement.dataset.theme = savedTheme();
+
 function App() {
   const [project, setProject] = useState(readSaved);
   const projectRef = useRef(project);
@@ -618,6 +631,7 @@ function App() {
     [palette, setPalette] = useState(false),
     [issuesOpen, setIssuesOpen] = useState(false),
     [chatOpen, setChatOpen] = useState(true),
+    [theme, setTheme] = useState(savedTheme),
     [environment, setEnvironment] = useState("staging"),
     [storageError, setStorageError] = useState(false),
     [view, setView] = useState("diagram"),
@@ -1578,6 +1592,21 @@ function App() {
         </div>
         <div className="bar-actions">
           {storageError && <span className="warn-text">Not saved</span>}
+          <button
+            className="icon"
+            title={theme === "dark" ? "Light mode" : "Dark mode"}
+            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            onClick={() => {
+              const next = theme === "dark" ? "light" : "dark";
+              document.documentElement.dataset.theme = next;
+              try {
+                localStorage.setItem(THEME, next);
+              } catch {}
+              setTheme(next);
+            }}
+          >
+            {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
           <button className="icon" title="Start over" aria-label="Start over" disabled={busy || agentBusy} onClick={() => setModal("start-over")}><RotateCcw size={16} /></button>
           <button className="icon" title="More" aria-label="More" onClick={() => setMenu((m) => !m)}>
             <MoreHorizontal size={16} />
@@ -1653,7 +1682,7 @@ function App() {
           nodes={canvasNodes}
           edges={canvasEdges}
           nodeTypes={nodeTypes}
-          colorMode="system"
+          colorMode={theme}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={(c) => {
