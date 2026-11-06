@@ -65,6 +65,8 @@ import {
   LayoutGrid,
   ArrowLeft,
   FolderOpen,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { roleOf } from "./review.mjs";
 import {
@@ -182,18 +184,20 @@ const STATUS_GLYPH = {
   running: <Loader2 size={13} className="spin" />,
 };
 
-function Mark() {
+// The AtMem.ai mark, same artwork as atmem.ai/brand/icon-on-light.svg.
+// Ink follows currentColor; the dot follows the theme (see .atmem-dot).
+function Mark({ size = 20 }) {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M12 6.5 L5.5 17.5 M12 6.5 L18.5 17.5"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-      <circle cx="12" cy="5" r="2.6" fill="currentColor" />
-      <circle cx="5" cy="18.5" r="2.2" stroke="currentColor" strokeWidth="1.6" />
-      <circle cx="19" cy="18.5" r="2.2" stroke="currentColor" strokeWidth="1.6" />
+    <svg className="atmem-mark" width={size} height={size} viewBox="-154.35 -151.35 308.7 308.7" aria-hidden="true">
+      <g transform="translate(0 2)">
+        <path d="M-91.7 74.24 L0 -88 L91.7 74.24 M-66.7 30 H66.7" fill="none" stroke="currentColor" strokeWidth="26" strokeLinejoin="round" />
+        <path
+          d="M-142 96a38 38 0 1 0 76 0a38 38 0 1 0 -76 0ZM-116 96a12 12 0 1 0 24 0a12 12 0 1 0 -24 0ZM66 96a38 38 0 1 0 76 0a38 38 0 1 0 -76 0ZM92 96a12 12 0 1 0 24 0a12 12 0 1 0 -24 0Z"
+          fill="currentColor"
+          fillRule="evenodd"
+        />
+        <circle className="atmem-dot" cx="0" cy="-88" r="40" />
+      </g>
     </svg>
   );
 }
@@ -582,6 +586,17 @@ const welcome = (project) => ({
     : `Hi! What would you like to build? For example, a RAG system over your company's documents, or a chatbot for your team. “Not sure” is always a fine answer along the way.`,
 });
 
+const THEME = "atmem-architect-theme";
+// Light is the default; dark only when the user chose it.
+function savedTheme() {
+  try {
+    return localStorage.getItem(THEME) === "dark" ? "dark" : "light";
+  } catch {
+    return "light";
+  }
+}
+document.documentElement.dataset.theme = savedTheme();
+
 function App() {
   const [project, setProject] = useState(readSaved);
   const projectRef = useRef(project);
@@ -618,6 +633,7 @@ function App() {
     [palette, setPalette] = useState(false),
     [issuesOpen, setIssuesOpen] = useState(false),
     [chatOpen, setChatOpen] = useState(true),
+    [theme, setTheme] = useState(savedTheme),
     [environment, setEnvironment] = useState("staging"),
     [storageError, setStorageError] = useState(false),
     [view, setView] = useState("diagram"),
@@ -1525,7 +1541,9 @@ function App() {
       <header className="bar">
         <button className="brand" onClick={() => setModal("about")} title="About AtMem AI Architect">
           <Mark />
-          <span>AtMem AI Architect</span>
+          <span>
+            AtMem.ai<span className="brand-divider">|</span>AI Architect
+          </span>
         </button>
         <nav className="crumbs" aria-label="Level">
           <button className="projects-btn" aria-label="Projects" title="Your projects" onClick={() => (refreshProjects(), setModal("projects"))}>
@@ -1578,6 +1596,21 @@ function App() {
         </div>
         <div className="bar-actions">
           {storageError && <span className="warn-text">Not saved</span>}
+          <button
+            className="icon"
+            title={theme === "dark" ? "Light mode" : "Dark mode"}
+            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            onClick={() => {
+              const next = theme === "dark" ? "light" : "dark";
+              document.documentElement.dataset.theme = next;
+              try {
+                localStorage.setItem(THEME, next);
+              } catch {}
+              setTheme(next);
+            }}
+          >
+            {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
           <button className="icon" title="Start over" aria-label="Start over" disabled={busy || agentBusy} onClick={() => setModal("start-over")}><RotateCcw size={16} /></button>
           <button className="icon" title="More" aria-label="More" onClick={() => setMenu((m) => !m)}>
             <MoreHorizontal size={16} />
@@ -1653,7 +1686,7 @@ function App() {
           nodes={canvasNodes}
           edges={canvasEdges}
           nodeTypes={nodeTypes}
-          colorMode="system"
+          colorMode={theme}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={(c) => {
@@ -1959,7 +1992,7 @@ function App() {
         <aside className="chat" aria-label="Chat">
           <div className="chat-head">
             <strong className="chat-title">
-              <Mark /> AtMem AI Architect
+              <Mark size={18} /> AI Architect
             </strong>
             <label className="live-toggle" title="On: changes are drawn as we talk, and you can undo any of them. Off: they wait as previews for you to apply.">
               <input
