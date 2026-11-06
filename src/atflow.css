@@ -1,10 +1,14 @@
-/* AtFlow — whiteboard-simple, high-contrast shell. Tokens from atmem-tokens.css. */
+/* AtFlow — Architecture Canvas shell. Tokens from atmem-tokens.css (generated from AtMem.ai packages/tokens). */
+@font-face { font-family: "DM Sans"; font-style: normal; font-display: swap; font-weight: 100 1000;
+  src: url("/fonts/dm-sans-latin-wght-normal.woff2") format("woff2-variations"), url("/fonts/dm-sans-latin-wght-normal.woff2") format("woff2"); }
+@font-face { font-family: "Manrope"; font-style: normal; font-display: swap; font-weight: 200 800;
+  src: url("/fonts/manrope-latin-wght-normal.woff2") format("woff2-variations"), url("/fonts/manrope-latin-wght-normal.woff2") format("woff2"); }
 :root {
   /* Shared AtMem.ai tokens: teal actions, neutral surfaces, accessible light/dark contrast. */
   --ink: var(--color-ink);
   --ink-2: var(--color-muted);
   --paper: var(--color-card);
-  --board: var(--color-card-raised);
+  --board: var(--color-bg);
   --line: var(--color-line);
   --edge: var(--color-muted);
   --accent: var(--color-brand);
@@ -17,8 +21,8 @@
   --good: var(--color-good);
   --bad: var(--color-bad);
   --warn: var(--color-warn);
-  --radius: 10px;
-  --shadow: 0 1px 1px rgb(0 7 22 / 0.12), 0 4px 18px rgb(0 7 22 / 0.10);
+  --radius: var(--radius-lg);
+  --shadow: var(--elevation-card);
   font-family: var(--type-family-sans);
   color: var(--ink);
   background: var(--board);
@@ -764,41 +768,41 @@ label.inline input { width: 60px; }
 /* Requirements read as a continuous document, while chat stays alongside it. */
 .requirements-document { background: var(--board); }
 .requirements-actions { width: min(100%, 850px); margin: 0 auto 20px; }
-.requirements-paper { box-sizing: border-box; width: min(100%, 850px); margin: 0 auto 32px; padding: 56px 64px; background: #fffefa; color: #24313c; box-shadow: 0 4px 24px #0002; overflow-wrap: anywhere; }
+.requirements-paper { box-sizing: border-box; width: min(100%, 850px); margin: 0 auto 32px; padding: 56px 64px; background: #fffefa; color: #172033; box-shadow: 0 4px 24px #0002; overflow-wrap: anywhere; }
 .requirements-paper p { font-family: Georgia, 'Times New Roman', serif; font-size: 16px; line-height: 1.8; margin: 0 0 16px; white-space: pre-line; }
-.requirements-cover { border-bottom: 2px solid #263b4b; padding-bottom: 24px; margin-bottom: 32px; }
-.requirements-paper h2 { color: #182e3e; font-size: 32px; line-height: 1.25; margin: 16px 0; }
+.requirements-cover { border-bottom: 2px solid #1F777C; padding-bottom: 24px; margin-bottom: 32px; }
+.requirements-paper h2 { color: #172033; font-size: 32px; line-height: 1.25; margin: 16px 0; }
 .requirements-paper .document-kicker, .requirements-paper .document-meta, .requirements-paper .document-subtitle { font-family: inherit; }
 .requirements-paper .document-kicker { text-transform: uppercase; letter-spacing: .14em; font-size: 11px; color: #52616c; }
 .requirements-paper .document-subtitle { font-size: 19px; color: #52616c; }
 .requirements-paper .document-meta { font-size: 11px; line-height: 1.6; color: #63717b; }
 .requirements-chapter { margin: 30px 0; }
-.requirements-paper h3 { font-size: 19px; line-height: 1.4; color: #223d50; margin: 0 0 16px; }
+.requirements-paper h3 { font-size: 19px; line-height: 1.4; color: #172033; margin: 0 0 16px; }
 .requirement-paragraph { margin-bottom: 24px; }
 .requirement-paragraph > p:first-child { margin-bottom: 8px; }
 .requirements-paper .acceptance-target { font-size: 14px; }
-.requirements-paper .document-discuss { color: #235f83; font-size: 12px; text-align: left; }
+.requirements-paper .document-discuss { color: #1D7176; font-size: 12px; text-align: left; }
 .document-footer { border-top: 1px solid #d8dee1; padding-top: 16px; margin-top: 44px; font-size: 10px; color: #63717b; }
 @media (max-width: 700px) { .requirements-paper { padding: 28px 22px; } .requirements-paper h2 { font-size: 25px; } }
 
 .requirements-actions { display:flex; flex-wrap:wrap; gap:12px; }
 .requirement-comments { margin-top:10px; }
-.requirement-comment { background:#f0f4f6; border-left:3px solid #91a9b8; padding:10px 14px; margin:8px 0; }
+.requirement-comment { background:#F2F8F6; border-left:3px solid #9CC7C3; padding:10px 14px; margin:8px 0; }
 .requirements-paper .requirement-comment p { font-family:inherit; font-size:13px; margin-bottom:4px; white-space:pre-wrap; }
 .requirement-comment small { color:#52616c; margin-right:16px; }
-.requirement-comments .link { color:#235f83; font-size:12px; }
-.comment-composer textarea { display:block; width:100%; min-height:80px; margin:10px 0; padding:10px; background:white; color:#24313c; border:1px solid #91a9b8; border-radius:4px; box-sizing:border-box; font:inherit; }
-.comment-composer .btn { background:#235f83; color:white; margin-right:12px; }
+.requirement-comments .link { color:#1D7176; font-size:12px; }
+.comment-composer textarea { display:block; width:100%; min-height:80px; margin:10px 0; padding:10px; background:white; color:#172033; border:1px solid #9CC7C3; border-radius:4px; box-sizing:border-box; font:inherit; }
+.comment-composer .btn { background:#1D7176; color:white; margin-right:12px; }
 
-.requirements-paper .requirement-number { color:#235f83; font-size:12px; letter-spacing:.06em; margin:0 0 8px; }
+.requirements-paper .requirement-number { color:#1D7176; font-size:12px; letter-spacing:.06em; margin:0 0 8px; }
 
-.requirement-add-comment { display:inline-flex; align-items:center; padding:7px 12px; border:1px solid #9eb6c7; border-radius:5px; background:#edf4f9; color:#194e70; font-size:12px; font-weight:600; cursor:pointer; }
-.requirement-add-comment:hover { background:#dcecf6; }
-.requirement-comments blockquote { border-left:3px solid #91a9b8; margin:8px 0; padding:6px 12px; color:#52616c; font-size:13px; white-space:pre-wrap; }
+.requirement-add-comment { display:inline-flex; align-items:center; padding:7px 12px; border:1px solid #9CC7C3; border-radius:5px; background:#E8F5F2; color:#155A5E; font-size:12px; font-weight:600; cursor:pointer; }
+.requirement-add-comment:hover { background:#D9EDED; }
+.requirement-comments blockquote { border-left:3px solid #9CC7C3; margin:8px 0; padding:6px 12px; color:#52616c; font-size:13px; white-space:pre-wrap; }
 .requirement-text-menu { z-index:100; }
-.requirement-text::selection { background:#c6e4fa; color:#17384d; }
+.requirement-text::selection { background:#CDEBE6; color:#172033; }
 
-.requirements-paper .requirement-reason { margin:12px 0; padding-left:14px; border-left:2px solid #d8e2e9; }
+.requirements-paper .requirement-reason { margin:12px 0; padding-left:14px; border-left:2px solid #D9EDED; }
 .requirements-paper .requirement-reason p { font-family:inherit; font-size:13px; line-height:1.7; }
 .requirements-paper .comment-status { font-family:inherit; font-size:12px; color:#52616c; }
 .requirement-comments .link { margin:8px 12px; }
@@ -874,3 +878,6 @@ label.inline input { width: 60px; }
 
 .outputs-directory { position:sticky; top:12px; max-height:65vh; overflow:auto; }
 @media(max-width:900px){.outputs-directory{position:static;max-height:250px;}}
+
+/* ---------- Architecture Canvas type ---------- */
+h1, h2, h3, .brand, .doc-head h2, .modal h2, .detail-title input, .indicator strong { font-family: var(--type-family-display); letter-spacing: -0.01em; }
