@@ -1,7 +1,7 @@
 /* Generated from packages/tokens/src/tokens.json — do not edit by hand.
    One definition per token; light and dark in a single light-dark() call. */
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
   --color-bg: light-dark(#FAFBF9, #0D1011);
   --color-card: light-dark(#FFFFFF, #0D1011);
   --color-card-raised: light-dark(#F2F8F6, #151A1C);
@@ -62,6 +62,11 @@
   --motion-ease: cubic-bezier(0.2, 0.6, 0.3, 1);
   --layout-measure: 68ch;
   --layout-page: 1200px;
+}
+
+/* Light is the default; dark applies only when the visitor chooses it. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 /* Motion tokens collapse to zero rather than being conditionally applied,
