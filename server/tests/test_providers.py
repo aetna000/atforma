@@ -41,3 +41,11 @@ class ProviderTests(unittest.TestCase):
         self.assertEqual(TestClient(app).post('/api/credentials',json={'provider':'openai','key':'example'}).status_code,401)
 
 if __name__=='__main__':unittest.main()
+
+
+class ProviderFailureExplanationTests(unittest.TestCase):
+    def test_usage_auth_and_model_errors_are_actionable_without_raw_output(self):
+        from server.local_providers import provider_failure
+        for text,expected in [("You've hit your session limit · resets tomorrow. secret-token",'usage or rate limit'),('Authentication failed secret-token','sign in again'),('model_not_found secret-token','not available')]:
+            message=provider_failure(text);self.assertIn(expected,message);self.assertNotIn('secret-token',message)
+        self.assertIn('No changes were applied',provider_failure('unknown raw secret-token'))

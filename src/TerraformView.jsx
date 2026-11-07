@@ -4,7 +4,7 @@ import {terraformSketch} from './terraform.mjs';
 import {resourcePlan} from './resources.mjs';
 import {toProjectFile} from './project-file.mjs';
 
-export function TerraformView({project,environment,session,onDownload,onBack}){
+export function TerraformView({project,environment,session,onDownload,onBack,emulation,onDiscuss,discussionBusy}){
   const files=useMemo(()=>terraformSketch(project,environment),[project,environment]);
   const plan=useMemo(()=>resourcePlan(project),[project]);
   const [file,setFile]=useState('main.tf.json'),[step,setStep]=useState('code'),[result,setResult]=useState(null),[running,setRunning]=useState(false);
@@ -26,9 +26,9 @@ export function TerraformView({project,environment,session,onDownload,onBack}){
   }
   const gaps=JSON.parse(files['main.tf.json']).locals.unfinished_work;
   return <section className="doc terraform-view" aria-label="Terraform">
-    <header className="doc-head"><h2>Terraform deployment draft</h2><p className="muted">Inspect the resources and generated files, then test this draft. Native coverage includes private S3 storage, scoped existing-principal access, text-statistics Lambda, asynchronous document counts, bounded Bedrock summarization, permission-aware retrieval and authenticated web hosting.</p></header>
+    <header className="doc-head"><h2>Terraform deployment draft</h2><p className="muted">Inspect the resources and generated files, then test this draft. Native coverage includes private S3 storage, scoped existing-principal access, text-statistics Lambda, asynchronous document counts, bounded Bedrock summarization, permission-aware retrieval and authenticated web hosting on AWS. Azure, Google Cloud and IBM currently have a typed private-object-storage foundation; broader AI applications retain their implementation gaps.</p></header>
     <div className="row"><button className="link" onClick={onBack}>Back to architecture</button><button className="btn" onClick={onDownload}>Download Terraform</button></div>
-    <EmulationPanel project={project} environment={environment} session={session}/>
+    <EmulationPanel project={project} environment={environment} session={session} emulation={emulation} onDiscuss={onDiscuss} discussionBusy={discussionBusy}/>
     <div className="seg" role="tablist" aria-label="Terraform steps"><button role="tab" aria-selected={step==='code'} onClick={()=>setStep('code')}>1. Resources & code</button><button role="tab" aria-selected={step==='test'} onClick={()=>setStep('test')}>2. Test Terraform</button></div>
     {step==='code'?<>
       <h3>Resource coverage</h3>

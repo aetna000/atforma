@@ -53,3 +53,5 @@ Native generation: [013 S3 operator access](013-storage-access/spec.md) and [014
 Loadable AWS qualification archive: [021 Example library](021-aws-example-library/spec.md), with [examples and runbook](../examples/aws/README.md).
 
 Local AWS simulation and hosted worker boundary: [022 Emulation](022-local-aws-emulation/spec.md), with [operator documentation](../docs/AWS_EMULATION.md).
+
+Evidence-led mentoring and native storage qualification: [023](023-emulation-design-loop/spec.md). Four-cloud AI application qualification: [024](024-ai-workload-qualification/spec.md).

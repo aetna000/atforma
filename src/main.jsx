@@ -1,3 +1,6 @@
+import {useEmulation} from './useEmulation.jsx';
+import {EmulationPanel} from './EmulationPanel.jsx';
+import {emulationPrompt,guardEmulationCorrection,groundEmulationMessage,emulationCoachReady} from './emulation-feedback.mjs';
 import {projectIdFromUrl} from './project-links.mjs';
 import { diagramAttention } from "./diagram-attention.mjs";
 import { VoiceDictation } from "./voice-conversation.mjs";
@@ -646,6 +649,7 @@ function App() {
   const [session, setSession] = useState(null),
     [connection, setConnection] = useState(readConnection),
     [agentBusy, setAgentBusy] = useState(false);
+  const emulation=useEmulation(project,environment,session);
   const consultationAttempts = useRef(new Set());
   const agentAbort = useRef(null);
   const voice = useRef(null);
@@ -1085,6 +1089,21 @@ function App() {
     if (next.importReport) notify(next.importReport.notice);
   }
 
+  const coachedReports=useRef(new WeakMap());
+  const emulationMentorKey=JSON.stringify([connection?.provider,connection?.model]);
+  useEffect(()=>{
+    const report=emulation.result;
+    if(!emulation.coach||emulation.running||!report||!emulationCoachReady(session,connection)||busy||agentBusy||pending||coachedReports.current.get(report)?.has(emulationMentorKey))return;
+    void discussEmulation(report,'coach');
+  },[emulation.result,emulation.running,emulation.coach,session,connection,busy,agentBusy,pending]);
+
+  async function discussEmulation(report,intent){
+    if(busy||agentBusy||pending||report!==emulation.result)return;
+    coachedReports.current.set(report,new Set([...(coachedReports.current.get(report)||[]),emulationMentorKey]));
+    setChatOpen(true);
+    setMessages(m=>[...m,{role:'user',text:intent==='question'?'Ask a focused question about the current emulation results.':'Use the current emulation findings to propose a correction or the next test.'}]);
+    await send(emulationPrompt(projectRef.current,report,intent),'emulation',{mode:'design',view:'emulation'});
+  }
   async function send(text = input, origin = "chat", destination = null) {
     if (!text.trim() || busy || agentBusy) return;
     stopVoice();
@@ -1132,7 +1151,7 @@ function App() {
         origin,
         signal: controller.signal,
       });
-      if (origin !== "document" && result.optionAssessment?.length) {
+      if (!["document","emulation"].includes(origin) && result.optionAssessment?.length) {
         const p = projectRef.current, a = p.assessment || defaultAssessment();
         const scores = structuredClone(a.scores), notes = { ...a.notes };
         for (const option of result.optionAssessment) {
@@ -1142,7 +1161,7 @@ function App() {
         updateEngagement({ ...p, assessment: { ...a, scores, notes } });
         signals.push("cloud comparison updated");
       }
-      if (origin !== "document" && result.usageUpdates?.length) {
+      if (!["document","emulation"].includes(origin) && result.usageUpdates?.length) {
         let next = projectRef.current;
         for (const update of result.usageUpdates) if (message.includes(update.sourceText)) next = setUsage(next, update.key, update.value);
         updateEngagement(next);
@@ -1150,7 +1169,7 @@ function App() {
       if (origin === "document" && result.requirementUpdates?.length) {
         updateEngagement(proposeCommentRevisions(projectRef.current,was,result.requirementUpdates));
         signals.push("suggested wording ready to review in Requirements");
-      } else if (result.requirementUpdates?.length) {
+      } else if (origin!=="emulation" && result.requirementUpdates?.length) {
         const p = projectRef.current;
         const updates = new Map(result.requirementUpdates.filter(u => message.includes(u.sourceText)).map(u => [u.id,u]));
         const applicable = new Map([...updates].filter(([id]) => was.needs?.find(r=>r.id===id)?.statement === p.needs?.find(r=>r.id===id)?.statement));
@@ -1158,16 +1177,17 @@ function App() {
           extensions: {...p.extensions,requirementComments:(p.extensions?.requirementComments || []).map(c=> applicable.has(c.requirementId) && applicable.get(c.requirementId).sourceText === c.text ? {...c,status:'reviewed',revisedStatement:applicable.get(c.requirementId).statement} : c)} });
         signals.push("requirements refined from your answer");
       }
-      if (origin !== "document" && result.decisionUpdates?.length) updateEngagement(applyDecisionUpdates(projectRef.current,result.decisionUpdates,message));
-      if (origin !== "document" && result.priceQuotes?.length) updateEngagement(applyPriceQuotes(projectRef.current, result.priceQuotes));
-      setMessages((m) => [...m, { role: "assistant", text: result.message, live: true, signals, contextUsed: result.contextUsed }]);
+      if (!["document","emulation"].includes(origin) && result.decisionUpdates?.length) updateEngagement(applyDecisionUpdates(projectRef.current,result.decisionUpdates,message));
+      if (!["document","emulation"].includes(origin) && result.priceQuotes?.length) updateEngagement(applyPriceQuotes(projectRef.current, result.priceQuotes));
+      setMessages((m) => [...m, { role: "assistant", text: origin==="emulation"?groundEmulationMessage(emulation.result,result.message):result.message, live: true, signals, contextUsed: result.contextUsed }]);
       if (result.proposal && origin !== "document") {
-        const proposal = { ...result.proposal, next: validateImport(result.proposal.next) };
+        const proposal = { ...result.proposal, next: validateImport(result.proposal.next), ...(origin==="emulation"?{emulationCorrection:true}:{}) };
+        if(origin==="emulation")guardEmulationCorrection(was,proposal.next);
         // "Draw as we talk": the design evolves with the conversation; each step is undoable.
         if (drawLive && origin !== "preview") applyProposal(proposal, { live: true });
         else setPending(proposal);
       }
-      if (!["document","preview"].includes(origin) && result.requirementDrafts?.length) updateEngagement(applyRequirementDrafts(projectRef.current,result.requirementDrafts));
+      if (!["document","preview","emulation"].includes(origin) && result.requirementDrafts?.length) updateEngagement(applyRequirementDrafts(projectRef.current,result.requirementDrafts));
       return result.message;
     } catch (error) {
       setMessages((m) => [
@@ -1191,6 +1211,7 @@ function App() {
       setPending(null);
       return;
     }
+    if(proposal.emulationCorrection){guardEmulationCorrection(current,proposal.next);emulation.scheduleRetest();}
     // A newly drawn graph needs room for arrow labels. Preserve user-arranged
     // positions on refinements and any diagram that retains existing node IDs.
     if (proposal.next.nodes.length && !proposal.next.nodes.some(n => current.nodes.some(existing => existing.id === n.id))) {
@@ -1711,7 +1732,7 @@ function App() {
           <div className="journey-actions">
             <button className="btn primary" disabled={busy||agentBusy||!!pending} onClick={()=>guidance.checkpoint?continueJourney():followJourney()}>{guidance.checkpoint?guidance.continueLabel+' →':guidance.action}</button>
             {guidance.checkpoint&&<button className="link" disabled={busy||agentBusy} onClick={()=>followJourney()}>{guidance.action}</button>}
-            {project.nodes.length>0&&<button className="btn" onClick={()=>{setMode("design");setDesignView("outputs");}}>Outputs</button>}
+            {project.nodes.length>0&&<><button className="btn primary" disabled={busy||!!pending} onClick={()=>{setMode("design");setDesignView("emulation");}}>Emulate & improve</button><button className="btn" onClick={()=>{setMode("design");setDesignView("outputs");}}>Outputs</button></>}
             {["architecture","review","estimate","delivery"].includes(guidance.id)&&<>
               <button className="btn" onClick={()=>{setMode("design");setDesignView("terraform");}}>Terraform</button>
               <button className="btn" onClick={exportPack} title="Download the current architecture, requirements and infrastructure draft as a ZIP">Download</button>
@@ -2026,8 +2047,9 @@ function App() {
           </div>
         )}
 
-        {mode === "design" && designView === "outputs" && <OutputsView project={project} run={run} environment={environment} session={session} onDownload={downloadBundle} onBack={()=>setDesignView("board")} />}
-        {mode === "design" && designView === "terraform" && <TerraformView project={project} environment={environment} session={session} onDownload={exportTerraform} onBack={()=>setDesignView("board")} />}
+        {mode === "design" && designView === "emulation" && <section className="doc" aria-label="Emulate and improve"><button className="link" onClick={()=>setDesignView("board")}>Back to architecture</button><h2>Test this design and improve it</h2><p>Run → inspect evidence → propose a correction or answer a question → retest the changed design.</p><EmulationPanel project={project} environment={environment} session={session} emulation={emulation} onDiscuss={discussEmulation} discussionBusy={busy||agentBusy||!!pending}/></section>}
+        {mode === "design" && designView === "outputs" && <OutputsView project={project} run={run} environment={environment} session={session} emulation={emulation} onDiscuss={discussEmulation} discussionBusy={busy||agentBusy||!!pending} onDownload={downloadBundle} onBack={()=>setDesignView("board")} />}
+        {mode === "design" && designView === "terraform" && <TerraformView project={project} environment={environment} session={session} emulation={emulation} onDiscuss={discussEmulation} discussionBusy={busy||agentBusy||!!pending} onDownload={exportTerraform} onBack={()=>setDesignView("board")} />}
         {mode === "design" && designView === "options" && (
           <OptionsView project={project} busy={busy||agentBusy||!!pending} onChoose={chooseCloud} onContinue={()=>{setChatOpen(true);setMode("design");setDesignView("board");followJourney();}} onPreview={(provider)=>{setDesignView("board");setLevel("flow");setChatOpen(true);send(`Preview a concrete ${OPTION_NAMES[provider]} implementation of our working scope, using actual named services in data.service and explicit connections. Keep existing systems and comments. Use the known country/residency constraints, or leave region undecided and ask the country question. This is an alternative preview, not a cloud choice or deployment. Return a graph proposal and explain key integration assumptions.`,"preview",{mode:"design",view:"board"});}} onDiscuss={(question) => { setChatOpen(true); send(question, "workflow"); }} />
         )}

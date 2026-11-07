@@ -682,8 +682,8 @@ export function validateImport(p) {
         },
         origin: String(n.data.origin || "proposed").slice(0, 100),
         ...(n.data.poc ? { poc: true } : {}),
-        ...(["aws-iam-principal","aws-bedrock-model","normalized-source-contract","web-browser"].includes(n.data.binding) ? { binding: n.data.binding } : {}),
-        ...(["rag-web-app","rag-user-pool","bounded-keyword-rag","iam-rag-api","bounded-rag-catalog","text-statistics","bedrock-summary","async-word-count","sqs-standard","sqs-dead-letter","word-count-results"].includes(n.data.implementation) ? { implementation: n.data.implementation } : {}),
+        ...(["cloud-storage-principal","aws-iam-principal","aws-bedrock-model","normalized-source-contract","web-browser"].includes(n.data.binding) ? { binding: n.data.binding } : {}),
+        ...(["private-object-storage","rag-web-app","rag-user-pool","bounded-keyword-rag","iam-rag-api","bounded-rag-catalog","text-statistics","bedrock-summary","async-word-count","sqs-standard","sqs-dead-letter","word-count-results"].includes(n.data.implementation) ? { implementation: n.data.implementation } : {}),
         ...(ROLES.includes(n.data.role) ? { role: n.data.role } : {}),
         ...(Array.isArray(n.data.measures) ? { measures: cleanMeasures(n.data.measures) } : {}),
         ...(n.data.service
@@ -716,7 +716,7 @@ export function validateImport(p) {
       target: e.target,
       type: "smoothstep",
       label: String(e.label || "data").slice(0, 80),
-      ...(["s3-read", "s3-read-write", "lambda-invoke", "api-invoke"].includes(e.access) ? { access: e.access } : {}),
+      ...(["storage-object-admin","s3-read", "s3-read-write", "lambda-invoke", "api-invoke"].includes(e.access) ? { access: e.access } : {}),
       ...(["browser-https","web-rag-api","oauth-pkce","jwt-authorizer","source-catalog-sync","http-api-lambda","lambda-catalog-read","bedrock-converse","s3-object-created","sqs-lambda","lambda-s3-read","lambda-dynamodb-write","sqs-redrive"].includes(e.integration) ? { integration: e.integration } : {}),
     })),
   };

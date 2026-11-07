@@ -77,21 +77,21 @@ class EmulationIntegrationTests(unittest.TestCase):
                 self.assertEqual(result['cleanup'],'passed')
                 self.assertTrue(result['limitations'])
     def test_broken_generated_handler_is_detected(self):
-        real_run=subprocess.run
+        real_run=subprocess.Popen
         def run(args,**kwargs):
             if 'emulation_worker.py' in str(args):
                 root=Path(args[-1]);file=next((root/'handlers').glob('*.py'))
                 file.write_text('def handler(event, context): return {"wordCount":999,"characterCount":999}\n')
             return real_run(args,**kwargs)
-        with patch('server.emulation_routes.subprocess.run',side_effect=run):result=emulate(EmulationRequest(project=project('02-document-compute')))
+        with patch('server.emulation_routes.subprocess.Popen',side_effect=run):result=emulate(EmulationRequest(project=project('02-document-compute')))
         self.assertEqual(result['status'],'failed');self.assertTrue(any(not c['passed'] for c in result['checks']))
     def test_missing_generated_trigger_is_not_repaired_by_harness(self):
-        real_run=subprocess.run
+        real_run=subprocess.Popen
         def run(args,**kwargs):
             if 'emulation_worker.py' in str(args):
                 p=Path(args[-1])/'main.tf.json';tf=json.loads(p.read_text());tf['resource'].pop('aws_s3_bucket_notification');p.write_text(json.dumps(tf))
             return real_run(args,**kwargs)
-        with patch('server.emulation_routes.subprocess.run',side_effect=run):result=emulate(EmulationRequest(project=project('03-async-documents')))
+        with patch('server.emulation_routes.subprocess.Popen',side_effect=run):result=emulate(EmulationRequest(project=project('03-async-documents')))
         self.assertEqual(result['status'],'failed');self.assertIn('notification',result['checks'][-1]['message'])
     def test_moto_adapter_preserves_triggering_version_after_multiple_writes(self):
         import boto3

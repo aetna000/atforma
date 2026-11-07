@@ -46,8 +46,8 @@ class Data(Strict):
     measures:list[Measure]|None=Field(default=None,max_length=10)
     service:str|None=Field(default=None,max_length=150)
     category:str|None=Field(default=None,max_length=150)
-    binding:Literal['aws-iam-principal','aws-bedrock-model','normalized-source-contract','web-browser']|None=None
-    implementation:Literal['rag-web-app','rag-user-pool','bounded-keyword-rag','iam-rag-api','bounded-rag-catalog','text-statistics','bedrock-summary','async-word-count','sqs-standard','sqs-dead-letter','word-count-results']|None=None
+    binding:Literal['cloud-storage-principal','aws-iam-principal','aws-bedrock-model','normalized-source-contract','web-browser']|None=None
+    implementation:Literal['private-object-storage','rag-web-app','rag-user-pool','bounded-keyword-rag','iam-rag-api','bounded-rag-catalog','text-statistics','bedrock-summary','async-word-count','sqs-standard','sqs-dead-letter','word-count-results']|None=None
 
 class Node(Strict):
     id:str=Field(min_length=1,max_length=100)
@@ -62,7 +62,7 @@ class Edge(Strict):
     type:Literal['smoothstep']='smoothstep'
     label:str=Field(default='data',max_length=150)
     integration:Literal['browser-https','web-rag-api','oauth-pkce','jwt-authorizer','source-catalog-sync','http-api-lambda','lambda-catalog-read','bedrock-converse','s3-object-created','sqs-lambda','lambda-s3-read','lambda-dynamodb-write','sqs-redrive']|None=None
-    access:Literal['s3-read','s3-read-write','lambda-invoke','api-invoke']|None=None
+    access:Literal['storage-object-admin','s3-read','s3-read-write','lambda-invoke','api-invoke']|None=None
 
 class Project(Strict):
     version:Literal[1]=1
@@ -157,7 +157,7 @@ class ContextItem(Strict):
     text:str=Field(max_length=1000)
 
 class ChatRequest(Strict):
-    origin:Literal['chat','canvas','workflow','document','preview']='chat'
+    origin:Literal['chat','canvas','workflow','document','preview','emulation']='chat'
     projectId:str|None=Field(default=None,pattern=r'^[A-Za-z0-9-]{8,64}$')
     message:str=Field(min_length=1,max_length=8000)
     provider:Literal['claude-code','codex','copilot','gemini-cli','anthropic','openai','gemini-api','xai','bedrock']='claude-code'

@@ -1,3 +1,4 @@
+import {hasCrossCloud,crossCloudPlan} from './cross-cloud-storage.mjs';
 import {webPlan} from './rag-web.mjs';
 import {sourceContractPlan} from './source-contracts.mjs';
 import {ragPlan} from './bounded-rag.mjs';
@@ -48,6 +49,7 @@ export function resolveService(data) {
 }
 
 export function resourcePlan(project) {
+  if(hasCrossCloud(project))return crossCloudPlan(project);
   const nodes = project.nodes.filter((n) => n.data.kind !== "note");
   const ids = new Set(nodes.map((n) => n.id));
   const rows = nodes.map((n) => {

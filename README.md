@@ -8,6 +8,7 @@ The architect's know-how lives in [`agent-skills/`](agent-skills): a discovery s
 
 - [Install, start and troubleshoot AtMem AI Architect](docs/INSTALLATION.md).
 - [Hands-on training: your first AI architecture](docs/TRAINING.md).
+- [Four-cloud emulation and mentor loop](docs/CLOUD_EMULATION.md): central testing, supported corrections, fresh retests and explicit coverage.
 - [Local AWS emulation before download](docs/AWS_EMULATION.md): stateful Moto services and generated runtime checks, with explicit unverified boundaries.
 - [Loadable AWS examples and qualification runbook](examples/aws/README.md): seven prompt histories, diagrams, generated code and recorded results. Six compute scenarios have real account plans but remain blocked from live deployment by Lambda quota.
 
@@ -118,7 +119,7 @@ npm run notices
 
 ## Scope and deployment
 
-Local fixture runs are deterministic examples, not cloud tests. Architect model requests are real only when explicitly selected and sent. Cloud inventory discovery, executable MCP integrations, full service pricing coverage, provider-native Pulumi resources, real staging tests and deployment remain unimplemented. Pulumi output is a metadata scaffold. Terraform JSON exports native S3 bucket foundations (public-access block, encryption and versioning) for explicitly drawn proposed AWS S3 blocks. Other resources, existing-resource references and every application connection are listed as unfinished; a review gate blocks planning until reviewed and completed. It is not a complete deployable AI application. Imported stack metadata is not a live refresh or a complete round trip.
+Local fixture runs are deterministic examples, not cloud tests. Architect model requests are real only when explicitly selected and sent. Cloud inventory discovery, executable MCP integrations, full service pricing coverage, provider-native Pulumi resources, real staging tests and deployment remain unimplemented. Pulumi output is a metadata scaffold. Terraform JSON exports the explicitly supported AWS application contracts and Azure/GCP/IBM storage foundations. Unsupported resources, references and connections stay unfinished; a review gate blocks planning until reviewed and completed. It is not a complete deployable AI application. Imported stack metadata is not a live refresh or a complete round trip.
 
 The browser stores projects locally; there is no workspace account service or cross-device sync. This is a single-user localhost application. See [self-hosting](docs/SELF_HOSTING.md) before deploying the workbench yourself. The browser application and the infrastructure drawn on its canvas have separate deployment lifecycles.
 
@@ -183,4 +184,4 @@ Service resolution respects an explicit service field before descriptive labels.
 
 Component tasks include service-specific engineering guidance. The task graph runs local implementation and schema/mock checks before authorized account planning, cost reconciliation and separately approved staging deployment. Live integrations, acceptance and recovery tests follow staging; production release remains separately approved. Existing systems receive integration contracts, not recreation instructions.
 
-Run `npm run test:handoff` for a repeatable multi-provider export/reorder matrix, or `node scripts/handoff-check.mjs /path/to/project.atmem-ai-architect.json` to include a real project. Results and generated text artifacts are written to a temporary review directory. These are deterministic generator checks, not live model or cloud tests. Native Terraform generation remains limited to S3 foundations; full application infrastructure and evidence ingestion are not implemented.
+Run `npm run test:handoff` for a repeatable multi-provider export/reorder matrix, or `node scripts/handoff-check.mjs /path/to/project.atmem-ai-architect.json` to include a real project. Results and generated text artifacts are written to a temporary review directory. These are deterministic generator checks, not live model or cloud tests. Native generation covers the bounded AWS application contracts described in the AWS runbook and typed storage foundations on Azure/GCP/IBM. Broader application generation remains incomplete; consult the evidence matrix rather than inferring readiness from service names.

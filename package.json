@@ -20,7 +20,10 @@
     "test:handoff": "node scripts/handoff-check.mjs",
     "test:aws:live": "node scripts/aws-scenario-live.mjs",
     "test:emulation": ".venv/bin/python scripts/aws-emulation-check.py",
-    "test:emulation:browser": "node scripts/emulation-browser-check.mjs"
+    "test:emulation:browser": "node scripts/emulation-browser-check.mjs",
+    "setup:emulation:clouds": "python3 scripts/setup-cloud-emulators.py",
+    "test:emulation:clouds": "node scripts/cloud-storage-check.mjs",
+    "test:mentor:live": "node scripts/cloud-mentor-live.mjs"
   },
   "dependencies": {
     "@xyflow/react": "12.10.0",

@@ -49,3 +49,7 @@ Pinned reference documents from AWS, Microsoft, Google, HashiCorp and Pulumi are
 ## PDF export font
 
 `public/fonts/NotoSans-Regular.ttf` is Noto Sans from the Noto Project, distributed under the SIL Open Font License 1.1. The full license is included at `public/fonts/OFL.txt`. Source: https://github.com/notofonts/noto-fonts/tree/main/hinted/ttf/NotoSans . PDF generation uses jsPDF; its license and dependency notices are included in `public/licenses/dependency-notices.txt`.
+
+## Optional cross-cloud local emulation
+
+Azurite 3.37.0 (Microsoft, MIT) and fake-gcs-server 1.56.1 (BSD-2-Clause) run as optional local processes. Azure Storage Blob and Google Cloud Storage Python SDKs are used only against explicitly injected local endpoints in this worker. Pinned setup inputs are under `scripts/cloud-emulators/` and `server/cloud-emulation-requirements.txt`; the GCS release is checksum verified. Installed dependencies and their notices are recorded in `docs/cloud-emulation-dependency-inventory.json` and `public/licenses/cloud-emulation-notices.txt`. IBM coverage reuses the separately noticed Moto S3 protocol model; no IBM emulator is claimed. The standalone GCS binary's transitive Go dependency legal review remains outside this installed-package inventory.

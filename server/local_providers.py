@@ -75,6 +75,18 @@ def strict_schema(schema):
             for child in value:visit(child)
     visit(schema);return schema
 
+def provider_failure(output=b'',error=b''):
+    """Classify provider errors without exposing raw CLI output or account details."""
+    text=(output.decode(errors='replace') if isinstance(output,bytes) else str(output))+' '+(error.decode(errors='replace') if isinstance(error,bytes) else str(error))
+    text=text[:64000].lower()
+    if any(term in text for term in ['session limit','usage limit','hit your limit','rate limit','rate_limit','insufficient_quota','credit balance','too many requests']):
+        return 'The selected architect has reached its usage or rate limit. Wait for the provider reset or choose another connected architect. Your design is preserved; no correction was applied.'
+    if any(term in text for term in ['not logged in','authentication failed','invalid api key','unauthorized','login required']):
+        return 'The selected architect needs you to sign in again through its official client or update its API connection. Your design is preserved.'
+    if any(term in text for term in ['model not found','model_not_found','model is not available']):
+        return 'That model is not available to the selected account. Choose an accessible model in Connections. Your design is preserved.'
+    return 'Provider request failed. Check its official CLI sign-in, model access and usage limits. No changes were applied.'
+
 async def communicate(argv,prompt,cwd,is_disconnected,env=None,timeout=150):
     process=await asyncio.create_subprocess_exec(*argv,stdin=asyncio.subprocess.PIPE,stdout=asyncio.subprocess.PIPE,stderr=asyncio.subprocess.PIPE,cwd=cwd,env=env,start_new_session=os.name!='nt')
     task=asyncio.create_task(process.communicate(prompt.encode()))
@@ -85,7 +97,7 @@ async def communicate(argv,prompt,cwd,is_disconnected,env=None,timeout=150):
             if asyncio.get_running_loop().time()>deadline:raise TimeoutError('Architect request timed out.')
             await asyncio.sleep(.2)
         output,error=await task
-        if process.returncode:raise RuntimeError('Provider request failed. Check its official CLI sign-in, model access and usage limits. No changes were applied.')
+        if process.returncode:raise RuntimeError(provider_failure(output,error))
         return output.decode()
     finally:
         if process.returncode is None:
@@ -139,7 +151,7 @@ async def call_cli(provider,model,prompt,system,schema,is_disconnected,effort=No
             if model not in ('default','auto'):args+=['--model',model]
             if effort in CLAUDE_EFFORTS:args+=['--effort',effort]
             result=json.loads(await communicate(args,prompt,cwd,is_disconnected,env))
-            if result.get('is_error'):raise RuntimeError('Claude request failed. Check sign-in, model access and usage limits.')
+            if result.get('is_error'):raise RuntimeError(provider_failure(json.dumps(result)))
             return result.get('structured_output') or extract_json(result.get('result',''))
         if provider=='codex':
             schema_path=Path(cwd)/'response-schema.json';schema_path.write_text(json.dumps(strict_schema(schema)))

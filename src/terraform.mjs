@@ -1,3 +1,4 @@
+import {hasCrossCloud,crossCloudTerraform} from './cross-cloud-storage.mjs';
 import {compileWeb} from './rag-web.mjs';
 import {sourceContractFiles} from './source-contracts.mjs';
 import {compileRag} from './bounded-rag.mjs';
@@ -13,6 +14,7 @@ import { resourcePlan } from "./resources.mjs";
 import { blockers, review } from "./review.mjs";
 
 export function terraformSketch(project, environment = "staging") {
+  if(hasCrossCloud(project))return crossCloudTerraform(project,environment);
   const plan = resourcePlan(project);
   const env = ["production","qualification"].includes(environment) ? environment : "staging";
   const resources = { terraform_data: { review_gate: {
