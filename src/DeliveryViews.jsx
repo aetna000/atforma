@@ -9,7 +9,7 @@ export function DetailedCharges({ project, onChange }) {
   const components = project.nodes.filter((n) => n.data.kind !== "note");
   const change = (details) => onChange({ ...project, estimate: { ...(project.estimate || {}), details } });
   return <details className="extra" aria-label="Detailed cloud charges">
-    <summary>Refine the ROM with detailed cloud charges</summary>
+    <summary>Model detailed cloud costs</summary>
     <p className="muted small">Add each billable dimension: for example input tokens, output tokens, requests, compute, storage and transfer. Detailed lines replace the coarse ROM line for that component. Enter a zero-cost line and explain why for an existing or free component.</p>
     {lines.map((l, index) => {
       const set = (patch) => onChange(setDetail(project, l.id, patch));

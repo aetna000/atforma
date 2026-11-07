@@ -49,6 +49,22 @@
     ]
   },
   {
+    "name": "azure-core",
+    "version": "1.41.0",
+    "declaredLicense": "MIT",
+    "wheelLegalFiles": [
+      "azure_core-1.41.0.dist-info/licenses/LICENSE"
+    ]
+  },
+  {
+    "name": "azure-storage-blob",
+    "version": "12.31.1",
+    "declaredLicense": "MIT License",
+    "wheelLegalFiles": [
+      "azure_storage_blob-12.31.1.dist-info/licenses/LICENSE"
+    ]
+  },
+  {
     "name": "boto3",
     "version": "1.43.123",
     "declaredLicense": "Apache-2.0",
@@ -117,6 +133,14 @@
     ]
   },
   {
+    "name": "docker",
+    "version": "7.2.0",
+    "declaredLicense": "Apache-2.0",
+    "wheelLegalFiles": [
+      "docker-7.2.0.dist-info/licenses/LICENSE"
+    ]
+  },
+  {
     "name": "docstring_parser",
     "version": "0.18.0",
     "declaredLicense": "MIT",
@@ -139,6 +163,14 @@
     "wheelLegalFiles": []
   },
   {
+    "name": "google-api-core",
+    "version": "2.44.0",
+    "declaredLicense": "Apache 2.0",
+    "wheelLegalFiles": [
+      "google_api_core-2.44.0.dist-info/licenses/LICENSE"
+    ]
+  },
+  {
     "name": "google-auth",
     "version": "2.62.0",
     "declaredLicense": "Apache 2.0",
@@ -147,11 +179,51 @@
     ]
   },
   {
+    "name": "google-cloud-core",
+    "version": "2.8.0",
+    "declaredLicense": "Apache 2.0",
+    "wheelLegalFiles": [
+      "google_cloud_core-2.8.0.dist-info/licenses/LICENSE"
+    ]
+  },
+  {
+    "name": "google-cloud-storage",
+    "version": "3.17.1",
+    "declaredLicense": "Apache-2.0",
+    "wheelLegalFiles": [
+      "google_cloud_storage-3.17.1.dist-info/licenses/LICENSE"
+    ]
+  },
+  {
+    "name": "google-crc32c",
+    "version": "1.9.0",
+    "declaredLicense": "Apache-2.0",
+    "wheelLegalFiles": [
+      "google_crc32c-1.9.0.dist-info/licenses/LICENSE"
+    ]
+  },
+  {
     "name": "google-genai",
     "version": "2.34.0",
     "declaredLicense": "Apache-2.0",
     "wheelLegalFiles": [
       "google_genai-2.34.0.dist-info/licenses/LICENSE"
+    ]
+  },
+  {
+    "name": "google-resumable-media",
+    "version": "2.11.0",
+    "declaredLicense": "Apache 2.0",
+    "wheelLegalFiles": [
+      "google_resumable_media-2.11.0.dist-info/licenses/LICENSE"
+    ]
+  },
+  {
+    "name": "googleapis-common-protos",
+    "version": "1.76.0",
+    "declaredLicense": "Apache-2.0",
+    "wheelLegalFiles": [
+      "googleapis_common_protos-1.76.0.dist-info/licenses/LICENSE"
     ]
   },
   {
@@ -203,6 +275,14 @@
     ]
   },
   {
+    "name": "isodate",
+    "version": "0.7.2",
+    "declaredLicense": "See bundled licence text and upstream metadata",
+    "wheelLegalFiles": [
+      "isodate-0.7.2.dist-info/LICENSE"
+    ]
+  },
+  {
     "name": "jiter",
     "version": "0.18.0",
     "declaredLicense": "MIT",
@@ -235,6 +315,14 @@
     ]
   },
   {
+    "name": "MarkupSafe",
+    "version": "3.0.4",
+    "declaredLicense": "BSD-3-Clause",
+    "wheelLegalFiles": [
+      "markupsafe-3.0.4.dist-info/licenses/LICENSE.txt"
+    ]
+  },
+  {
     "name": "mcp",
     "version": "2.3.0",
     "declaredLicense": "MIT",
@@ -248,6 +336,15 @@
     "declaredLicense": "MIT",
     "wheelLegalFiles": [
       "mcp_types-2.3.0.dist-info/licenses/LICENSE"
+    ]
+  },
+  {
+    "name": "moto",
+    "version": "5.2.5",
+    "declaredLicense": "Apache-2.0",
+    "wheelLegalFiles": [
+      "moto-5.2.5.dist-info/licenses/AUTHORS.md",
+      "moto-5.2.5.dist-info/licenses/LICENSE"
     ]
   },
   {
@@ -309,6 +406,14 @@
     ]
   },
   {
+    "name": "pillow",
+    "version": "13.0.0",
+    "declaredLicense": "MIT-CMU",
+    "wheelLegalFiles": [
+      "pillow-13.0.0.dist-info/licenses/LICENSE"
+    ]
+  },
+  {
     "name": "pip",
     "version": "26.1.2",
     "declaredLicense": "MIT",
@@ -335,6 +440,30 @@
       "pip-26.1.2.dist-info/licenses/src/pip/_vendor/tomli_w/LICENSE",
       "pip-26.1.2.dist-info/licenses/src/pip/_vendor/truststore/LICENSE",
       "pip-26.1.2.dist-info/licenses/src/pip/_vendor/urllib3/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "proto-plus",
+    "version": "1.29.0",
+    "declaredLicense": "Apache 2.0",
+    "wheelLegalFiles": [
+      "proto_plus-1.29.0.dist-info/licenses/LICENSE"
+    ]
+  },
+  {
+    "name": "protobuf",
+    "version": "7.36.2",
+    "declaredLicense": "3-Clause BSD License",
+    "wheelLegalFiles": [
+      "protobuf-7.36.2.dist-info/LICENSE"
+    ]
+  },
+  {
+    "name": "py-partiql-parser",
+    "version": "0.6.3",
+    "declaredLicense": "MIT",
+    "wheelLegalFiles": [
+      "py_partiql_parser-0.6.3.dist-info/licenses/LICENSE"
     ]
   },
   {
@@ -387,6 +516,14 @@
     ]
   },
   {
+    "name": "pypdf",
+    "version": "7.0.0",
+    "declaredLicense": "BSD-3-Clause",
+    "wheelLegalFiles": [
+      "pypdf-7.0.0.dist-info/licenses/LICENSE"
+    ]
+  },
+  {
     "name": "python-dateutil",
     "version": "2.9.0.post0",
     "declaredLicense": "Dual License",
@@ -425,6 +562,14 @@
     "wheelLegalFiles": [
       "requests-2.34.2.dist-info/licenses/LICENSE",
       "requests-2.34.2.dist-info/licenses/NOTICE"
+    ]
+  },
+  {
+    "name": "responses",
+    "version": "0.26.3",
+    "declaredLicense": "Apache-2.0",
+    "wheelLegalFiles": [
+      "responses-0.26.3.dist-info/licenses/LICENSE"
     ]
   },
   {
@@ -555,11 +700,27 @@
     ]
   },
   {
+    "name": "Werkzeug",
+    "version": "3.1.9",
+    "declaredLicense": "BSD-3-Clause",
+    "wheelLegalFiles": [
+      "werkzeug-3.1.9.dist-info/licenses/LICENSE.txt"
+    ]
+  },
+  {
     "name": "wrapt",
     "version": "2.5.2",
     "declaredLicense": "BSD-2-Clause",
     "wheelLegalFiles": [
       "wrapt-2.5.2.dist-info/licenses/LICENSE"
+    ]
+  },
+  {
+    "name": "xmltodict",
+    "version": "1.0.4",
+    "declaredLicense": "MIT",
+    "wheelLegalFiles": [
+      "xmltodict-1.0.4.dist-info/licenses/LICENSE"
     ]
   }
 ]

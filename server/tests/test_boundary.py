@@ -76,7 +76,7 @@ class ContextTests(unittest.TestCase):
 class SkillsTests(unittest.TestCase):
     def test_agent_skills_are_in_the_system_prompt(self):
         from server.prompts import SYSTEM_PROMPT
-        for text in ['You are AtMem AI Architect','"not sure" is always acceptable','What would you like to build?','RAG: answering questions from your documents','Which actions need a person to approve them first?']:
+        for text in ['You are AtMem AI Architect','"not sure" is always acceptable','What should this system help someone do?','RAG: answering questions from your documents','Which actions need a person to approve them first?']:
             self.assertIn(text,SYSTEM_PROMPT)
     def test_discovery_context_and_journey_stages_accepted(self):
         for stage in ['discover','design','review','estimate','deploy']:

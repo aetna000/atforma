@@ -31,7 +31,7 @@ try{
  await page.route('**/api/architect',r=>r.fulfill({json:{message:'UI test: no model call.',proposal:null}}));
  await page.route('**/api/memory/**',r=>r.fulfill({json:{status:'disabled'}}));
  await page.goto(base);
- const scenario='07-enterprise-connectors';await page.locator('input[type=file]').setInputFiles(path.join(root,'examples/aws',scenario,'project.atmem-ai-architect.json'));
+ const scenario='07-enterprise-connectors';await page.locator('#project-file-input').setInputFiles(path.join(root,'examples/aws',scenario,'project.atmem-ai-architect.json'));
  await page.getByText('Project opened.',{exact:true}).waitFor();
  await page.getByRole('region',{name:'Architecture journey'}).getByRole('button',{name:'Outputs',exact:true}).click();
  let releaseFirstRun;const firstRunGate=new Promise(resolve=>{releaseFirstRun=resolve;});
@@ -118,7 +118,7 @@ try{
   const next=structuredClone(request.project);next.edges[0].access='storage-object-admin';
   return route.fulfill({json:{message:'Your storage and existing caller are already drawn. I can bind the requested upload/read/delete permission without changing either component.',proposal:{title:'Bind the requested storage permission',body:'Use the explicit object CRUD contract already required by this scenario.',baseRevision:request.project.revision,next}}});
  });
- await page.locator('input[type=file]').setInputFiles(fixture);
+ await page.locator('#project-file-input').setInputFiles(fixture);
  await page.waitForFunction(()=>JSON.parse(localStorage.getItem('atforma-workspace-v3'))?.id==='qualification-azure-storage');
  await page.getByRole('region',{name:'Architecture journey'}).getByRole('button',{name:'Emulate & improve',exact:true}).click();
  await page.waitForFunction(()=>JSON.parse(localStorage.getItem('atforma-workspace-v3'))?.edges[0]?.access==='storage-object-admin',{},{timeout:30000});

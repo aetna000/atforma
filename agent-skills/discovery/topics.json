@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "topics": [
     {
       "id": "application",
@@ -7,8 +7,8 @@
       "order": 1,
       "after": [],
       "essential": true,
-      "question": "What would you like to build?",
-      "beginner": "For example, a RAG system over your company's documents, or a chatbot for your team.",
+      "question": "What should this system help someone do?",
+      "beginner": "For example: help support staff find answers in company documents, or warn engineers before equipment fails.",
       "why": "It decides which kind of AI system fits and what to sketch first.",
       "ifUnsure": null,
       "feeds": [
@@ -25,8 +25,8 @@
         "application"
       ],
       "essential": true,
-      "question": "Who will use it, and roughly how often?",
-      "beginner": "A rough guess is fine, for example “about 50 staff, a few questions each a day” or “10,000 customers a month”.",
+      "question": "Who will use this system?",
+      "beginner": "For example: 50 support staff, your engineering team, or customers on your website. An approximate number helps us choose capacity.",
       "why": "Usage drives cost and how much the system must scale.",
       "ifUnsure": "About 100 users making 10 requests a day, for a first estimate.",
       "feeds": [
@@ -43,8 +43,8 @@
         "application"
       ],
       "essential": true,
-      "question": "What information will it work with, and where does that live today?",
-      "beginner": "For example PDFs on SharePoint, a customer database, emails or sensor readings. Mention anything personal or confidential.",
+      "question": "Which information should the system use?",
+      "beginner": "For example: policy PDFs in SharePoint, customer records, application logs or sensor readings. Tell me where that information is stored today if you know.",
       "why": "Data location and sensitivity shape security, storage and where it can run.",
       "ifUnsure": "Internal business documents, no personal data, stored with the current provider.",
       "feeds": [
@@ -79,8 +79,8 @@
         "application"
       ],
       "essential": false,
-      "question": "What existing tools or systems should it connect to?",
-      "beginner": "For example a CRM, ticketing tool, ERP, website or email. “Nothing yet” is a fine answer.",
+      "question": "Which existing tool should this system connect to first?",
+      "beginner": "For example: your website, Salesforce, Microsoft Teams or a ticketing system. You can say “none for the first version”.",
       "why": "Integrations add components, permissions and failure points.",
       "ifUnsure": "Standalone at first, with no integrations.",
       "feeds": [
@@ -97,8 +97,8 @@
         "application"
       ],
       "essential": false,
-      "question": "How fast, reliable and careful does it need to be?",
-      "beginner": "For example “answers within 5 seconds”, “available in office hours”, “data must stay in the EU”, or “a person approves anything sent to customers”.",
+      "question": "What is the most important rule this system must meet?",
+      "beginner": "For example: “answers within 5 seconds”, “data stays in Australia”, or “a person approves replies before customers receive them”. We can add more rules afterwards.",
       "why": "These become measurable requirements the review checks the design against.",
       "ifUnsure": "Answers within 10 seconds, available in business hours, a person reviews anything sent outside the organisation.",
       "feeds": [
@@ -115,8 +115,8 @@
         "application"
       ],
       "essential": false,
-      "question": "Is there a budget or a timeline in mind?",
-      "beginner": "A monthly running budget and a target date help me size it. A range or “don't know yet” is fine.",
+      "question": "How much could you spend each month to run this system in the cloud?",
+      "beginner": "Include the currency if you have a limit—for example, “AUD 100–300 per month”. This covers cloud services and AI usage, not the one-off cost of building it. If you do not know yet, say “estimate it for me”. We can discuss the target launch date separately.",
       "why": "It tells us when an option is too expensive and what to build first.",
       "ifUnsure": "No fixed budget; we'll estimate and you decide.",
       "feeds": [

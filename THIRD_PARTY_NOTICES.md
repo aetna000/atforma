@@ -53,3 +53,7 @@ Pinned reference documents from AWS, Microsoft, Google, HashiCorp and Pulumi are
 ## Optional cross-cloud local emulation
 
 Azurite 3.37.0 (Microsoft, MIT) and fake-gcs-server 1.56.1 (BSD-2-Clause) run as optional local processes. Azure Storage Blob and Google Cloud Storage Python SDKs are used only against explicitly injected local endpoints in this worker. Pinned setup inputs are under `scripts/cloud-emulators/` and `server/cloud-emulation-requirements.txt`; the GCS release is checksum verified. Installed dependencies and their notices are recorded in `docs/cloud-emulation-dependency-inventory.json` and `public/licenses/cloud-emulation-notices.txt`. IBM coverage reuses the separately noticed Moto S3 protocol model; no IBM emulator is claimed. The standalone GCS binary's transitive Go dependency legal review remains outside this installed-package inventory.
+
+## Chat attachment readers
+
+The local helper uses pypdf (BSD-3-Clause) for PDF text extraction and Pillow (MIT-CMU) for image validation. Their complete installed distribution notices, including bundled dependency notices where supplied, are included in `public/licenses/python-dependency-notices.txt`; versions are recorded in `docs/python-dependency-inventory.json`. DOCX extraction uses Python's standard library.

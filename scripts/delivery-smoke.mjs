@@ -32,7 +32,7 @@ await page.route('**/api/memory/*',r=>r.fulfill({json:{status:'disabled'}}));
 await page.route('**/api/pricing/*',r=>r.fulfill({json:{available:false,reason:'Synthetic test uses explicitly entered prices.'}}));
 let validationCalls=0;await page.route('**/api/terraform/validate',r=>{validationCalls++;return r.fulfill({json:validationCalls===1?{status:'passed',message:'Configuration schema passed. No cloud plan was run.',checks:[{name:'Terraform schema validation',passed:true,output:'Fixture validation result'}]}:{status:'unavailable',message:'Terraform is not installed. No CLI validation was run.',checks:[]}});});
 await page.goto(base);
-await page.locator('input[type=file]').setInputFiles(`${out}/input.atforma.json`);
+await page.locator('#project-file-input').setInputFiles(`${out}/input.atforma.json`);
 assert.equal(await page.locator('.journey-actions .primary').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(243, 162, 180)');
 await page.getByText('Project opened.',{exact:true}).waitFor();
 const state=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('atforma-workspace-v3')));
@@ -153,7 +153,7 @@ await page.getByRole('button',{name:'Undo',exact:true}).click();await page.getBy
 await page.getByRole('button',{name:'Start over',exact:true}).click();await page.getByRole('button',{name:'Keep working',exact:true}).click();assert.equal((await state()).nodes.length,count);
 await page.getByRole('button',{name:'Start over',exact:true}).click();dl=page.waitForEvent('download');await page.getByRole('button',{name:'Save project and start over',exact:true}).click();file=await dl;await file.saveAs(`${out}/before-reset.atforma.json`);
 assert.equal(JSON.parse(fs.readFileSync(`${out}/before-reset.atforma.json`)).estimate.details.length,5);assert.equal((await state()).nodes.length,0);assert.equal((await state()).estimate,undefined);assert.equal(await page.getByRole('button',{name:'Undo',exact:true}).isDisabled(),true);assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('atforma-connection-v1')).provider),'claude-code');
-await page.locator('input[type=file]').setInputFiles(`${out}/before-reset.atforma.json`);await page.getByText('Project opened.',{exact:true}).waitFor();assert.equal((await state()).estimate.details.length,5);
+await page.locator('#project-file-input').setInputFiles(`${out}/before-reset.atforma.json`);await page.getByText('Project opened.',{exact:true}).waitFor();assert.equal((await state()).estimate.details.length,5);
 await page.setViewportSize({width:390,height:844});await tab('Estimate');await est.getByLabel('Detailed cloud charges').locator('summary').click();await page.screenshot({path:`${out}/estimate-mobile.png`,fullPage:true});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false,JSON.stringify(await page.evaluate(()=>[...document.querySelectorAll('body *')].filter(el=>el.getBoundingClientRect().right>innerWidth+1).slice(0,8).map(el=>({tag:el.tagName,cls:el.className,width:el.getBoundingClientRect().width,right:el.getBoundingClientRect().right})))));
 assert.deepEqual(errors,[]);assert.deepEqual(external,[]);await browser.close();
 console.log('Delivery scenarios passed: ROM → detailed charges, mixed currencies, consulting effort, AWS inventory, ZIP contents, regenerate after edit, undo/redo/branch, cancel/reset/save/reopen, mobile, no external requests. Synthetic prices and provider session only.');

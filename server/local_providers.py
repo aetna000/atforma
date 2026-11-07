@@ -1,5 +1,5 @@
 """Supported local CLI account adapters. No account token extraction or custom OAuth."""
-import asyncio, json, os, shutil, signal, sys, tempfile
+import asyncio, base64, json, os, shutil, signal, sys, tempfile
 from pathlib import Path
 
 SIGN_IN={'claude-code':('claude','claude auth login'),'codex':('codex','codex login'),'gemini-cli':('gemini','gemini'),'copilot':('copilot','copilot login')}
@@ -141,7 +141,7 @@ def models(provider):
         return [{'id':'auto','name':'Auto (Copilot picks)','efforts':[],'defaultEffort':None}]
     return []
 
-async def call_cli(provider,model,prompt,system,schema,is_disconnected,effort=None):
+async def call_cli(provider,model,prompt,system,schema,is_disconnected,effort=None,images=None):
     binary=shutil.which(SIGN_IN[provider][0])
     if not binary:raise RuntimeError(f'Install and sign in with {SIGN_IN[provider][0]} first, or choose an API key.')
     with tempfile.TemporaryDirectory(prefix='atforma-agent-') as cwd:
@@ -150,12 +150,20 @@ async def call_cli(provider,model,prompt,system,schema,is_disconnected,effort=No
             args=[binary,'-p','--safe-mode','--strict-mcp-config','--tools','','--no-session-persistence','--output-format','json','--json-schema',json.dumps(schema),'--system-prompt',system]
             if model not in ('default','auto'):args+=['--model',model]
             if effort in CLAUDE_EFFORTS:args+=['--effort',effort]
+            if images:
+                args+=['--input-format','stream-json']
+                content=[{'type':'text','text':prompt}]+[{'type':'image','source':{'type':'base64','media_type':i['mime'],'data':i['data']}} for i in images]
+                prompt=json.dumps({'type':'user','message':{'role':'user','content':content}})+'\n'
             result=json.loads(await communicate(args,prompt,cwd,is_disconnected,env))
             if result.get('is_error'):raise RuntimeError(provider_failure(json.dumps(result)))
             return result.get('structured_output') or extract_json(result.get('result',''))
         if provider=='codex':
             schema_path=Path(cwd)/'response-schema.json';schema_path.write_text(json.dumps(strict_schema(schema)))
             args=[binary,'exec','--sandbox','read-only','--skip-git-repo-check','--ephemeral','--ignore-user-config','--ignore-rules','--disable','shell_tool','--disable','unified_exec','--disable','plugins','--disable','apps','--disable','browser_use','--disable','in_app_browser','--disable','code_mode_host','-c','approval_policy="never"','-c','web_search="disabled"','--output-schema',str(schema_path),'--color','never','-']
+            for index,item in enumerate(images or []):
+                image_path=Path(cwd)/f'attachment-{index}.{item["mime"].split("/")[1]}'
+                image_path.write_bytes(base64.b64decode(item['data']));image_path.chmod(0o600)
+                args+=['--image',str(image_path)]
             if model not in ('default','auto'):args+=['--model',model]
             if effort:args+=['-c',f'model_reasoning_effort="{effort}"']
             return extract_json(await communicate(args,system+'\n\n'+prompt,cwd,is_disconnected,env))
@@ -170,4 +178,4 @@ async def call_cli(provider,model,prompt,system,schema,is_disconnected,effort=No
             return extract_json(result.get('response',''))
         # Official Copilot SDK provides tool exclusion and permission denial without --allow-all.
         worker=Path(__file__).with_name('copilot_worker.py')
-        return extract_json(await communicate([sys.executable,str(worker)],json.dumps({'prompt':prompt,'system':system,'schema':strict_schema(schema),'model':model,'cwd':cwd,'cli':binary}),cwd,is_disconnected,env))
+        return extract_json(await communicate([sys.executable,str(worker)],json.dumps({'prompt':prompt,'system':system,'schema':strict_schema(schema),'model':model,'cwd':cwd,'cli':binary,'images':images or []}),cwd,is_disconnected,env))

@@ -11,7 +11,7 @@ const empty=()=>({version:1,revision:1,name:'New project',nodes:[],edges:[]});
 const talk=(p,...ms)=>{let body;for(const m of ms){({project:p,body}=understand(m,p));}return {p,body};};
 
 test('discovery starts open, then asks the skill\'s own questions before platform choices',()=>{
-  assert.match(opening(empty()),/What would you like to build\?/);
+  assert.match(opening(empty()),/What should this system help someone do\?/);
   const {p,body}=talk(empty(),'A company-wide AI system over our shared files, plus a chatbot');
   assert.equal(p.workflow,'knowledge-assistant');assert.match(body,/Sounds like RAG/);assert.equal(p.name,'A company-wide AI system over our shared…');
   assert.match(body,/Where do the files live/);assert.equal((body.match(/\?/g)||[]).length,1);

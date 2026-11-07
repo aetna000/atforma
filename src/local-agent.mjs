@@ -115,6 +115,7 @@ export async function requestArchitect({
   stage = "discover",
   origin = "chat",
   extra = [],
+  attachments = [],
   signal,
 }) {
   const scoped = project.id && !/^Connection check/.test(message);
@@ -135,6 +136,7 @@ export async function requestArchitect({
       model: connection.model,
       ...(connection.effort ? { effort: connection.effort } : {}),
       message,
+      ...(attachments.length?{attachments:attachments.map(({name,mime,data})=>({name,mime,data}))}:{}),
       project: toAgentProject(project),
       stage,
       context: [...agentContext(project), ...extra].slice(0, 300),

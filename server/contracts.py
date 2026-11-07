@@ -156,7 +156,13 @@ class ContextItem(Strict):
     id:str=Field(min_length=1,max_length=60)
     text:str=Field(max_length=1000)
 
+class Attachment(Strict):
+    name:str=Field(min_length=1,max_length=180,pattern=r'^[^/\\\x00-\x1f]+$')
+    mime:Literal['image/png','image/jpeg','image/webp','application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document','text/plain','text/markdown','text/csv','application/json']
+    data:str=Field(min_length=1,max_length=5592408)
+
 class ChatRequest(Strict):
+    attachments:list[Attachment]=Field(default_factory=list,max_length=4)
     origin:Literal['chat','canvas','workflow','document','preview','emulation']='chat'
     projectId:str|None=Field(default=None,pattern=r'^[A-Za-z0-9-]{8,64}$')
     message:str=Field(min_length=1,max_length=8000)

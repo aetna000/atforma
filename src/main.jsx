@@ -1,3 +1,6 @@
+import { conversationMessages, withConversation } from "./conversation.mjs";
+import {ChatMessage} from "./ChatMessage.jsx";
+import {readAttachments,ATTACHMENT_ACCEPT} from "./chat-attachments.mjs";
 import {BrainActivity} from "./BrainActivity.jsx";
 import {useEmulation} from './useEmulation.jsx';
 import {EmulationPanel} from './EmulationPanel.jsx';
@@ -26,6 +29,8 @@ import {
 import {
   AlertTriangle,
   ArrowUp,
+  Paperclip,
+  ArrowDownToLine,
   Check,
   ChevronRight,
   GitBranch,
@@ -593,7 +598,7 @@ const welcome = (project) => ({
   role: "assistant",
   text: project.nodes.length || project.brief?.application?.trim()
     ? `Good to see you again — let's keep going.\n\n${opening(project)}`
-    : `Hi! What would you like to build? For example, a RAG system over your company's documents, or a chatbot for your team. “Not sure” is always a fine answer along the way.`,
+    : `Hi! What would you like to build? For example, an assistant that answers questions using your company’s documents, or a chatbot for your team. “Not sure” is always a fine answer along the way.`,
 });
 
 const THEME = "atmem-architect-theme";
@@ -627,7 +632,7 @@ function App() {
     [level, setLevel] = useState("flow"),
     [focus, setFocus] = useState(null),
     [selected, setSelected] = useState(null),
-    [messages, setMessages] = useState(() => [welcome(projectRef.current)]),
+    [messages, setMessages] = useState(() => conversationMessages(projectRef.current, [welcome(projectRef.current)])),
     [reviewView, setReviewView] = useState("findings"),
     [input, setInput] = useState(""),
     [pending, setPending] = useState(null),
@@ -706,6 +711,17 @@ function App() {
   const [attention, setAttention] = useState(null);
   const attentionRef = useRef(null);
   const fileRef = useRef();
+  const attachmentInput=useRef();
+  const [attachments,setAttachments]=useState([]),[attachmentError,setAttachmentError]=useState(''),[readingAttachments,setReadingAttachments]=useState(false);
+  const attachmentReadLock=useRef(false);
+  async function attachFiles(files){
+    if(!files.length||attachmentReadLock.current)return;
+    attachmentReadLock.current=true;const projectAtStart=projectRef.current.id;
+    setReadingAttachments(true);setAttachmentError('');
+    try {const next=await readAttachments([...files],attachments);if(projectRef.current.id===projectAtStart)setAttachments(previous=>[...previous,...next]);}
+    catch(error){setAttachmentError(error.message);}
+    finally{attachmentReadLock.current=false;setReadingAttachments(false);}
+  }
   const chatEnd = useRef();
   const runToken = useRef(0);
   const commitGroup = useRef(false);
@@ -755,6 +771,9 @@ function App() {
   }, []);
   useEffect(() => {
     refreshSession();
+    const timer=setInterval(refreshSession,30000);
+    window.addEventListener("focus",refreshSession);
+    return ()=>{clearInterval(timer);window.removeEventListener("focus",refreshSession);};
   }, [refreshSession]);
   useEffect(() => {
     if (!session?.token) return;
@@ -769,12 +788,14 @@ function App() {
   }, [toast]);
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE, JSON.stringify(project));
+      const durable = withConversation(project, messages);
+      toProjectFile(durable); // Do not persist credentials included in chat.
+      localStorage.setItem(STORAGE, JSON.stringify(durable));
       setStorageError(false);
     } catch {
       setStorageError(true);
     }
-  }, [project]);
+  }, [project, messages]);
   useEffect(() => {
     chatEnd.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, pending, agentBusy]);
@@ -1080,7 +1101,8 @@ function App() {
       setRunStates({});
       setRun(null);
       setProbe(null);
-      setMessages([welcome(next)]);
+      setAttachments([]);setAttachmentError('');
+    setMessages(conversationMessages(next, [welcome(next)]));
     } else commit(validateImport(keepEngagement(next, projectRef.current)));
     setSelected(null);
     setPending(null);
@@ -1111,11 +1133,12 @@ function App() {
     await send(emulationPrompt(projectRef.current,report,intent),'emulation',{mode:'design',view:'emulation'});
   }
   async function send(text = input, origin = "chat", destination = null) {
-    if (!text.trim() || busy || agentBusy) return;
+    if ((!text.trim() && !(origin === "chat" && attachments.length)) || busy || agentBusy || readingAttachments) return;
     stopVoice();
-    const message = text.trim();
+    const message = text.trim() || "Please review the attached files and help me use them in this architecture.";
+    const sentAttachments=origin === "chat"?attachments:[];
     if (origin === "chat") {
-      setMessages((m) => [...m, { role: "user", text: message }]);
+      setMessages((m) => [...m, { role: "user", text: message, attachments:sentAttachments }]);
       setInput("");
     }
     if (origin === "chat") setChatOpen(true);
@@ -1151,12 +1174,14 @@ function App() {
         session,
         connection,
         message,
+        attachments:sentAttachments,
         project: projectRef.current,
         history: messages,
         stage: destination?.mode || mode,
         origin,
         signal: controller.signal,
       });
+      if(sentAttachments.length)setAttachments([]);
       if (!["document","emulation"].includes(origin) && result.optionAssessment?.length) {
         const p = projectRef.current, a = p.assessment || defaultAssessment();
         const scores = structuredClone(a.scores), notes = { ...a.notes };
@@ -1417,14 +1442,14 @@ function App() {
   // Autosave to the helper (your account on this computer), a moment after each change.
   const binned = useRef(new Set());
   useEffect(() => {
-    if (!session || binned.current.has(project.id) || (!project.nodes.length && !project.brief?.application?.trim())) return;
+    if (!session || binned.current.has(project.id) || (!project.nodes.length && !project.brief?.application?.trim() && messages.length < 2)) return;
     const t = setTimeout(async () => {
       try {
-        await projectStore(session, "save", { id: project.id, file: toProjectFile(project) });
-      } catch {}
+        await projectStore(session, "save", { id: project.id, file: toProjectFile(withConversation(project, messages)) });
+      } catch (error) { notify(`Project conversation could not be saved: ${error.message}`); }
     }, 800);
     return () => clearTimeout(t);
-  }, [project, session]);
+  }, [project, messages, session]);
   async function refreshProjects() {
     if (!session) return;
     try {
@@ -1436,8 +1461,8 @@ function App() {
   function switchTo(next) {
     next = withDerived(next);
     const leaving = projectRef.current;
-    if (session && !binned.current.has(leaving.id) && (leaving.nodes.length || leaving.brief?.application?.trim()))
-      projectStore(session, "save", { id: leaving.id, file: toProjectFile(leaving) }).catch(() => {});
+    if (session && !binned.current.has(leaving.id) && (leaving.nodes.length || leaving.brief?.application?.trim() || messages.length > 1))
+      projectStore(session, "save", { id: leaving.id, file: toProjectFile(withConversation(leaving, messages)) }).catch(() => {});
     setHistory([]);
     setFuture([]);
     projectRef.current = next;
@@ -1453,7 +1478,8 @@ function App() {
     setMode("design");
     setDesignView("board");
     setPeek(null);
-    setMessages([welcome(next)]);
+    setAttachments([]);setAttachmentError('');
+    setMessages(conversationMessages(next, [welcome(next)]));
     setInput("");
     setProbe(null);
     setSnapshot(null);
@@ -1479,8 +1505,8 @@ function App() {
         const { project: opened } = fromProjectFile(await projectStore(session, "get", { id }));
         if (!active) return;
         const leaving = projectRef.current;
-        if (leaving.id !== id && !binned.current.has(leaving.id) && (leaving.nodes.length || leaving.brief?.application?.trim())) {
-          await projectStore(session, "save", { id: leaving.id, file: toProjectFile(leaving) });
+        if (leaving.id !== id && !binned.current.has(leaving.id) && (leaving.nodes.length || leaving.brief?.application?.trim() || messages.length > 1)) {
+          await projectStore(session, "save", { id: leaving.id, file: toProjectFile(withConversation(leaving, messages)) });
         }
         if (!active) return;
         linkedProject.current = id;
@@ -1591,7 +1617,7 @@ function App() {
   const ask = project.lastAsked?.question ? project.lastAsked : nextQuestion(project);
   function saveProjectFile() {
     try {
-      download(JSON.stringify(toProjectFile(project), null, 2), `${slug}.atmem-ai-architect.json`);
+      download(JSON.stringify(toProjectFile(withConversation(project, messages)), null, 2), `${slug}.atmem-ai-architect.json`);
       notify("Project file saved. Open it later from ⋯ → Open project file.");
       return true;
     } catch (error) {
@@ -1698,7 +1724,7 @@ function App() {
       </header>
 
       <section className="journey-wizard" aria-label="Architecture journey">
-        <details className="journey-map"><summary>Journey · {({idea:"Define the idea",scope:"Define the idea",cloud:"Choose a cloud",location:"Choose a region",architecture:"Design the system",review:"Review",estimate:"Estimate costs",delivery:"Prepare delivery"})[guidance.id]}<span>View stages</span></summary><ol className="journey-steps">{[
+        <details className="journey-map"><summary title={guidance.reason}>{({idea:"Define the idea",scope:"Define the idea",cloud:"Choose a cloud",location:"Choose a region",architecture:"Design the system",review:"Review",estimate:"Estimate costs",delivery:"Prepare delivery"})[guidance.id]}</summary><ol className="journey-steps">{[
           ['scope','Sketch & document'],['cloud','Cloud options'],['location','Country & region'],['architecture','Cloud architecture'],
           ['review','Review'],['estimate','Costs'],['delivery','Delivery draft']
         ].map(([id,label],i)=>{
@@ -1706,6 +1732,20 @@ function App() {
           const reached=['scope','cloud','location','architecture','review','estimate','delivery'].indexOf(id)<=['scope','cloud','location','architecture','review','estimate','delivery'].indexOf(current);
           return <li key={id} aria-current={current===id?'step':undefined}><button type="button" disabled={!reached||busy||agentBusy||!!pending} onClick={()=>visitJourney(id)} aria-label={`Go to ${label}`}><span>{i+1}</span>{label}</button></li>;
         })}</ol></details>
+        {mode === "design" && (
+          <div className="workspace-tabs seg" role="tablist" aria-label="Design views">
+            {[
+              ["board", "Board"],
+              ["requirements", "Requirements"],
+              ["options", "Options"],
+              ["decisions", "Design choices"],
+            ].filter(([id])=>id!=="options" || !["idea","scope"].includes(guidance.id) || !!project.extensions?.journey?.scope).map(([id, label]) => (
+              <button key={id} role="tab" aria-selected={designView === id} className={designView === id ? "on" : ""} onClick={() => setDesignView(id)}>
+                {React.createElement({board:LayoutGrid,requirements:CheckCheck,options:Cloud,decisions:GitBranch}[id],{size:17,"aria-hidden":true})}{label}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="journey-current"><div><strong>{guidance.title}</strong><p>{guidance.reason}</p><p className="journey-next"><span>Next</span> {guidance.checkpoint?guidance.continueLabel:guidance.action}</p></div>
           <div className="journey-actions">
             <button className="btn primary" disabled={busy||agentBusy||!!pending} aria-label={guidance.checkpoint?guidance.continueLabel+' →':guidance.action} title={guidance.checkpoint?guidance.continueLabel:guidance.action} onClick={()=>guidance.checkpoint?continueJourney():followJourney()}>{agentBusy?<BrainActivity size={26}/>:<BrainCircuit size={20}/>}</button>
@@ -1713,8 +1753,8 @@ function App() {
             {project.nodes.length>0&&<><button className="btn primary" disabled={busy||!!pending} aria-label="Emulate & improve" title="Run local checks and improve this architecture" onClick={()=>{setMode("design");setDesignView("board");setEmulationOpen(true);if(!emulation.running&&!emulation.result&&!emulation.previous)void emulation.run();}}><Play size={20}/></button><button className="btn" aria-label="Outputs" title="Inspect and download generated outputs" onClick={()=>{setMode("design");setDesignView("outputs");}}><Package size={20}/></button></>}
             {["architecture","review","estimate","delivery"].includes(guidance.id)&&<>
               <button className="btn" aria-label="Terraform" title="Terraform" onClick={()=>{setMode("design");setDesignView("terraform");}}><TerraformIcon/></button>
-              <button className="btn" onClick={exportPack} title="Download the current architecture, requirements and infrastructure draft as a ZIP">Download</button>
-              <button className="btn" disabled title="Cloud deployment is under development">Deploy (under development)</button>
+              <button className="btn" aria-label="Download" onClick={exportPack} title="Download the current architecture, requirements and infrastructure draft as a ZIP"><ArrowDownToLine size={18}/></button>
+              <button className="btn" disabled aria-label="Deploy (under development)" title="Cloud deployment is under development"><Rocket size={18}/></button>
             </>}
           </div>
         </div>
@@ -2010,20 +2050,7 @@ function App() {
           />
         )}
 
-        {mode === "design" && (
-          <div className="subviews seg" role="tablist" aria-label="Design views"><span className="workspace-views-label">Workspace</span>
-            {[
-              ["board", "Board"],
-              ["requirements", "Requirements"],
-              ["options", "Options"],
-              ["decisions", "Design choices"],
-            ].filter(([id])=>id!=="options" || !["idea","scope"].includes(guidance.id) || !!project.extensions?.journey?.scope).map(([id, label]) => (
-              <button key={id} role="tab" aria-selected={designView === id} className={designView === id ? "on" : ""} onClick={() => setDesignView(id)}>
-                {React.createElement({board:LayoutGrid,requirements:CheckCheck,options:Cloud,decisions:GitBranch}[id],{size:17,"aria-hidden":true})}{label}
-              </button>
-            ))}
-          </div>
-        )}
+
 
         {onBoard&&emulationOpen&&<div className="emulation-dock"><EmulationPanel project={project} session={session} emulation={emulation} onDiscuss={discussEmulation} discussionBusy={busy||agentBusy||!!pending} onClose={()=>setEmulationOpen(false)}/></div>}
 
@@ -2109,7 +2136,8 @@ function App() {
           <div className="messages">
             {messages.map((m, i) => (
               <div key={i} className={`msg ${m.role}`}>
-                {m.text}
+                <ChatMessage text={m.text}/>
+                {!!m.attachments?.length&&<div className="sent-attachments">{m.attachments.map(a=><figure key={a.id}>{a.data&&a.mime.startsWith('image/')&&<img src={`data:${a.mime};base64,${a.data}`} alt={a.name}/>}<figcaption><Paperclip size={12}/>{a.name}{a.originalNotSaved && <small>Original file not saved; attach it again to review its contents.</small>}</figcaption></figure>)}</div>}
                 {m.fix && (
                   <button className="btn fix" onClick={() => setModal("connections")}>
                     Fix connection
@@ -2147,7 +2175,7 @@ function App() {
             )}
             {agentBusy && (
               <div className="msg assistant working">
-                <BrainActivity size={24} /> Refining…
+                <BrainActivity size={24} /> Architecting…
                 <button className="link" onClick={() => agentAbort.current?.abort()}>Cancel</button>
               </div>
             )}
@@ -2170,6 +2198,9 @@ function App() {
               </button>
             ))}
           </div>
+          {readingAttachments&&<p className="attachment-status" role="status"><BrainActivity/> Reading files…</p>}
+          {attachmentError&&<p className="attachment-status" role="alert">{attachmentError}</p>}
+          {!!attachments.length&&<div className="attachment-tray" aria-label="Attachments ready to send">{attachments.map(a=><div className="attachment-chip" key={a.id}>{a.mime.startsWith('image/')?<img src={`data:${a.mime};base64,${a.data}`} alt=""/>:<Paperclip size={16}/>}<span>{a.name}<small>{a.mime.startsWith('image/')?'Image':a.mime==='application/pdf'||a.mime.includes('wordprocessingml')?'Text will be extracted; embedded images omitted':'Document text'}</small></span><button className="icon" aria-label={`Remove ${a.name}`} onClick={()=>setAttachments(list=>list.filter(item=>item.id!==a.id))}><X size={14}/></button></div>)}<p>Sent to your selected architect with this message. Original files are not stored in project files.</p></div>}
           <form
             className="composer"
             onSubmit={(e) => {
@@ -2178,6 +2209,7 @@ function App() {
             }}
           >
             <textarea
+              onPaste={e=>{const files=[...e.clipboardData.files];if(files.length){e.preventDefault();void attachFiles(files);}}}
               aria-label="Your message"
               placeholder={brief(project) ? "Reply in your own words…" : "Describe what you want to build…"}
               rows={2}
@@ -2190,6 +2222,9 @@ function App() {
                 }
               }}
             />
+            <div className="composer-actions">
+            <button type="button" className="icon attach-button" aria-label="Attach images or documents" title="Attach images or documents" disabled={readingAttachments||agentBusy} onClick={()=>attachmentInput.current.click()}><Paperclip size={18}/></button>
+            <input id="chat-attachment-input" type="file" ref={attachmentInput} accept={ATTACHMENT_ACCEPT} multiple hidden onChange={e=>{void attachFiles(e.target.files);e.target.value='';}}/>
             <button
               type="button"
               className={`mic ${voiceActive ? "on" : ""}`}
@@ -2201,9 +2236,10 @@ function App() {
             >
               {voiceActive ? <Square size={13} /> : <Mic size={15} />}
             </button>
-            <button type="submit" className="send" aria-label="Send message" disabled={(!input.trim() && !voiceActive) || busy || agentBusy || voiceState === "transcribing"}>
+            <button type="submit" className="send" aria-label="Send message" disabled={(!input.trim() && !voiceActive && !attachments.length) || busy || agentBusy || readingAttachments || voiceState === "transcribing"}>
               <ArrowUp size={15} />
             </button>
+            </div>
           </form>
           <div className="voice-status" role="status" aria-live="polite">
             {!voiceError&&["starting","transcribing"].includes(voiceState)&&<BrainActivity size={22}/>}
@@ -2212,7 +2248,7 @@ function App() {
         </aside>
       )}
 
-      <input type="file" ref={fileRef} accept="application/json,.json" hidden onChange={importProject} />
+      <input id="project-file-input" type="file" ref={fileRef} accept="application/json,.json" hidden onChange={importProject} />
       {toast && (
         <div className="toast" role="status">
           {toast === "Preparing documents and diagram exports…"&&<BrainActivity/>}{toast}
