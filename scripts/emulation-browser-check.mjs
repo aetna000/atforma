@@ -28,7 +28,8 @@ try{
  page.on('response',async r=>{if(r.url().endsWith('/api/emulation/run')){try{fs.appendFileSync(path.join(out,'http-results.jsonl'),JSON.stringify(await r.json())+'\n');}catch{}}});
  await page.addInitScript(()=>localStorage.setItem('atforma-connection-v1',JSON.stringify({provider:'claude-code',model:'default'})));
  await page.route('**/api/session',async route=>{const response=await route.fetch();const body=await response.json();await route.fulfill({json:{...body,providers:{...body.providers,'claude-code':{available:true,signedIn:true}}}});});
- await page.route('**/api/architect',r=>r.fulfill({json:{message:'UI test: no model call.',proposal:null}}));
+ let releaseReview;const reviewGate=new Promise(resolve=>{releaseReview=resolve;});
+ await page.route('**/api/architect',async r=>{await reviewGate;await r.fulfill({json:{message:'UI test: no model call.',proposal:null}});});
  await page.route('**/api/memory/**',r=>r.fulfill({json:{status:'disabled'}}));
  await page.goto(base);
  const scenario='07-enterprise-connectors';await page.locator('#project-file-input').setInputFiles(path.join(root,'examples/aws',scenario,'project.atmem-ai-architect.json'));
@@ -48,6 +49,11 @@ try{
  assert.equal(await panel.locator('.brain-activity.is-active').first().evaluate(el=>getComputedStyle(el).animationName),'none');
  await page.emulateMedia({reducedMotion:'no-preference'});
  releaseFirstRun();
+ await panel.getByRole('heading',{name:'Architect is reviewing…',exact:true}).waitFor({timeout:115000});
+ assert.equal(await topRun.getAttribute('aria-busy'),'true');assert.equal(await panelRun.getAttribute('aria-busy'),'true');
+ assert.equal(await topRun.locator('.brain-activity.is-active').count(),1);assert.equal(await panelRun.locator('.brain-activity.is-active').count(),1);assert.equal(await panelRun.isDisabled(),true);
+ await page.screenshot({path:path.join(out,'brain-reviewing.png'),fullPage:true});
+ releaseReview();
  await panel.getByRole('heading',{name:'Local emulation checks passed',exact:true}).waitFor({timeout:115000});
  await panel.locator('.brain-activity.is-active').first().waitFor({state:'detached'});
  assert.equal(await topRun.getAttribute('aria-busy'),'false');assert.equal(await panelRun.getAttribute('aria-busy'),'false');

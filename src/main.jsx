@@ -661,6 +661,7 @@ function App() {
     [connection, setConnection] = useState(readConnection),
     [agentBusy, setAgentBusy] = useState(false);
   const emulation=useEmulation(project,environment,session);
+  const emulationWorking=emulation.running||(agentBusy&&!!emulation.result);
   const [emulationOpen,setEmulationOpen]=useState(false),[treeOpen,setTreeOpen]=useState(false);
   useEffect(()=>{if(!treeOpen)return;const close=e=>{if(e.type==="keydown"?e.key==="Escape":!e.target.closest(".component-navigator"))setTreeOpen(false);};document.addEventListener("pointerdown",close);document.addEventListener("keydown",close);return()=>{document.removeEventListener("pointerdown",close);document.removeEventListener("keydown",close);};},[treeOpen]);
   const consultationAttempts = useRef(new Set());
@@ -1752,7 +1753,7 @@ function App() {
           <div className="journey-actions">
             <button className="btn primary" disabled={busy||agentBusy||!!pending} aria-label={guidance.checkpoint?guidance.continueLabel+' →':guidance.action} title={guidance.checkpoint?guidance.continueLabel:guidance.action} onClick={()=>guidance.checkpoint?continueJourney():followJourney()}>{agentBusy?<BrainActivity size={26}/>:<BrainCircuit size={20}/>}</button>
 
-            {project.nodes.length>0&&<><button className="btn primary" disabled={busy||!!pending} aria-label="Emulate & improve" aria-busy={emulation.running} title={emulation.running?"Emulation running — show progress":"Run local checks and improve this architecture"} onClick={()=>{setMode("design");setDesignView("board");setEmulationOpen(true);if(!emulation.running&&!emulation.result&&!emulation.previous)void emulation.run();}}>{emulation.running?<BrainActivity size={24}/>:<Play size={20}/>}</button><button className="btn" aria-label="Outputs" title="Inspect and download generated outputs" onClick={()=>{setMode("design");setDesignView("outputs");}}><Package size={20}/></button></>}
+            {project.nodes.length>0&&<><button className="btn primary" disabled={busy||!!pending} aria-label="Emulate & improve" aria-busy={emulationWorking} title={emulation.running?"Emulation running — show progress":emulationWorking?"Architect is reviewing — show progress":"Run local checks and improve this architecture"} onClick={()=>{setMode("design");setDesignView("board");setEmulationOpen(true);if(!emulation.running&&!emulation.result&&!emulation.previous)void emulation.run();}}>{emulationWorking?<BrainActivity size={24}/>:<Play size={20}/>}</button><button className="btn" aria-label="Outputs" title="Inspect and download generated outputs" onClick={()=>{setMode("design");setDesignView("outputs");}}><Package size={20}/></button></>}
             {["architecture","review","estimate","delivery"].includes(guidance.id)&&<>
               <button className="btn" aria-label="Terraform" title="Terraform" onClick={()=>{setMode("design");setDesignView("terraform");}}><TerraformIcon/></button>
               <button className="btn" aria-label="Download" onClick={exportPack} title="Download the current architecture, requirements and infrastructure draft as a ZIP"><ArrowDownToLine size={18}/></button>
