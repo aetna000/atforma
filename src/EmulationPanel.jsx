@@ -12,7 +12,8 @@ export function EmulationPanel({project,session,emulation,onDiscuss,discussionBu
  return <aside className={`emulation-panel ${running||thinking?'is-working':''}`} aria-label="Cloud emulation">
   <div className="emulation-heading"><span className={`emulation-orb ${running||thinking?'working':''}`}><BrainActivity size={34} active={running||thinking}/></span><div><span className="emulation-eyebrow">EMULATE · IMPROVE</span><h3 aria-live="polite">{title}</h3></div>{onClose&&icon('Minimize emulation',X,onClose)}</div>
   <div className="emulation-controls">
-   {running?icon('Stop waiting',Square,emulation.stop):icon('Emulate locally',Play,()=>emulation.run(),{disabled:!session?.token,active:true})}
+   <button type="button" className="emulation-icon active" aria-label="Emulate locally" aria-busy={running} title={running?'Emulation running':'Emulate locally'} disabled={running||!session?.token} onClick={()=>emulation.run()}>{running?<BrainActivity size={24}/>:<Play size={19}/>}</button>
+   {running&&icon('Stop waiting',Square,emulation.stop)}
    {icon('Architect mentoring',BrainCircuit,()=>emulation.setCoach(!emulation.coach),{toggle:true,active:emulation.coach})}
    {icon('Automatically retest corrections (up to two rounds)',Repeat2,()=>emulation.setAutoRetest(!emulation.autoRetest),{toggle:true,active:emulation.autoRetest})}
    {result&&icon('Discuss a correction with the architect',Sparkles,()=>onDiscuss?.(result,'correction'),{disabled:discussionBusy||running})}

@@ -1073,3 +1073,5 @@ h1, h2, h3, .brand, .doc-head h2, .modal h2, .detail-title input, .indicator str
 .ctx-menu .danger svg {color:inherit;}
 .ctx-divider {height:1px;margin:5px 8px;background:var(--line);}
 .empty-canvas {pointer-events:none;}
+.emulation-icon[aria-busy="true"]:disabled {opacity:1;cursor:wait;}
+.journey-actions [aria-busy="true"] {box-shadow:0 0 0 2px var(--color-brand-soft);}

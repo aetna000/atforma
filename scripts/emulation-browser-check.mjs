@@ -37,15 +37,20 @@ try{
  let releaseFirstRun;const firstRunGate=new Promise(resolve=>{releaseFirstRun=resolve;});
  await page.route('**/api/emulation/run',async route=>{const response=await route.fetch();await firstRunGate;await route.fulfill({response});});
  const panel=page.getByRole('complementary',{name:'Cloud emulation'});await panel.getByRole('button',{name:'Emulate locally',exact:true}).click();
- await panel.locator('.brain-activity.is-active').waitFor();
- assert.equal(await panel.locator('.brain-activity.is-active').evaluate(el=>getComputedStyle(el).animationName),'brain-breathe');
+ await panel.locator('.brain-activity.is-active').first().waitFor();
+ const topRun=page.getByRole('button',{name:'Emulate & improve',exact:true}),panelRun=panel.getByRole('button',{name:'Emulate locally',exact:true});
+ assert.equal(await topRun.getAttribute('aria-busy'),'true');assert.equal(await panelRun.getAttribute('aria-busy'),'true');
+ assert.equal(await topRun.locator('.brain-activity.is-active').count(),1);assert.equal(await panelRun.locator('.brain-activity.is-active').count(),1);assert.equal(await panelRun.isDisabled(),true);
+
+ assert.equal(await panel.locator('.brain-activity.is-active').first().evaluate(el=>getComputedStyle(el).animationName),'brain-breathe');
  await page.screenshot({path:path.join(out,'brain-working.png'),fullPage:true});
  await page.emulateMedia({reducedMotion:'reduce'});
- assert.equal(await panel.locator('.brain-activity.is-active').evaluate(el=>getComputedStyle(el).animationName),'none');
+ assert.equal(await panel.locator('.brain-activity.is-active').first().evaluate(el=>getComputedStyle(el).animationName),'none');
  await page.emulateMedia({reducedMotion:'no-preference'});
  releaseFirstRun();
  await panel.getByRole('heading',{name:'Local emulation checks passed',exact:true}).waitFor({timeout:115000});
- await panel.locator('.brain-activity.is-active').waitFor({state:'detached'});
+ await panel.locator('.brain-activity.is-active').first().waitFor({state:'detached'});
+ assert.equal(await topRun.getAttribute('aria-busy'),'false');assert.equal(await panelRun.getAttribute('aria-busy'),'false');
  results.push('Supplied pink brain pulses during work, stops on completion and honours reduced motion');
  await panel.getByRole('button',{name:'Show test evidence and settings'}).click();
  assert.match(await panel.innerText(),/IAM enforcement/);assert.match(await panel.innerText(),/not.*model-quality/);
