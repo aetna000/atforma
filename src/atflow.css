@@ -1075,3 +1075,4 @@ h1, h2, h3, .brand, .doc-head h2, .modal h2, .detail-title input, .indicator str
 .empty-canvas {pointer-events:none;}
 .emulation-icon[aria-busy="true"]:disabled {opacity:1;cursor:wait;}
 .journey-actions [aria-busy="true"] {box-shadow:0 0 0 2px var(--color-brand-soft);}
+.emulation-icon.active[aria-busy="true"],.journey-actions .btn.primary[aria-busy="true"] {background:var(--paper);border:1px solid var(--color-brand);}
