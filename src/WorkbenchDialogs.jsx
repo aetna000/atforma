@@ -1,3 +1,4 @@
+import {BrainActivity} from "./BrainActivity.jsx";
 import React, { useState } from "react";
 import { Cloud, Code2, GitBranch, Plus, ShieldCheck, Sparkles, Upload } from "lucide-react";
 import { PROVIDERS, pdmTemplate, template } from "./core.mjs";
@@ -230,7 +231,7 @@ export function Connections({ session, connection, onCheck, onSave, onRetry, wel
       {ready && (
         <>
       <label className="dialog-field">
-        Model
+        Model {!list.length&&!reason&&<BrainActivity size={22}/>}
         <select
           aria-label="Model"
           value={model}
@@ -283,7 +284,7 @@ export function Connections({ session, connection, onCheck, onSave, onRetry, wel
         </>
       ) : (
         <button className="button run-button full" disabled={blocked || state !== "idle"} onClick={check}>
-          {state === "checking" ? "Checking…" : "Check"}
+          {state === "checking" ? <><BrainActivity/> Checking…</> : "Check"}
         </button>
       )}
     </div>

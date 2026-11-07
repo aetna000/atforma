@@ -55,3 +55,7 @@ Loadable AWS qualification archive: [021 Example library](021-aws-example-librar
 Local AWS simulation and hosted worker boundary: [022 Emulation](022-local-aws-emulation/spec.md), with [operator documentation](../docs/AWS_EMULATION.md).
 
 Evidence-led mentoring and native storage qualification: [023](023-emulation-design-loop/spec.md). Four-cloud AI application qualification: [024](024-ai-workload-qualification/spec.md).
+
+## Canvas consultation refresh
+
+[025 Canvas consultation and pink branding](025-canvas-consultation/spec.md) covers integrated emulation, component navigation, system documentation and the shared visual interaction language.

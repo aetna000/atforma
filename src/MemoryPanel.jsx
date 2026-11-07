@@ -1,3 +1,4 @@
+import {BrainActivity} from "./BrainActivity.jsx";
 import React, { useEffect, useState } from "react";
 import { memoryCall } from "./local-agent.mjs";
 import { toProjectFile } from "./project-file.mjs";
@@ -12,14 +13,14 @@ export function ContextUsed({ value }) {
 }
 
 export function MemoryPanel({ session, project, onError }) {
-  const [report,setReport]=useState(null),[error,setError]=useState(''),[tab,setTab]=useState('profile'),[field,setField]=useState('explanation'),[value,setValue]=useState(''),[working,setWorking]=useState(false),[preview,setPreview]=useState(null);
+  const [report,setReport]=useState(null),[error,setError]=useState(''),[tab,setTab]=useState('profile'),[field,setField]=useState('explanation'),[value,setValue]=useState(''),[working,setWorking]=useState(false),[refreshing,setRefreshing]=useState(true),[preview,setPreview]=useState(null);
   const payload={projectId:project.id};
   async function refresh() {
-    setError('');
+    setRefreshing(true);setError('');
     try {
       await memoryCall(session,'sync',{...payload,file:toProjectFile(project)});
       setReport(await memoryCall(session,'inspect',payload));
-    } catch(e) { setError(e.message); }
+    } catch(e) { setError(e.message); } finally {setRefreshing(false);}
   }
   useEffect(()=>{refresh();},[project.id,session?.token]);
   async function act(fn) { setWorking(true);setError('');try{await fn();await refresh();}catch(e){setError(e.message);onError?.(e.message);}finally{setWorking(false);} }
@@ -27,6 +28,7 @@ export function MemoryPanel({ session, project, onError }) {
   return <div className="memory-panel">
     <h2>AtMem dashboard</h2>
     <p className="muted small">Durable preferences and confirmed decisions only. Drafts, canvas comments and routine edits stay in your project; they do not become long-term memory.</p>
+    {(working||refreshing)&&<p role="status"><BrainActivity/> Updating memory…</p>}
     {error && <p className="error-box" role="alert">{error}</p>}
     {!report ? <button className="btn" onClick={refresh}>Retry memory connection</button> : <>
       <div className="row"><span className={report.status==='unavailable'?'warn-text':'muted'}>{report.enabled ? report.status==='unavailable'?'Memory unavailable — project only':`${report.engine} · connected` : 'Memory off for this project'}</span><span className="small">{report.pending} pending · {report.rejected} rejected</span><button className="btn ghost" disabled={working} onClick={()=>act(async()=>{await memoryCall(session,'settings',{...payload,enabled:!report.enabled});})}>{report.enabled?'Turn memory off':'Turn memory on'}</button></div>

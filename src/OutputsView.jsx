@@ -1,3 +1,4 @@
+import {BrainActivity} from "./BrainActivity.jsx";
 import React,{useEffect,useState} from 'react';
 import {EmulationPanel} from './EmulationPanel.jsx';
 import {outputBundle} from './output-bundle.mjs';
@@ -26,7 +27,7 @@ function Preview({name,content}){
    const type=name.endsWith('.pdf')?'application/pdf':name.endsWith('.svg')?'image/svg+xml':'image/png';
    const next=URL.createObjectURL(new Blob([content],{type}));setUrl(next);return ()=>URL.revokeObjectURL(next);
  },[name,content,visual]);
- if(visual)return !url?<p>Preparing preview…</p>:name.endsWith('.pdf')?<iframe className="output-pdf" src={url} title={`Preview ${name}`}/>:<img className="output-image" src={url} alt={`Preview ${name}`}/>;
+ if(visual)return !url?<p role="status"><BrainActivity/> Preparing preview…</p>:name.endsWith('.pdf')?<iframe className="output-pdf" src={url} title={`Preview ${name}`}/>:<img className="output-image" src={url} alt={`Preview ${name}`}/>;
  if(name.endsWith('.md'))return <Document text={content}/>;
  return <pre className="output-code"><code>{content}</code></pre>;
 }
@@ -43,7 +44,7 @@ export function OutputsView({project,run,environment,session,onDownload,onBack,e
   <header className="doc-head"><h2>Outputs</h2><p className="muted">Review the specification, Spec Kit, design and Terraform files before downloading the package.</p></header>
   <div className="row"><button className="link" onClick={onBack}>Back to architecture</button><button className="btn primary" disabled={!bundle||loading||!!error} onClick={()=>onDownload(bundle)}>Download reviewed ZIP</button></div>
   <EmulationPanel project={project} environment={environment} session={session} emulation={emulation} onDiscuss={onDiscuss} discussionBusy={discussionBusy}/>
-  {loading&&<p role="status">Preparing the current outputs…</p>}
+  {loading&&<p role="status"><BrainActivity/> Preparing the current outputs…</p>}
   {error&&<div role="alert"><p>{error}</p><button className="btn" onClick={()=>setRetry(n=>n+1)}>Retry preparing outputs</button></div>}
   {bundle&&!loading&&!error&&<>
    <p className="muted small">Design r{bundle.manifest.designRevision} · {Object.keys(bundle.files).length} files · Generated {new Date(bundle.manifest.generatedAt).toLocaleString()}. Changes to the project refresh this directory. Download contains these exact files.</p>

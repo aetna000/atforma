@@ -33,7 +33,7 @@ await page.route('**/api/pricing/*',r=>r.fulfill({json:{available:false,reason:'
 let validationCalls=0;await page.route('**/api/terraform/validate',r=>{validationCalls++;return r.fulfill({json:validationCalls===1?{status:'passed',message:'Configuration schema passed. No cloud plan was run.',checks:[{name:'Terraform schema validation',passed:true,output:'Fixture validation result'}]}:{status:'unavailable',message:'Terraform is not installed. No CLI validation was run.',checks:[]}});});
 await page.goto(base);
 await page.locator('input[type=file]').setInputFiles(`${out}/input.atforma.json`);
-assert.equal(await page.locator('.journey-actions .primary').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(31, 119, 124)');
+assert.equal(await page.locator('.journey-actions .primary').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(243, 162, 180)');
 await page.getByText('Project opened.',{exact:true}).waitFor();
 const state=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('atforma-workspace-v3')));
 const tab=(name)=>page.locator('.modes').getByRole('tab',{name}).click();

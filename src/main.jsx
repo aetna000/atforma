@@ -1,3 +1,4 @@
+import {BrainActivity} from "./BrainActivity.jsx";
 import {useEmulation} from './useEmulation.jsx';
 import {EmulationPanel} from './EmulationPanel.jsx';
 import {emulationPrompt,guardEmulationCorrection,groundEmulationMessage,emulationCoachReady} from './emulation-feedback.mjs';
@@ -28,7 +29,6 @@ import {
   Check,
   ChevronRight,
   GitBranch,
-  Loader2,
   Maximize2,
   MoreHorizontal,
   PanelRightClose,
@@ -106,6 +106,7 @@ import { DiscoverView, OptionsView, DecisionsView, MeasuresEditor, RequirementsV
 import { fromProjectFile, parseProjectFile, toProjectFile, MAX_FILE_BYTES } from "./project-file.mjs";
 import { linkedTo, slugSubject } from "./records.mjs";
 import "./atmem-tokens.css";
+import "./brand.css";
 import "./atflow.css";
 import {
   UPSTREAM_CATALOG,
@@ -187,8 +188,11 @@ const PROMPTS = {
 const STATUS_GLYPH = {
   passed: <Check size={13} />,
   failed: <X size={13} />,
-  running: <Loader2 size={13} className="spin" />,
+  running: <BrainActivity size={24} />,
 };
+
+// Terraform mark from Simple Icons (CC0), https://simpleicons.org/?q=terraform.
+function TerraformIcon(){return <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M1.44 0v7.575l6.561 3.79V3.787zm21.12 4.227l-6.561 3.791v7.574l6.56-3.787zM8.72 4.23v7.575l6.561 3.787V8.018zm0 8.405v7.575L15.28 24v-7.578z"/></svg>;}
 
 // The AtMem.ai mark, same artwork as atmem.ai/brand/icon-on-light.svg.
 // Ink follows currentColor; the dot follows the theme (see .atmem-dot).
@@ -650,6 +654,8 @@ function App() {
     [connection, setConnection] = useState(readConnection),
     [agentBusy, setAgentBusy] = useState(false);
   const emulation=useEmulation(project,environment,session);
+  const [emulationOpen,setEmulationOpen]=useState(false),[treeOpen,setTreeOpen]=useState(false);
+  useEffect(()=>{if(!treeOpen)return;const close=e=>{if(e.type==="keydown"?e.key==="Escape":!e.target.closest(".component-navigator"))setTreeOpen(false);};document.addEventListener("pointerdown",close);document.addEventListener("keydown",close);return()=>{document.removeEventListener("pointerdown",close);document.removeEventListener("keydown",close);};},[treeOpen]);
   const consultationAttempts = useRef(new Set());
   const agentAbort = useRef(null);
   const voice = useRef(null);
@@ -1519,7 +1525,7 @@ function App() {
   const guidance = useMemo(()=>journey(project),[project]);
   useEffect(()=>{
     if(!guidance.availableModes.includes(mode)){setMode(guidance.mode);setDesignView(guidance.view);}
-    if(guidance.id==='scope' && !project.extensions?.journey?.scope && ['options','decisions'].includes(designView))setDesignView('requirements');
+    if(guidance.id==='scope' && !project.extensions?.journey?.scope && designView==='options')setDesignView('requirements');
   },[guidance.id,mode,designView]);
   function followJourney(next=guidance){
     if(busy||agentBusy)return;
@@ -1617,39 +1623,21 @@ function App() {
             AtMem.ai<span className="brand-divider">|</span>AI Architect
           </span>
         </button>
-        <nav className="crumbs" aria-label="Level">
+        <nav className="crumbs" aria-label="Level"><span className="workspace-label">PROJECT</span>
           <button className="projects-btn" aria-label="Projects" title="Your projects" onClick={() => (refreshProjects(), setModal("projects"))}>
             <FolderOpen size={15} />
           </button>
           <input
             className="project-name"
+            title={project.name}
             aria-label="Project name"
             value={project.name}
             onChange={(e) => commit({ ...project, name: e.target.value })}
           />
-          <ChevronRight size={13} />
-          <button className={level === "system" ? "here" : ""} onClick={goSystem}>
-            System
-          </button>
-          {level !== "system" && (
-            <>
-              <ChevronRight size={13} />
-              <button className={level === "flow" ? "here" : ""} onClick={() => goFlow(focus)}>
-                {focusLabel || "Flow"}
-              </button>
-              {focus && level === "flow" && (
-                <button className="clear" title="Show all blocks" aria-label="Show all blocks" onClick={() => goFlow(null)}>
-                  <X size={12} />
-                </button>
-              )}
-            </>
-          )}
-          {level === "block" && selectedNode && (
-            <>
-              <ChevronRight size={13} />
-              <span className="here">{selectedNode.data.label}</span>
-            </>
-          )}
+          <button className="icon" title="Start over" aria-label="Start over" disabled={busy || agentBusy} onClick={() => setModal("start-over")}><RotateCcw size={16} /></button>
+          <div className="component-navigator"><button className="tree-trigger" aria-label="Component tree" aria-expanded={treeOpen} onClick={()=>setTreeOpen(!treeOpen)} title="Explore the system and its components"><GitBranch size={18}/> Components <span>{project.nodes.filter(n=>n.data.kind!=='note').length}</span><ChevronRight size={15}/></button>
+          {treeOpen&&<nav className="component-tree" aria-label="Component tree"><strong>{project.name}</strong><div className="tree-views"><button onClick={()=>{setMode('design');setDesignView('board');goSystem();setTreeOpen(false);}}><LayoutGrid size={16}/> System overview</button><button onClick={()=>{setMode('design');setDesignView('board');goFlow(null);setTreeOpen(false);}}><Workflow size={16}/> Component flow</button></div>{[...new Map(project.nodes.filter(n=>n.data.kind!=='note').map(n=>[layerOf(n).id,layerOf(n)])).values()].map(layer=><details open key={layer.id}><summary>{layer.label}</summary>{project.nodes.filter(n=>n.data.kind!=='note'&&layerOf(n).id===layer.id).map(n=><button key={n.id} aria-current={selected===n.id?'true':undefined} onClick={()=>{setMode('design');setDesignView('board');setFocus(null);setLevel('flow');setSelected(n.id);setTreeOpen(false);setTimeout(()=>fitView({nodes:[{id:n.id}],padding:1,maxZoom:1.2,duration:350}),100);}}><Database size={14}/><span>{n.data.label}<small>{n.data.service||n.data.provider}</small></span></button>)}</details>)}</nav>}</div>
+          <span className="current-view"><Workflow size={14}/>{level==='system'?'System overview':focusLabel||'Component flow'}</span>
         </nav>
         <div className="modes" role="tablist">
           {MODES.filter(([id])=>guidance.availableModes.includes(id)).map(([id, label]) => (
@@ -1683,36 +1671,28 @@ function App() {
           >
             {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
           </button>
-          <button className="icon" title="Start over" aria-label="Start over" disabled={busy || agentBusy} onClick={() => setModal("start-over")}><RotateCcw size={16} /></button>
           <button className="icon" title="More" aria-label="More" onClick={() => setMenu((m) => !m)}>
             <MoreHorizontal size={16} />
           </button>
-          <button
-            className="icon"
-            title={chatOpen ? "Hide chat" : "Show chat"}
-            aria-label={chatOpen ? "Hide chat" : "Show chat"}
-            onClick={() => setChatOpen((o) => !o)}
-          >
-            {chatOpen ? <PanelRightClose size={16} /> : <PanelRightOpen size={16} />}
-          </button>
+
         </div>
         {menu && (
           <div className="menu" role="menu" onClick={() => setMenu(false)}>
-            <button role="menuitem" onClick={() => (refreshProjects(), setModal("projects"))} disabled={busy}>Projects</button>
-            <button role="menuitem" onClick={newProject} disabled={busy}>New project</button>
-            <button role="menuitem" onClick={() => setPalette(true)} disabled={busy}>Add a block</button>
-            <button role="menuitem" onClick={() => setModal("templates")} disabled={busy}>Templates</button>
-            <button role="menuitem" onClick={() => setModal("import")} disabled={busy}>Import diagram</button>
-            <button role="menuitem" onClick={() => fileRef.current.click()} disabled={busy}>Open project file</button>
-            <button role="menuitem" onClick={saveProjectFile}>Save project file</button>
+            <button role="menuitem" onClick={() => (refreshProjects(), setModal("projects"))} disabled={busy}><FolderOpen size={16}/>Projects</button>
+            <button role="menuitem" onClick={newProject} disabled={busy}><Plus size={16}/>New project</button>
+            <hr/><button role="menuitem" onClick={() => setPalette(true)} disabled={busy}><Plus size={16}/>Add a block</button>
+            <button role="menuitem" onClick={() => setModal("templates")} disabled={busy}><LayoutTemplate size={16}/>Templates</button>
+            <hr/><button role="menuitem" onClick={() => setModal("import")} disabled={busy}><GitBranch size={16}/>Import diagram</button>
+            <button role="menuitem" onClick={() => fileRef.current.click()} disabled={busy}><FolderOpen size={16}/>Open project file</button>
+            <button role="menuitem" onClick={saveProjectFile}><Package size={16}/>Save project file</button>
             {guidance.availableModes.includes("deploy") && <><button role="menuitem" onClick={exportDocument}>Deployment document</button>
             <button role="menuitem" onClick={exportPack}>Download delivery pack</button></>}
-            <button role="menuitem" onClick={exportDecisions}>Export decisions</button>
-            <button role="menuitem" onClick={() => setModal("memory")} disabled={!session}>AtMem dashboard</button>
-            <button role="menuitem" onClick={() => setModal("start-over")} disabled={busy || agentBusy}>Start over</button>
+            <button role="menuitem" onClick={exportDecisions}><History size={16}/>Export decisions</button>
+            <hr/><button role="menuitem" onClick={() => setModal("memory")} disabled={!session}><BrainCircuit size={16}/>AtMem dashboard</button>
+            <button role="menuitem" onClick={() => setModal("start-over")} disabled={busy || agentBusy}><RotateCcw size={16}/>Start over</button>
             <hr />
-            <button role="menuitem" onClick={() => setModal("connections")}>Connections</button>
-            <button role="menuitem" onClick={() => setModal("licenses")}>Licences</button>
+            <button role="menuitem" onClick={() => setModal("connections")}><Waypoints size={16}/>Connections</button>
+            <button role="menuitem" onClick={() => setModal("licenses")}><ShieldCheck size={16}/>Licences</button>
           </div>
         )}
       </header>
@@ -1730,11 +1710,11 @@ function App() {
         })}</ol>
         <div className="journey-current"><div><strong>{guidance.title}</strong><p>{guidance.reason}</p></div>
           <div className="journey-actions">
-            <button className="btn primary" disabled={busy||agentBusy||!!pending} onClick={()=>guidance.checkpoint?continueJourney():followJourney()}>{guidance.checkpoint?guidance.continueLabel+' →':guidance.action}</button>
+            <button className="btn primary" disabled={busy||agentBusy||!!pending} aria-label={guidance.checkpoint?guidance.continueLabel+' →':guidance.action} title={guidance.checkpoint?guidance.continueLabel:guidance.action} onClick={()=>guidance.checkpoint?continueJourney():followJourney()}>{agentBusy?<BrainActivity size={26}/>:<BrainCircuit size={20}/>}</button>
             {guidance.checkpoint&&<button className="link" disabled={busy||agentBusy} onClick={()=>followJourney()}>{guidance.action}</button>}
-            {project.nodes.length>0&&<><button className="btn primary" disabled={busy||!!pending} onClick={()=>{setMode("design");setDesignView("emulation");}}>Emulate & improve</button><button className="btn" onClick={()=>{setMode("design");setDesignView("outputs");}}>Outputs</button></>}
+            {project.nodes.length>0&&<><button className="btn primary" disabled={busy||!!pending} aria-label="Emulate & improve" title="Run local checks and improve this architecture" onClick={()=>{setMode("design");setDesignView("board");setEmulationOpen(true);if(!emulation.running&&!emulation.result&&!emulation.previous)void emulation.run();}}><Play size={20}/></button><button className="btn" aria-label="Outputs" title="Inspect and download generated outputs" onClick={()=>{setMode("design");setDesignView("outputs");}}><Package size={20}/></button></>}
             {["architecture","review","estimate","delivery"].includes(guidance.id)&&<>
-              <button className="btn" onClick={()=>{setMode("design");setDesignView("terraform");}}>Terraform</button>
+              <button className="btn" aria-label="Terraform" title="Terraform" onClick={()=>{setMode("design");setDesignView("terraform");}}><TerraformIcon/></button>
               <button className="btn" onClick={exportPack} title="Download the current architecture, requirements and infrastructure draft as a ZIP">Download</button>
               <button className="btn" disabled title="Cloud deployment is under development">Deploy (under development)</button>
             </>}
@@ -1990,7 +1970,7 @@ function App() {
             {[
               ["findings", "Findings"],
               ["test", "Test run"],
-            ].filter(([id])=>!["options","decisions"].includes(id) || !["idea","scope"].includes(guidance.id) || !!project.extensions?.journey?.scope).map(([id, label]) => (
+            ].filter(([id])=>id!=="options" || !["idea","scope"].includes(guidance.id) || !!project.extensions?.journey?.scope).map(([id, label]) => (
               <button key={id} role="tab" aria-selected={reviewView === id} className={reviewView === id ? "on" : ""} onClick={() => setReviewView(id)}>
                 {label}
               </button>
@@ -2039,15 +2019,16 @@ function App() {
               ["requirements", "Requirements"],
               ["options", "Options"],
               ["decisions", "Design choices"],
-            ].filter(([id])=>!["options","decisions"].includes(id) || !["idea","scope"].includes(guidance.id) || !!project.extensions?.journey?.scope).map(([id, label]) => (
+            ].filter(([id])=>id!=="options" || !["idea","scope"].includes(guidance.id) || !!project.extensions?.journey?.scope).map(([id, label]) => (
               <button key={id} role="tab" aria-selected={designView === id} className={designView === id ? "on" : ""} onClick={() => setDesignView(id)}>
-                {label}
+                {React.createElement({board:LayoutGrid,requirements:CheckCheck,options:Cloud,decisions:GitBranch}[id],{size:17,"aria-hidden":true})}{label}
               </button>
             ))}
           </div>
         )}
 
-        {mode === "design" && designView === "emulation" && <section className="doc" aria-label="Emulate and improve"><button className="link" onClick={()=>setDesignView("board")}>Back to architecture</button><h2>Test this design and improve it</h2><p>Run → inspect evidence → propose a correction or answer a question → retest the changed design.</p><EmulationPanel project={project} environment={environment} session={session} emulation={emulation} onDiscuss={discussEmulation} discussionBusy={busy||agentBusy||!!pending}/></section>}
+        {onBoard&&emulationOpen&&<div className="emulation-dock"><EmulationPanel project={project} session={session} emulation={emulation} onDiscuss={discussEmulation} discussionBusy={busy||agentBusy||!!pending} onClose={()=>setEmulationOpen(false)}/></div>}
+
         {mode === "design" && designView === "outputs" && <OutputsView project={project} run={run} environment={environment} session={session} emulation={emulation} onDiscuss={discussEmulation} discussionBusy={busy||agentBusy||!!pending} onDownload={downloadBundle} onBack={()=>setDesignView("board")} />}
         {mode === "design" && designView === "terraform" && <TerraformView project={project} environment={environment} session={session} emulation={emulation} onDiscuss={discussEmulation} discussionBusy={busy||agentBusy||!!pending} onDownload={exportTerraform} onBack={()=>setDesignView("board")} />}
         {mode === "design" && designView === "options" && (
@@ -2061,12 +2042,13 @@ function App() {
         )}
       </main>
 
+      {!chatOpen && <button className="icon chat-reopen" title="Show chat" aria-label="Show chat" onClick={()=>setChatOpen(true)}><PanelRightOpen size={18}/></button>}
       {chatOpen && (
         <aside className="chat" aria-label="Chat">
           <div className="chat-head">
-            <strong className="chat-title">
+            <div className="chat-heading-row"><strong className="chat-title">
               <Mark size={18} /> AI Architect
-            </strong>
+            </strong><button className="icon" title="Hide chat" aria-label="Hide chat" onClick={()=>setChatOpen(false)}><PanelRightClose size={16}/></button></div>
             <label className="live-toggle" title="On: changes are drawn as we talk, and you can undo any of them. Off: they wait as previews for you to apply.">
               <input
                 type="checkbox"
@@ -2172,7 +2154,7 @@ function App() {
             )}
             {agentBusy && (
               <div className="msg assistant working">
-                <Loader2 size={13} className="spin" /> Refining…
+                <BrainActivity size={24} /> Refining…
                 <button className="link" onClick={() => agentAbort.current?.abort()}>Cancel</button>
               </div>
             )}
@@ -2231,6 +2213,7 @@ function App() {
             </button>
           </form>
           <div className="voice-status" role="status" aria-live="polite">
+            {!voiceError&&["starting","transcribing"].includes(voiceState)&&<BrainActivity size={22}/>}
             {voiceError || ({ starting: "Opening microphone…", listening: "Dictating locally — review your words, then press Send.", transcribing: "Finishing your transcript…" }[voiceState] || "")}
           </div>
         </aside>
@@ -2239,7 +2222,7 @@ function App() {
       <input type="file" ref={fileRef} accept="application/json,.json" hidden onChange={importProject} />
       {toast && (
         <div className="toast" role="status">
-          {toast}
+          {toast === "Preparing documents and diagram exports…"&&<BrainActivity/>}{toast}
         </div>
       )}
       {modal && (
@@ -2278,23 +2261,23 @@ function App() {
               <>
                 <h2>Start over?</h2>
                 <p>Start a new idea with an empty board and chat. Requirements, decisions and estimates start fresh too. Your model connection stays.</p>
-                <div className="row">
-                  <button className="button run-button" onClick={() => {
+                <div className="reset-actions">
+                  <button className="btn primary" title="Download your project, then start a new one" aria-label="Save project and start over" onClick={() => {
                     if (!saveProjectFile()) return;
                     switchTo(validateImport(emptyProject()));
                     setModal(null);
-                  }}>Save project and start over</button>
+                  }}><Package size={18}/> Save & start new</button>
                   <button
-                    className="button subtle"
+                    className="btn" title="Start a new project without downloading this one" aria-label="Start over without download"
                     onClick={() => {
                       switchTo(validateImport(emptyProject()));
                       setModal(null);
                     }}
                   >
-                    Start over without download
+                    <Plus size={18}/> Start without saving
                   </button>
-                  <button className="button subtle" onClick={() => setModal(null)}>
-                    Keep working
+                  <button className="btn ghost" onClick={() => setModal(null)}>
+                    <ArrowLeft size={18}/> Keep working
                   </button>
                 </div>
                 <p className="modal-fine">Save a project file to reopen this engagement later. Undo and redo apply within the current project.</p>
