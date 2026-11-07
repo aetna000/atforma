@@ -24,3 +24,9 @@ The six account plans were run against Sydney on 2026-11-07. The quota request r
 - Milestone before this work: [`96e369d`](https://github.com/aetna000/atmem-ai-architect/commit/96e369d), tag `milestone/aws-qualification-foundation-2026-11-07`.
 
 Each example includes its exact prompts and model responses in `history/`, a loadable project, diagram, generated Terraform/runtime/tests, and results. The connector history includes failed attempts. Published text replaces local paths and the account identifier; hashes identify published bytes and original bytes separately. State, account-bound inputs, binary plans, runtime build directories and credentials are excluded. Model statements about testing are not evidence; use runner receipts.
+
+## Stateful emulation before download
+
+AtMem Architect now offers **Outputs → Emulate locally**. [All seven supported workflows passed the current generator's emulation run](evidence/emulation/2026-11-07T06-51-24.662677+00-00/results.json). Reports bind the generated files and worker code by hash. [The first failed run](evidence/emulation/2026-11-07T06-41-43.615468+00-00/results.json) and [the harness correction run](evidence/emulation/2026-11-07T06-42-43.242069+00-00/results.json) are retained.
+
+These are stateful Moto API and host-executed handler checks, with scripted model/authentication envelopes. They do not apply Terraform, enforce real IAM, run managed inference or qualify native vendor connectors. See [emulation setup, coverage, compatibility fix and hosted-worker requirements](../../docs/AWS_EMULATION.md). Previous live-deployment statuses in the table above remain unchanged.

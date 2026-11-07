@@ -80,7 +80,7 @@ class QualificationSkillTests(unittest.TestCase):
         catalog={s['id']:s for s in registry()}
         for name in ['aws','terraform','devops']:
             self.assertTrue(catalog[name]['integrity'])
-            self.assertEqual(catalog[name]['version'],{'aws':'1.4.0','terraform':'1.3.0','devops':'1.1.0'}[name])
+            self.assertEqual(catalog[name]['version'],{'aws':'1.4.0','terraform':'1.3.1','devops':'1.1.0'}[name])
         self.assertIn('schema-valid empty configuration',catalog['terraform']['instructions'])
         self.assertIn('Stop retrying a model',catalog['devops']['instructions'])
 

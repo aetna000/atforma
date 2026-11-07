@@ -68,7 +68,8 @@ for(const scenario of AWS_SCENARIOS){
  manifest.scenarios.push(entry);
 }
 publish(path.join(root,'.local/account-preflight/lambda-quota-status.json'),'evidence/lambda-quota-status.json',[]);
-manifest.reproductions=[];
+const replacedKinds=[...(process.argv.includes('--local-recheck')?['local-artifacts']:[]),...(process.argv.includes('--browser-recheck')?['browser-import']:[])];
+manifest.reproductions=fs.existsSync(path.join(out,'manifest.json'))?(read(path.join(out,'manifest.json')).reproductions||[]).filter(r=>!replacedKinds.includes(r.kind)):[];
 for(const [flag,kind] of [['--local-recheck','local-artifacts'],['--browser-recheck','browser-import']]){
  const index=process.argv.indexOf(flag);if(index<0)continue;
  if(!process.argv[index+1])throw Error('Missing directory for '+flag);

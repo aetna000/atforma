@@ -18,7 +18,9 @@
     "test:memory": "node scripts/run-memory-e2e.mjs",
     "test:voice": "node scripts/voice-smoke.mjs",
     "test:handoff": "node scripts/handoff-check.mjs",
-    "test:aws:live": "node scripts/aws-scenario-live.mjs"
+    "test:aws:live": "node scripts/aws-scenario-live.mjs",
+    "test:emulation": ".venv/bin/python scripts/aws-emulation-check.py",
+    "test:emulation:browser": "node scripts/emulation-browser-check.mjs"
   },
   "dependencies": {
     "@xyflow/react": "12.10.0",

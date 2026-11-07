@@ -1,4 +1,5 @@
 import React,{useEffect,useState} from 'react';
+import {EmulationPanel} from './EmulationPanel.jsx';
 import {outputBundle} from './output-bundle.mjs';
 
 // Render generated Markdown as text elements, never executable HTML.
@@ -29,7 +30,7 @@ function Preview({name,content}){
  if(name.endsWith('.md'))return <Document text={content}/>;
  return <pre className="output-code"><code>{content}</code></pre>;
 }
-export function OutputsView({project,run,environment,onDownload,onBack}){
+export function OutputsView({project,run,environment,session,onDownload,onBack}){
  const [bundle,setBundle]=useState(null),[error,setError]=useState(''),[loading,setLoading]=useState(true),[retry,setRetry]=useState(0),[selected,setSelected]=useState('spec-kit/implementation-spec.md');
  useEffect(()=>{
    let active=true;setLoading(true);setError('');
@@ -41,6 +42,7 @@ export function OutputsView({project,run,environment,onDownload,onBack}){
  return <section className="doc outputs-view" aria-label="Outputs">
   <header className="doc-head"><h2>Outputs</h2><p className="muted">Review the specification, Spec Kit, design and Terraform files before downloading the package.</p></header>
   <div className="row"><button className="link" onClick={onBack}>Back to architecture</button><button className="btn primary" disabled={!bundle||loading||!!error} onClick={()=>onDownload(bundle)}>Download reviewed ZIP</button></div>
+  <EmulationPanel project={project} environment={environment} session={session}/>
   {loading&&<p role="status">Preparing the current outputs…</p>}
   {error&&<div role="alert"><p>{error}</p><button className="btn" onClick={()=>setRetry(n=>n+1)}>Retry preparing outputs</button></div>}
   {bundle&&!loading&&!error&&<>

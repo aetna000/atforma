@@ -21,6 +21,8 @@ async def shutdown_voice():
 
 from .terraform_routes import router as terraform_router
 app.include_router(terraform_router)
+from .emulation_routes import router as emulation_router
+app.include_router(emulation_router)
 TOKEN=secrets.token_urlsafe(32)
 ARCHITECT=AtMemArchitect()
 ALLOWED_HOSTS={'127.0.0.1:5174','localhost:5174','127.0.0.1:8766','localhost:8766','testserver'}

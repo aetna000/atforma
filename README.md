@@ -8,6 +8,7 @@ The architect's know-how lives in [`agent-skills/`](agent-skills): a discovery s
 
 - [Install, start and troubleshoot AtMem AI Architect](docs/INSTALLATION.md).
 - [Hands-on training: your first AI architecture](docs/TRAINING.md).
+- [Local AWS emulation before download](docs/AWS_EMULATION.md): stateful Moto services and generated runtime checks, with explicit unverified boundaries.
 - [Loadable AWS examples and qualification runbook](examples/aws/README.md): seven prompt histories, diagrams, generated code and recorded results. Six compute scenarios have real account plans but remain blocked from live deployment by Lambda quota.
 
 ## Start

@@ -934,3 +934,8 @@ h1, h2, h3, .brand, .doc-head h2, .modal h2, .detail-title input, .indicator str
   .react-flow__node.diagram-attention,
   .react-flow__edge.diagram-attention .react-flow__edge-path { animation: none; }
 }
+
+.emulation-panel { margin: 16px 0; padding: 16px; border: 1px solid var(--line); border-radius: 12px; }
+.emulation-panel h3 { margin-top: 0; }
+.emulation-panel li { margin: 6px 0; }
+.emulation-panel details { margin-top: 12px; }

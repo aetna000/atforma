@@ -2026,7 +2026,7 @@ function App() {
           </div>
         )}
 
-        {mode === "design" && designView === "outputs" && <OutputsView project={project} run={run} environment={environment} onDownload={downloadBundle} onBack={()=>setDesignView("board")} />}
+        {mode === "design" && designView === "outputs" && <OutputsView project={project} run={run} environment={environment} session={session} onDownload={downloadBundle} onBack={()=>setDesignView("board")} />}
         {mode === "design" && designView === "terraform" && <TerraformView project={project} environment={environment} session={session} onDownload={exportTerraform} onBack={()=>setDesignView("board")} />}
         {mode === "design" && designView === "options" && (
           <OptionsView project={project} busy={busy||agentBusy||!!pending} onChoose={chooseCloud} onContinue={()=>{setChatOpen(true);setMode("design");setDesignView("board");followJourney();}} onPreview={(provider)=>{setDesignView("board");setLevel("flow");setChatOpen(true);send(`Preview a concrete ${OPTION_NAMES[provider]} implementation of our working scope, using actual named services in data.service and explicit connections. Keep existing systems and comments. Use the known country/residency constraints, or leave region undecided and ask the country question. This is an alternative preview, not a cloud choice or deployment. Return a graph proposal and explain key integration assumptions.`,"preview",{mode:"design",view:"board"});}} onDiscuss={(question) => { setChatOpen(true); send(question, "workflow"); }} />

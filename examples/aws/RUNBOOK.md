@@ -41,6 +41,10 @@ The second command copies exports to a fresh ignored `.local` folder. It needs n
 
 Check `artifact-validation.json` for each stage rather than relying on process exit alone. Runtime tests are local Python tests with mocked AWS/model calls. Terraform tests use a mock provider. They do not prove IAM enforcement, AWS retries, Cognito sign-in, real model behavior or recovery.
 
+## Stateful local emulation
+
+Before download, use **Outputs → Emulate locally** and save the artifact-bound report. To run all seven projects against the current generator, install the optional worker and run `npm run test:emulation`. See [coverage and setup](../../docs/AWS_EMULATION.md). This adds stateful service/runtime evidence; it does not replace the checks below or change their recorded deployment status.
+
 ## 3. Review account-bound inputs and preflight
 
 Use your own disposable test account or explicitly approved account, region and existing principal. Never use the example placeholder account as a real destination. Preserve the configured function concurrency limits. Keep a separately protected expected-account JSON containing `aws_account_id`; keep AWS credentials outside the repository.
