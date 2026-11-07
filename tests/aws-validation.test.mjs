@@ -19,6 +19,8 @@ test('async architecture must actually connect queue to worker',()=>{
 });
 test('enterprise source systems must be existing and connected',()=>{
  const p={nodes:[node('s','SharePoint','existing','tools'),node('c','Confluence','existing','tools'),node('k','Bedrock Knowledge Bases')],edges:[{source:'s',target:'k'},{source:'c',target:'k'}]};
+ assert.equal(assessAwsArchitecture(p,AWS_SCENARIOS[6]).passed,false); // The requested web channel is required.
+ const web=node('web','Amazon CloudFront');web.data.implementation='rag-web-app';p.nodes.push(web);p.edges.push({source:'web',target:'k'});
  assert.equal(assessAwsArchitecture(p,AWS_SCENARIOS[6]).passed,true);
  p.nodes[0].data.origin='proposed';assert.equal(assessAwsArchitecture(p,AWS_SCENARIOS[6]).passed,false);
 });

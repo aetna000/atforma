@@ -49,3 +49,5 @@ Engineering handoff quality and repeated scenario checks: [011 Handoff quality](
 AWS scenario qualification: [012 AWS scenario validation](012-aws-scenario-validation/spec.md), with [live validation procedure](../docs/AWS_SCENARIO_VALIDATION.md).
 
 Native generation: [013 S3 operator access](013-storage-access/spec.md) and [014 authenticated text statistics](014-text-statistics/spec.md).
+
+Loadable AWS qualification archive: [021 Example library](021-aws-example-library/spec.md), with [examples and runbook](../examples/aws/README.md).
