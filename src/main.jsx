@@ -1698,20 +1698,18 @@ function App() {
       </header>
 
       <section className="journey-wizard" aria-label="Architecture journey">
-        <ol className="journey-steps">{[
+        <details className="journey-map"><summary>Journey · {({idea:"Define the idea",scope:"Define the idea",cloud:"Choose a cloud",location:"Choose a region",architecture:"Design the system",review:"Review",estimate:"Estimate costs",delivery:"Prepare delivery"})[guidance.id]}<span>View stages</span></summary><ol className="journey-steps">{[
           ['scope','Sketch & document'],['cloud','Cloud options'],['location','Country & region'],['architecture','Cloud architecture'],
-          ...(guidance.availableModes.includes('review')?[['review','Review']]:[]),
-          ...(guidance.availableModes.includes('estimate')?[['estimate','Costs']]:[]),
-          ...(guidance.availableModes.includes('deploy')?[['delivery','Delivery draft']]:[])
+          ['review','Review'],['estimate','Costs'],['delivery','Delivery draft']
         ].map(([id,label],i)=>{
           const current=guidance.id==='idea'?'scope':guidance.id;
           const reached=['scope','cloud','location','architecture','review','estimate','delivery'].indexOf(id)<=['scope','cloud','location','architecture','review','estimate','delivery'].indexOf(current);
           return <li key={id} aria-current={current===id?'step':undefined}><button type="button" disabled={!reached||busy||agentBusy||!!pending} onClick={()=>visitJourney(id)} aria-label={`Go to ${label}`}><span>{i+1}</span>{label}</button></li>;
-        })}</ol>
-        <div className="journey-current"><div><strong>{guidance.title}</strong><p>{guidance.reason}</p></div>
+        })}</ol></details>
+        <div className="journey-current"><div><strong>{guidance.title}</strong><p>{guidance.reason}</p><p className="journey-next"><span>Next</span> {guidance.checkpoint?guidance.continueLabel:guidance.action}</p></div>
           <div className="journey-actions">
             <button className="btn primary" disabled={busy||agentBusy||!!pending} aria-label={guidance.checkpoint?guidance.continueLabel+' →':guidance.action} title={guidance.checkpoint?guidance.continueLabel:guidance.action} onClick={()=>guidance.checkpoint?continueJourney():followJourney()}>{agentBusy?<BrainActivity size={26}/>:<BrainCircuit size={20}/>}</button>
-            {guidance.checkpoint&&<button className="link" disabled={busy||agentBusy} onClick={()=>followJourney()}>{guidance.action}</button>}
+
             {project.nodes.length>0&&<><button className="btn primary" disabled={busy||!!pending} aria-label="Emulate & improve" title="Run local checks and improve this architecture" onClick={()=>{setMode("design");setDesignView("board");setEmulationOpen(true);if(!emulation.running&&!emulation.result&&!emulation.previous)void emulation.run();}}><Play size={20}/></button><button className="btn" aria-label="Outputs" title="Inspect and download generated outputs" onClick={()=>{setMode("design");setDesignView("outputs");}}><Package size={20}/></button></>}
             {["architecture","review","estimate","delivery"].includes(guidance.id)&&<>
               <button className="btn" aria-label="Terraform" title="Terraform" onClick={()=>{setMode("design");setDesignView("terraform");}}><TerraformIcon/></button>
@@ -2013,7 +2011,7 @@ function App() {
         )}
 
         {mode === "design" && (
-          <div className="subviews seg" role="tablist" aria-label="Design views">
+          <div className="subviews seg" role="tablist" aria-label="Design views"><span className="workspace-views-label">Workspace</span>
             {[
               ["board", "Board"],
               ["requirements", "Requirements"],
@@ -2070,15 +2068,10 @@ function App() {
           <div className="skills" aria-label="Active skills">
             <button
               className={`known-bar ${peek === "known" ? "on" : ""}`}
-              aria-label={`What we know: ${topics.filter((t) => t.state !== "open").length} of ${topics.length}`}
+              aria-label="Design context" aria-expanded={peek === "known"} title="Review what is known, assumed or still open"
               onClick={() => setPeek((p) => (p === "known" ? null : "known"))}
             >
-              <span className="segs">
-                {topics.map((t) => (
-                  <i key={t.id} className={t.state} />
-                ))}
-              </span>
-              {topics.filter((t) => t.state !== "open").length} of {topics.length}
+              <CheckCheck size={15}/> Design context <ChevronRight size={14}/>
             </button>
             {WORKFLOWS.filter((w) => w.id === project.workflow).map((w) => (
               <button key={w.id} className={`skill ${peek === "skill" ? "on" : ""}`} onClick={() => setPeek((p) => (p === "skill" ? null : "skill"))}>
@@ -2103,7 +2096,7 @@ function App() {
               </div>
             ))}
           {peek === "known" && (
-            <ul className="peek known-list">
+            <ul className="peek known-list" aria-label="Design context summary"><li className="context-caption">Context from our conversation · not workflow steps</li>
               {topics.map((t) => (
                 <li key={t.id} className={t.state} title={project.brief?.[t.id] || t.question}>
                   <span>{t.state === "known" ? "✓" : t.state === "assumed" ? "~" : "·"}</span>

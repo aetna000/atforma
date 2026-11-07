@@ -7,3 +7,5 @@ Acceptance: canvas remains visible during emulation; correction/retest/Undo and 
 All hover/focus surfaces use pink. Waiting indicators use the supplied filled brain artwork, with unique SVG mask IDs, gentle pulse only during work, and no animation under reduced motion. Keep adjacent activity descriptions accessible.
 
 Workspace views form a persistent left-aligned navigation bar. Design choices remains available from early design, with a labelled icon and explicit pink active state. Mobile uses a two-column layout.
+
+Consolidation: the current focus and one explicit Next action lead the workspace. Full journey stages expand on demand; workspace views are labelled separately. Conversation context replaces the competing seven-item progress meter and is collapsed by default.

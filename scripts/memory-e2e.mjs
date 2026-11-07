@@ -74,7 +74,7 @@ await page.getByRole('tab',{name:'Options',exact:true}).click();
 await page.getByRole('button',{name:'Choose AWS & continue →',exact:true}).click();await finished();
 await page.getByRole('button',{name:'Discuss country and residency',exact:true}).waitFor();
 const beforeBack=JSON.stringify((await project()).nodes);
-await page.getByRole('button',{name:'Go to Cloud options',exact:true}).click();
+await page.locator('.journey-map>summary').click();await page.getByRole('button',{name:'Go to Cloud options',exact:true}).click();await page.locator('.journey-map>summary').click();
 await page.getByRole('button',{name:'Continue with AWS →',exact:true}).waitFor();
 assert.equal(JSON.stringify((await project()).nodes),beforeBack,'returning to options preserves the diagram');
 await page.screenshot({path:`${out}/cloud-options-selected.png`});

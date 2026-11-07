@@ -993,3 +993,19 @@ h1, h2, h3, .brand, .doc-head h2, .modal h2, .detail-title input, .indicator str
 .level-system .hint, .level-flow .hint { top:72px; }
 .canvas .doc { padding-top:88px; }
 @media(max-width:600px){.subviews.seg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;padding:8px;}.subviews.seg button{font-size:12px;padding:8px;}.canvas .doc{padding-top:112px;}.level-system .hint,.level-flow .hint{top:108px;}}
+
+/* One journey, with workspace views and conversation context clearly secondary. */
+.journey-map { margin-bottom:12px; }
+.journey-map>summary { display:flex; align-items:center; gap:12px; width:fit-content; padding:6px 9px; border-radius:8px; color:var(--color-brand-text); font-size:12px; font-weight:600; cursor:pointer; list-style:none; }
+.journey-map>summary::-webkit-details-marker{display:none;}
+.journey-map>summary span { color:var(--ink-2); font-size:11px; font-weight:400; }
+.journey-map>summary::after{content:'⌄';}
+.journey-map[open]>summary::after{content:'⌃';}
+.journey-map>summary:is(:hover,:focus-visible){background:var(--color-brand-soft);}
+.journey-map .journey-steps{margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:10px;}
+.journey-current .journey-next{margin-top:8px;color:var(--ink);font-weight:600;}
+.journey-next>span{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--color-brand-text);margin-right:6px;}
+.workspace-views-label{align-self:center;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-2);margin-right:8px;}
+.known-bar{gap:6px;}.known-bar[aria-expanded=true]>svg:last-child{transform:rotate(90deg);}
+.known-list .context-caption{display:block;font-size:10px;color:var(--ink-2);padding-bottom:8px;}
+@media(max-width:600px){.workspace-views-label{display:none;}}

@@ -62,9 +62,11 @@ try{
  assert.equal(await menuHover.evaluate(el=>getComputedStyle(el).display),'flex');
  await page.screenshot({path:path.join(out,'pink-menu.png'),fullPage:true});
  await page.getByRole('button',{name:'More',exact:true}).click();
+ await page.locator('.journey-map>summary').click();
  const stepHover=page.getByRole('button',{name:'Go to Sketch & document',exact:true});await stepHover.hover();
  assert.equal(await stepHover.evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(252, 236, 240)');
  await stepHover.focus();assert.equal(await stepHover.evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(252, 236, 240)');
+ await page.locator('.journey-map>summary').click();
  results.push('Menu and journey hover/focus use pink; menu icons have consistent spacing');
  const designChoices=page.getByRole('tab',{name:'Design choices',exact:true});
  assert.equal(await designChoices.locator('svg').count(),1);
