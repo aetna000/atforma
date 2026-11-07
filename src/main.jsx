@@ -1,3 +1,4 @@
+import {projectIdFromUrl} from './project-links.mjs';
 import { diagramAttention } from "./diagram-attention.mjs";
 import { VoiceDictation } from "./voice-conversation.mjs";
 import { OutputsView } from "./OutputsView.jsx";
@@ -1190,6 +1191,11 @@ function App() {
       setPending(null);
       return;
     }
+    // A newly drawn graph needs room for arrow labels. Preserve user-arranged
+    // positions on refinements and any diagram that retains existing node IDs.
+    if (proposal.next.nodes.length && !proposal.next.nodes.some(n => current.nodes.some(existing => existing.id === n.id))) {
+      proposal = { ...proposal, next: autoLayout(proposal.next) };
+    }
     const decision = {
       ...newDecision(current),
       subject: `design.${slugSubject(proposal.title)}`,
@@ -1436,6 +1442,27 @@ function App() {
       notify(e.message);
     }
   }
+  const linkedProject = useRef(null);
+  useEffect(() => {
+    const id = projectIdFromUrl(window.location.href);
+    if (!session?.token || !id || linkedProject.current === id) return;
+    let active = true;
+    (async () => {
+      try {
+        const { project: opened } = fromProjectFile(await projectStore(session, "get", { id }));
+        if (!active) return;
+        const leaving = projectRef.current;
+        if (leaving.id !== id && !binned.current.has(leaving.id) && (leaving.nodes.length || leaving.brief?.application?.trim())) {
+          await projectStore(session, "save", { id: leaving.id, file: toProjectFile(leaving) });
+        }
+        if (!active) return;
+        linkedProject.current = id;
+        switchTo(opened);
+        setModal(null);
+      } catch (error) { if (active) notify(error.message); }
+    })();
+    return () => { active = false; };
+  }, [session?.token]);
   function newProject() {
     setModal("start-over");
   }

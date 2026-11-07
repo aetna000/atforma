@@ -171,3 +171,14 @@ Choose **Outputs** in the journey strip once a diagram exists. The directory ope
 The product and source repository are now AtMem AI Architect (`aetna000/atmem-ai-architect`). New project downloads use `.atmem-ai-architect.json` and `atmem.ai-architect.project`; existing `.atforma.json` files still open. Legacy browser-storage keys and memory subject IDs are retained as compatibility identifiers so existing projects, connections and memory histories are not lost. New settings use `ATMEM_ARCHITECT_*`; the former `ATFORMA_*` environment variables remain accepted. Existing installations keep their `~/.atforma` data directory; new installations use `~/.atmem-ai-architect`, or the configured home directory. These compatibility names are not product branding.
 
 The atmem.ai website presents the architecture platform and its agent-memory foundation. The current architect application still runs locally; website integration does not imply a hosted multi-user workspace or automatic cloud deployment.
+
+
+## Engineering handoff readiness
+
+Outputs now includes a **Review handoff gaps** action and `spec-kit/readiness.md` / `.json`. The same assessment reaches the architect so it can address priority decisions before export. The report separates design decisions, partial generated foundations, unattached local validation, account planning, staging evidence and production approval. It never infers deployment from a generated file.
+
+Service resolution respects an explicit service field before descriptive labels. Ambiguous labels do not generate resources, and generic OpenSearch leaves domain versus Serverless unresolved. All accepted design ADRs remain in the implementation context; country and deployment region are independent decisions. Shared application blocks, placement conflicts, requirement traceability, cost gaps and current reviewed App Runner eligibility constraints remain visible.
+
+Component tasks include service-specific engineering guidance. The task graph runs local implementation and schema/mock checks before authorized account planning, cost reconciliation and separately approved staging deployment. Live integrations, acceptance and recovery tests follow staging; production release remains separately approved. Existing systems receive integration contracts, not recreation instructions.
+
+Run `npm run test:handoff` for a repeatable multi-provider export/reorder matrix, or `node scripts/handoff-check.mjs /path/to/project.atmem-ai-architect.json` to include a real project. Results and generated text artifacts are written to a temporary review directory. These are deterministic generator checks, not live model or cloud tests. Native Terraform generation remains limited to S3 foundations; full application infrastructure and evidence ingestion are not implemented.

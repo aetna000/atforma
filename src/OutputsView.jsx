@@ -36,6 +36,7 @@ export function OutputsView({project,run,environment,onDownload,onBack}){
    outputBundle(project,run,environment).then(value=>{if(active){setBundle(value);setLoading(false);}}).catch(e=>{if(active){setError(e.message);setLoading(false);}});
    return ()=>{active=false;};
  },[project,run,environment,retry]);
+ const readiness=bundle?.files['spec-kit/readiness.json']?JSON.parse(bundle.files['spec-kit/readiness.json']):null;
  const groups=bundle?[['Spec Kit',Object.keys(bundle.files).filter(n=>n.startsWith('spec-kit/')).sort((a,b)=>Number(b.includes('implementation-spec'))-Number(a.includes('implementation-spec')))],['Specification & handoff',Object.keys(bundle.files).filter(n=>!n.includes('/')&&!/^diagram\./.test(n))],['Design',Object.keys(bundle.files).filter(n=>/^diagram\./.test(n))],['Terraform',Object.keys(bundle.files).filter(n=>n.startsWith('terraform/'))]]:[];
  return <section className="doc outputs-view" aria-label="Outputs">
   <header className="doc-head"><h2>Outputs</h2><p className="muted">Review the specification, Spec Kit, design and Terraform files before downloading the package.</p></header>
@@ -44,6 +45,7 @@ export function OutputsView({project,run,environment,onDownload,onBack}){
   {error&&<div role="alert"><p>{error}</p><button className="btn" onClick={()=>setRetry(n=>n+1)}>Retry preparing outputs</button></div>}
   {bundle&&!loading&&!error&&<>
    <p className="muted small">Design r{bundle.manifest.designRevision} · {Object.keys(bundle.files).length} files · Generated {new Date(bundle.manifest.generatedAt).toLocaleString()}. Changes to the project refresh this directory. Download contains these exact files.</p>
+   {readiness&&<aside aria-label="Handoff readiness"><strong>Engineering handoff — decisions and implementation remain</strong><p>{readiness.counts.priorityDecisions} priority decisions · {readiness.counts.generatedFoundations} generated foundations / {readiness.counts.components} logical components</p><p>Next: {readiness.nextAction}</p><button className="link" onClick={()=>setSelected('spec-kit/readiness.md')}>Review handoff gaps</button></aside>}
    <div className="outputs-browser" data-snapshot-id={bundle.manifest.snapshotId}>
     <nav className="outputs-directory" aria-label="Output files">{groups.map(([title,names])=><details key={title} open><summary>{title}</summary>{names.map(name=><button type="button" key={name} aria-current={selected===name?'page':undefined} onClick={()=>setSelected(name)} title={name}>{name.includes('/')?name.split('/').at(-1):name}</button>)}</details>)}</nav>
     <div className="output-preview" aria-label="Output preview"><h3>{selected}</h3>{bundle.files[selected]!==undefined&&<Preview key={selected} name={selected} content={bundle.files[selected]}/>}</div>

@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "vite build",
+    "build": "node scripts/embed-runtimes.mjs && vite build",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "node --test tests/*.test.mjs",
+    "test": "node scripts/embed-runtimes.mjs && node --test tests/*.test.mjs",
     "local": "node scripts/local.mjs",
     "test:server": ".venv/bin/python -m unittest discover -s server/tests -v",
     "test:browser": "node scripts/voice-smoke.mjs && node scripts/smoke.mjs && node scripts/delivery-smoke.mjs",
@@ -16,7 +16,9 @@
     "test:terraform": "node scripts/terraform-check.mjs",
     "setup:memory": "python3 scripts/setup-memory.py",
     "test:memory": "node scripts/run-memory-e2e.mjs",
-    "test:voice": "node scripts/voice-smoke.mjs"
+    "test:voice": "node scripts/voice-smoke.mjs",
+    "test:handoff": "node scripts/handoff-check.mjs",
+    "test:aws:live": "node scripts/aws-scenario-live.mjs"
   },
   "dependencies": {
     "@xyflow/react": "12.10.0",
