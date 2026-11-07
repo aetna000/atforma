@@ -14,3 +14,11 @@
 - [ ] T007 Import-first start (US2): mark imported components existing and pre-fill current systems; Pulumi regions as assumptions to confirm
 - [ ] T008 Unit and period follow-up when a number has no unit ("budget 5000")
 - [ ] T009 Refine the question bank from research R2
+
+## Voice conversation correction (FR-008–FR-011)
+
+- [x] T010 Record voice requirements, architecture and privacy/browser limits.
+- [x] T011 Add the cancellable, bounded recognition/turn/playback controller.
+- [x] T012 Integrate the existing architect path and accessible voice controls.
+- [x] T013 Verify controller and browser regressions, existing suites and build; record the pre-existing delivery mobile failure separately in docs/VOICE.md.
+- [x] T014 Record evidence and limitations in docs/VOICE.md; physical microphone check remains unverified.

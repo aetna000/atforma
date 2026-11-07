@@ -77,3 +77,28 @@ The user lists candidate use cases and marks each Pursue, Park or Rule out with 
 
 - The discovery question bank is refined by research task R2; topic list above is the starting set.
 - Offline (no model) discovery uses the deterministic listener; a connected model improves wording, not the stored structure.
+
+## Voice conversation correction — 7 November 2026
+
+The microphone previously provided dictation only and switched off on the browser's
+recognition end event. The requested discovery journey is a spoken conversation.
+
+- **FR-008**: Explicitly starting voice MUST show its current state, capture a confirmed
+  spoken turn, send it through the existing architect request path after a pause, speak
+  the actual architect reply and reopen listening until stopped.
+- **FR-009**: Normal recognition end/no-speech MUST reconnect with bounded backoff;
+  repeated immediate endings, permission/network/device failures and unsupported
+  browsers MUST show an actionable persistent status. Interim text MUST remain a
+  draft and MUST NOT be sent as a confirmed turn after recognition failure.
+- **FR-010**: Capture MUST stop while awaiting/speaking the reply to prevent echo;
+  the user can interrupt playback and speak, or stop the conversation. Stop, typing,
+  project replacement and unmount MUST cancel pending capture/restarts/playback.
+  Stale callbacks and late model results MUST NOT restart voice or duplicate a turn.
+- **FR-011**: Browser speech transport and possible provider processing MUST be
+  disclosed before first activation. No raw audio is saved by the application or
+  forwarded to the sidecar. Existing project/proposal/approval semantics remain intact.
+
+Acceptance: two consecutive spoken turns reach the same existing architect path;
+normal end recovers; blocked microphone/network, repeated rapid ends, playback error,
+interruption, cancellation and unsupported API paths preserve text and show status.
+Browser fixtures qualify event handling, not physical microphone or provider quality.
