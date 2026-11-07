@@ -1059,3 +1059,17 @@ h1, h2, h3, .brand, .doc-head h2, .modal h2, .detail-title input, .indicator str
 .msg.assistant { align-self:stretch; }
 .sent-attachments figcaption {display:flex;flex-wrap:wrap;align-items:center;gap:4px;overflow-wrap:anywhere;}
 .sent-attachments figcaption small {flex-basis:100%;font-size:10px;line-height:1.4;color:var(--color-muted);}
+/* Paper styling is tilted independently so note handles and typing stay aligned. */
+.note.sticky-note {position:relative;isolation:isolate;width:220px;min-height:140px;padding:22px 18px 24px;background:transparent;border:0;border-radius:0;box-shadow:none;}
+.note.sticky-note::before {content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(150deg,light-dark(#fff5ba,#51451f),light-dark(#fff0a0,#42391d));border:1px solid light-dark(#d9c46d,#938052);border-radius:2px 2px 18px 2px;box-shadow:3px 7px 12px rgb(0 0 0 / .16);transform:rotate(-1.5deg);}
+.note.sticky-note::after {content:"";position:absolute;right:-1px;bottom:2px;width:22px;height:22px;pointer-events:none;background:linear-gradient(135deg,light-dark(#ddc66e,#8c7840) 48%,light-dark(#fff9d9,#63562b) 50%);clip-path:polygon(0 0,100% 0,0 100%);transform:rotate(-1.5deg);filter:drop-shadow(-1px -1px 1px rgb(0 0 0 / .12));}
+.note.sticky-note.selected {outline:none;}
+.note.sticky-note.selected::before,.note.sticky-note:focus-within::before {outline:2px solid var(--accent);outline-offset:3px;}
+.note.sticky-note textarea {min-height:94px;font-size:14px;line-height:1.55;color:light-dark(#453918,#fff4cb);}
+.note.sticky-note textarea::placeholder {color:light-dark(#786b40,#cabc8e);}
+.ctx-menu {min-width:204px;padding:6px;border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 28px rgb(0 0 0 / .14);}
+.ctx-menu button {display:flex;align-items:center;gap:10px;min-height:36px;padding:8px 10px;font-size:13px;border-radius:7px;}
+.ctx-menu button svg {flex-shrink:0;color:var(--muted);}
+.ctx-menu .danger svg {color:inherit;}
+.ctx-divider {height:1px;margin:5px 8px;background:var(--line);}
+.empty-canvas {pointer-events:none;}

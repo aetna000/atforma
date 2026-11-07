@@ -30,6 +30,8 @@ import {
   AlertTriangle,
   ArrowUp,
   Paperclip,
+  StickyNote,
+  Scan,
   ArrowDownToLine,
   Check,
   ChevronRight,
@@ -313,7 +315,7 @@ function NoteNode({ id, data, selected }) {
     if (data.fresh) setTimeout(() => box.current?.focus(), 30);
   }, [data.fresh]);
   return (
-    <div className={`note ${selected ? "selected" : ""}`}>
+    <div className={`note sticky-note ${selected ? "selected" : ""}`}>
       <Handle type="target" position={Position.Left} />
       <textarea
         ref={box}
@@ -1865,25 +1867,27 @@ function App() {
             {ctx.node ? (
               <>
                 <button role="menuitem" onClick={() => (addNote({ x: ctx.at.x + 40, y: ctx.at.y - 120 }, ctx.node.id), setCtx(null))}>
-                  Add comment
+                  <StickyNote size={16}/> Add comment
                 </button>
+                <div className="ctx-divider" role="separator"/>
                 <button role="menuitem" className="danger" onClick={() => (removeNodes(new Set(picked.size > 1 ? picked : [ctx.node.id])), setCtx(null))}>
-                  {picked.size > 1 ? `Delete ${picked.size} items` : "Delete"}
+                  <Trash2 size={16}/>{picked.size > 1 ? `Delete ${picked.size} items` : "Delete"}
                 </button>
               </>
             ) : (
               <>
                 <button role="menuitem" onClick={() => ((paletteAt.current = ctx.at), setPalette(true), setCtx(null))}>
-                  Add block here
+                  <Plus size={16}/> Add block here
                 </button>
                 <button role="menuitem" onClick={() => (addNote(ctx.at), setCtx(null))}>
-                  Add comment here
+                  <StickyNote size={16}/> Add comment here
                 </button>
                 <button role="menuitem" onClick={() => (setLevel("flow"), setPicked(new Set(project.nodes.map((n) => n.id))), setCtx(null))}>
-                  Select all
+                  <Scan size={16}/> Select all
                 </button>
+                <div className="ctx-divider" role="separator"/>
                 <button role="menuitem" className="danger" disabled={!project.nodes.length} onClick={() => (clearBoard(), setCtx(null))}>
-                  Clear board
+                  <Eraser size={16}/> Clear board
                 </button>
               </>
             )}

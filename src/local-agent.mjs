@@ -19,7 +19,8 @@ export function toAgentProject(p) {
       type: "resource",
       position: n.position,
       data: {
-        label: n.data.label,
+        // A whitespace-only annotation also works with older sidecars requiring min_length=1.
+        label: n.data.kind === "note" && !n.data.label ? " " : n.data.label,
         kind: n.data.kind,
         provider: n.data.provider,
         description: String(n.data.description || "").slice(0, 1000),

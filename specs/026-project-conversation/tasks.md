@@ -10,3 +10,11 @@
 
 Screenshots and fixture browser results are in evidence/. Real cloud deployment and live vision on other connectors are not claimed.
 - [x] Final regression: 188 JavaScript tests, 108 server tests, voice/main journey/delivery browser suites and production build passed. Build retains the existing large-chunk warning.
+
+## Sticky-note follow-up
+
+- Paper edges tilt independently of editable text and graph handles; a folded corner and shadow distinguish comments from components.
+- Context menu uses icons, pink hover and a separator before destructive actions.
+- Empty-canvas guidance no longer intercepts right-clicks.
+- Blank notes are valid at the chat boundary; architecture component names remain mandatory. Regression: server/tests/test_note_contract.py.
+- Live port 5190 accepted a blank-note request through schema validation (disabled Bedrock returned 409, with no model/cloud execution). Transport also represents empty annotations as whitespace for older sidecars, preserving node IDs and connections. 189 JavaScript and 110 server tests passed.
