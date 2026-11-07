@@ -15,10 +15,10 @@
 - [ ] T008 Unit and period follow-up when a number has no unit ("budget 5000")
 - [ ] T009 Refine the question bank from research R2
 
-## Voice conversation correction (FR-008–FR-011)
+## Live dictation correction (FR-008–FR-011)
 
-- [x] T010 Record voice requirements, architecture and privacy/browser limits.
-- [x] T011 Add the cancellable, bounded recognition/turn/playback controller.
-- [x] T012 Integrate the existing architect path and accessible voice controls.
-- [x] T013 Verify controller and browser regressions, existing suites and build; record the pre-existing delivery mobile failure separately in docs/VOICE.md.
-- [x] T014 Record evidence and limitations in docs/VOICE.md; physical microphone check remains unverified.
+- [x] T010 Record clarified one-way dictation, explicit posting and design-output requirements.
+- [x] T011 Add local capture, bounded progressive transcription and cancellation fencing.
+- [x] T012 Add authenticated in-memory audio routes and warmed local Whisper worker/setup.
+- [x] T013 Verify real generated speech, controller/HTTP/UI regressions and existing checks; keep the baseline Outputs mobile failure distinct.
+- [x] T014 Update evidence/limits and the running helper; physical microphone remains unverified.

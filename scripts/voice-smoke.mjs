@@ -27,81 +27,77 @@ try {
  const page = await context.newPage(); const errors=[], requests=[];
  page.on('pageerror',e=>errors.push(e.message));
  await context.addInitScript(()=>{
-  localStorage.setItem('atforma-connection-v1',JSON.stringify({provider:'claude-code',model:'synthetic-voice-test'}));
-  window.__voice={instances:[],spoken:[],cancels:0};
-  class Recognition {
-   constructor(){window.__voice.instances.push(this);}
-   start(){this.onstart?.();}
-   abort(){this.aborted=true;this.onend?.();}
-   result(text,final=true){const r=[{transcript:text}];r.isFinal=final;this.onresult?.({results:[r]});}
+  localStorage.setItem('atforma-connection-v1',JSON.stringify({provider:'claude-code',model:'synthetic-dictation-test'}));
+  window.__audio={stops:0,deny:false};
+  const source=()=>({connect(){},disconnect(){}});
+  Object.defineProperty(navigator,'mediaDevices',{value:{getUserMedia:async()=>{
+   if(window.__audio.deny){const error=Error('denied');error.name='NotAllowedError';throw error;}
+   return {getTracks:()=>[{stop:()=>window.__audio.stops++}]};
+  }},configurable:true});
+  class Audio {
+   constructor(){this.state='running';this.sampleRate=16000;}
+   resume(){return Promise.resolve();} close(){this.state='closed';return Promise.resolve();}
+   createMediaStreamSource(){return source();} createGain(){return {...source(),gain:{value:0}};}
+   createScriptProcessor(){const processor={...source()};window.__audio.feed=()=>processor.onaudioprocess?.({inputBuffer:{getChannelData:()=>new Float32Array(16000).fill(.1)}});return processor;}
   }
-  class Utterance {constructor(text){this.text=text;}}
-  Object.defineProperty(window,'SpeechRecognition',{value:Recognition,configurable:true});
-  Object.defineProperty(window,'SpeechSynthesisUtterance',{value:Utterance,configurable:true});
-  Object.defineProperty(window,'speechSynthesis',{value:{speak:u=>window.__voice.spoken.push(u),cancel:()=>window.__voice.cancels++,getVoices:()=>[]},configurable:true});
+  Object.defineProperty(window,'AudioContext',{value:Audio,configurable:true});
+  Object.defineProperty(window,'speechSynthesis',{get(){throw Error('Playback must not be used');},configurable:true});
+  Object.defineProperty(window,'SpeechRecognition',{get(){throw Error('Browser speech service must not be used');},configurable:true});
  });
+ let transcriptions=0;
  await context.route('**/api/**',async route=>{
   const url=new URL(route.request().url());
-  let body={projects:[],bin:[],folder:'',enabled:false,records:[],preferences:[],skills:[],health:{available:false}};
+  let body={projects:[],bin:[],folder:'',enabled:false,records:[],preferences:[],skills:[]};
   if(url.pathname==='/api/session')body={status:'local-sidecar',token:'synthetic-no-provider-access',capabilities:{}};
+  if(url.pathname==='/api/voice/prepare')body={ready:true};
+  if(url.pathname==='/api/voice/transcribe'){
+   assert.equal(route.request().headers()['content-type'],'audio/wav');
+   assert.equal(route.request().postDataBuffer().subarray(0,4).toString(),'RIFF');
+   transcriptions++;
+   body={text:transcriptions===1?'Build a document assistant':transcriptions===2?'Build a document assistant using Azure':'Keep data in Australia',audioStored:false};
+  }
   if(url.pathname==='/api/architect'){
    const request=route.request().postDataJSON();requests.push(request);
-   body={message:'We can design that together. Which cloud do you use?'};
+   const next={...request.project,nodes:[{id:'voice-assistant',type:'resource',position:{x:100,y:100},data:{label:'Azure document assistant',kind:'agent',provider:'azure',description:'Synthetic voice fixture',origin:'proposed',config:{region:'To be selected',classification:'Internal',timeout:5000}}}],edges:[]};
+   body={message:'I updated the design.',proposal:{title:'Document assistant',body:'Synthetic architecture proposal',baseRevision:request.project.revision,next}};
   }
   await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body)});
  });
- let confirmations=0;
- page.on('dialog',async dialog=>{confirmations++;await dialog.accept();});
- await page.goto(base);await page.getByRole('button',{name:'Start voice conversation',exact:true}).waitFor();
- await page.waitForTimeout(500);
- await page.getByRole('button',{name:'Start voice conversation',exact:true}).click();
- await page.getByText('Listening — pause when you finish to send your message.',{exact:true}).waitFor();
- assert.equal(confirmations,1,'browser speech consent is explicit');
- // Reproduce the reported immediate browser end. It must reconnect visibly.
- await page.evaluate(()=>window.__voice.instances.at(-1).onend());
- await page.getByText('Reconnecting microphone…',{exact:true}).waitFor();
- await page.waitForFunction(()=>window.__voice.instances.length===2);
- await page.evaluate(()=>window.__voice.instances.at(-1).result('Build a document assistant'));
- await page.getByRole('button',{name:'Interrupt and speak',exact:true}).waitFor();
- assert.ok(requests.some(r=>r.message.startsWith('Build a document assistant')&&r.message.includes('Dictated by voice')));
- assert.equal(await page.evaluate(()=>window.__voice.instances.length),2,'capture paused during playback');
- assert.match(await page.evaluate(()=>window.__voice.spoken[0].text),/Which cloud/);
- await page.evaluate(()=>window.__voice.spoken.at(-1).onend());
- await page.waitForFunction(()=>window.__voice.instances.length===3);
- await page.evaluate(()=>window.__voice.instances.at(-1).result('Use Azure in Australia'));
- await page.getByRole('button',{name:'Interrupt and speak',exact:true}).waitFor();
- assert.equal(requests.filter(r=>r.message.startsWith('Use Azure in Australia')).length,1);
- await page.getByRole('button',{name:'Interrupt and speak',exact:true}).click();
- await page.getByText('Listening — pause when you finish to send your message.',{exact:true}).waitFor();
- await page.getByRole('button',{name:'Stop voice conversation',exact:true}).click();
- const count=await page.evaluate(()=>window.__voice.instances.length);
- await page.waitForTimeout(1300);
- assert.equal(await page.evaluate(()=>window.__voice.instances.length),count,'stop prevents restart');
- // Permission error persists; it is not hidden behind a short toast.
- await page.getByRole('button',{name:'Start voice conversation',exact:true}).click();
- await page.evaluate(()=>window.__voice.instances.at(-1).onerror({error:'not-allowed'}));
+ let confirmations=0;page.on('dialog',async d=>{confirmations++;await d.accept();});
+ await page.goto(base);
+ await page.getByRole('button',{name:'Start dictation',exact:true}).waitFor();await page.waitForTimeout(500);
+ const initial=requests.length;
+ await page.getByRole('button',{name:'Start dictation',exact:true}).click();
+ await page.getByText('Dictating locally — review your words, then press Send.',{exact:true}).waitFor();
+ await page.evaluate(()=>window.__audio.feed());
+ await page.waitForFunction(()=>document.querySelector('textarea[aria-label="Your message"]').value==='Build a document assistant');
+ assert.equal(requests.length,initial,'speaking does not submit to the model');
+ await page.evaluate(()=>window.__audio.feed());
+ await page.waitForFunction(()=>document.querySelector('textarea[aria-label="Your message"]').value==='Build a document assistant using Azure');
+ assert.equal(requests.length,initial,'partial updates stay in the composer');
+ await page.getByRole('button',{name:'Stop dictation',exact:true}).click();
+ await page.getByRole('button',{name:'Start dictation',exact:true}).waitFor();
+ await page.getByRole('button',{name:'Send message',exact:true}).click();
+ await page.locator('.react-flow__node').filter({hasText:'Azure document assistant'}).waitFor();
+ assert.equal(requests.length,initial+1);assert.equal(requests.at(-1).message,'Build a document assistant using Azure');
+ // Pressing Send during capture must finalise the pending words before posting once.
+ await page.waitForFunction(()=>!document.querySelector('.msg.working'));
+ await page.getByRole('button',{name:'Start dictation',exact:true}).click();
+ await page.waitForFunction(()=>!!window.__audio.feed);await page.evaluate(()=>window.__audio.feed());
+ await page.getByRole('button',{name:'Send message',exact:true}).click();
+ await page.waitForFunction(()=>!document.querySelector('.msg.working'));
+ await page.waitForTimeout(300);
+ assert.equal(requests.length,initial+2);assert.ok(requests.at(-1).message.startsWith('Keep data in Australia'));
+ assert.equal(confirmations,1);
+ await page.evaluate(()=>{window.__audio.deny=true;});
+ await page.getByRole('button',{name:'Start dictation',exact:true}).click();
  await page.getByText(/Microphone access is blocked/).waitFor();
- await page.getByRole('button',{name:'Start voice conversation',exact:true}).waitFor();
- assert.equal(confirmations,1,'consent remembered for the same browser context');
- // Starting/stopping during an interim draft must preserve text without sending it.
- await page.getByRole('button',{name:'Start voice conversation',exact:true}).click();
- await page.evaluate(()=>window.__voice.instances.at(-1).result('unfinished draft',false));
- await page.getByRole('button',{name:'Stop voice conversation',exact:true}).click();
- assert.equal(await page.getByLabel('Your message').inputValue(),'unfinished draft');
- assert.equal(requests.filter(r=>r.message.startsWith('unfinished draft')).length,0);
  fs.mkdirSync('/private/tmp/atmem-architect-voice',{recursive:true});
  await page.screenshot({path:'/private/tmp/atmem-architect-voice/desktop.png',fullPage:true});
  await page.setViewportSize({width:390,height:844});
- // Existing workbench has a canvas wider than mobile; verify the new status itself fits.
- const status=page.locator('.voice-status');
- await page.getByLabel('Your message').fill('');
- await page.getByRole('button',{name:'Start voice conversation',exact:true}).click();
- await page.evaluate(()=>window.__voice.instances.at(-1).onerror({error:'network'}));
- await page.getByText(/browser speech service could not connect/).waitFor();
- const box=await status.boundingBox();
- assert.ok(box && box.x>=0 && box.x+box.width<=390,'voice error fits the mobile viewport');
- assert.deepEqual(errors,[]);
+ const box=await page.locator('.voice-status').boundingBox();assert.ok(box&&box.x>=0&&box.x+box.width<=390);
  await page.screenshot({path:'/private/tmp/atmem-architect-voice/mobile.png',fullPage:true});
- console.log('Voice UI passed: consent, immediate-end recovery, two turns, real send-path payloads, playback, interrupt, stop, permission error and draft preservation. Speech/model transports were synthetic.');
+ assert.deepEqual(errors,[]);assert.ok(await page.evaluate(()=>window.__audio.stops>=2));
+ console.log('Local dictation UI passed: live partial text, no automatic submission/playback/browser speech service, Stop, explicit Send, finalisation on Send, canvas proposal and microphone permission errors. Audio/model transports were fixtures.');
  await context.close();
 } finally {await browser?.close();server?.kill("SIGTERM");}

@@ -1,67 +1,86 @@
-# Voice conversation: implementation and verification
+# Local voice input: implementation and verification
 
-7 November 2026; source baseline `661324c`, development branch `fix/voice-conversation`.
-No application version bump or package release is part of this correction.
+7 November 2026, branch `fix/voice-conversation` (PR #3). The owner's clarified
+requirement supersedes the earlier spoken conversation loop: live editable
+voice-to-text, explicit posting, and output on the design. No playback/auto-send.
+No application version bump or package publication is part of this correction.
 
-The old microphone only dictated into the composer. Its recognition `onend`
-unconditionally switched off listening; there was no automatic submission,
-spoken reply or next-turn capture. The new browser-owned conversation controller
-implements that turn-taking loop through the existing architect request path.
+## Behaviour and data flow
 
-- Explicit Start and browser speech-processing consent; use the normal browser
-  microphone permission. On-device recognition is preferred when already available.
-- Confirmed transcripts send after a 1.1-second pause or normal service end. Interim
-  words remain an editable draft. No user text is sent merely because capture failed.
-- Normal recognition endings restart with bounded backoff. Repeated immediate
-  endings and permission/device/network problems show persistent actionable status.
-- Actual architect reply text is spoken in chunks. Capture is disabled during the
-  request and playback; Interrupt and speak cancels playback and reopens capture.
-- Stop cancels pending capture/send/restart/playback. Generation fences prevent
-  late callbacks/results from restarting voice. Typing, replacing projects and
-  unmount also stop voice. A turn already submitted can still complete in chat.
-- Speech/provider support is browser-dependent. The browser may send audio and
-  playback text to its provider. No raw audio is stored by the app or sent to the
-  sidecar. Confirmed transcripts follow existing chat/memory rules. No new paid
-  speech API, dependency, model account or public deployment was introduced.
-- This is spoken turn-taking, not simultaneous full-duplex speech. Interruption
-  uses an explicit button. Acoustic quality, OS permissions, device selection and
-  browser-provider availability need a real microphone/speaker check.
+Start dictation requests the normal browser microphone permission after an
+application disclosure. Web Audio captures mono audio; the client resamples to
+16 kHz PCM, keeps a bounded in-memory clip and sends progressive WAV snapshots to
+`/api/voice/transcribe` on the loopback helper, normally about once per second.
+Only one decoding request per recorder is active. The resulting words appear in
+the composer; partial hypotheses can revise earlier words. Nothing goes to the
+architect or changes the design until the user presses Send.
 
-## Evidence
+Stop releases microphone tracks and finishes the latest words. Send while
+recording first finishes the transcript and posts it once. The normal architect
+path returns text/design proposals, retaining the existing review, live-drawing,
+decision and undo rules. Typing cancels capture and protects the user's edits.
+Epoch checks fence late transcription/permission events. No SpeechRecognition or
+SpeechSynthesis browser service is used. The app handles a helper token refresh
+once without changing accounts or posting a message.
 
-- `npm test`: 128 passing tests, including 18 voice-controller tests. They cover
-  two turns, ended/no-speech recovery, repeated endings, partial drafts, debounce,
-  permission/device/network errors, stop/stale events, late model replies,
-  interruption, playback failure, unsupported APIs and speakable text.
-- `npm run test:server`: 45 passing tests. No sidecar contract changed.
-- `npm run test:voice`: passed against an isolated frontend with synthetic browser
-  speech and architect transports. The real React composer/send path produced two
-  distinct requests, spoke returned reply text, resumed capture, interrupted and
-  stopped correctly, preserved drafts and displayed permission/network errors.
-  Consent was required once. Mobile error text fits a 390px viewport; desktop and
-  mobile screenshots were inspected. No physical audio/provider invocation claimed.
-- Existing isolated real-AtMem browser journey passed: discovery, diagram,
-  requirements, clouds, memory/history/forget, save/reset and mobile. Its model and
-  prices are fixtures. Two stale branding expectations (header control and light
-  theme colour) were aligned with the already released interface.
-- Production build passed. Existing React Flow directive and bundle-size
-  advisories remain non-fatal. `git diff --check` passed.
+The helper validates session token, Host/Origin, WAV framing, mono 16-bit PCM,
+16 kHz rate and a maximum 60-second/1,920,000-byte PCM payload. A local worker
+keeps the existing Whisper tiny.en checkpoint warm and decodes via private pipes.
+Requests wait for model preparation rather than treating first-use warmup as a
+microphone error. Worker startup/request/queue waits are bounded; shutdown closes
+the worker. Audio is not written to project files, AtMem, logs or temporary files.
+Browser/HTTP/worker memory contains the clip while processing; only explicitly
+submitted text follows the existing chat/memory path.
 
-The combined browser gate also runs the independent delivery/export journey.
-Its mobile Outputs overflow result is recorded separately below; do not conflate
-that result with the voice journey or claim a green combined browser gate.
+Whisper is an optional existing local installation, not a new mandatory Python
+dependency. `python3 scripts/setup-voice.py` downloads the official checksum-verified
+tiny.en weights (~72 MiB) once. The recording endpoint never downloads a model or
+calls a paid speech API. The current adapter requires an executable Python
+shebang from the installed `whisper` CLI (verified on this macOS installation;
+Windows transcription is not qualified). See [upstream Whisper](https://github.com/openai/whisper)
+for its installation and licence. No claim of ChatGPT recognition quality, exact
+latency, universal browser/OS support or physical microphone certification.
 
-Confirmed pre-existing blocker: `scripts/delivery-smoke.mjs:100` asserts no mobile
-horizontal overflow in Outputs. Both the changed tree and an isolated detached
-checkout of unchanged `661324c` fail that same assertion (`true !== false`). The
-baseline used the same fixture scenario against its own frontend (port 5199),
-with an isolated Vite cache and React deduplication. The earlier baseline startup
-with shared dependency cache failed before the UI loaded and was not used as
-regression evidence. No assertion was removed or skipped. Combined browser gate
-remains red for this existing Outputs layout issue; no all-green/merge claim.
+## Measured evidence
 
-Local test logs/screenshots: `/private/tmp/architect-voice-*.log` and
-`/private/tmp/atmem-architect-voice/`. These are temporary operator evidence, not
-bundled production assets. The real service at port 5174 was not stopped/restarted;
-source changes are served by its existing Vite development process. Refresh the
-page, start voice and allow microphone access to check real hardware/browser speech.
+- `npm test`: 120 passed, including 10 dictation tests: progressive draft, silence,
+  stop/finalise, late callback cancellation, delayed microphone permission,
+  failed decode, pending-partial flush, denied microphone, unchanged audio,
+  WAV framing/clipping and resampling.
+- `npm run test:server`: 53 passed, including new audio auth/origin/type/rate/channel/
+  duration/size/error contracts and first-partial-during-warmup concurrency.
+- `npm run test:voice`: passed with synthetic browser microphone PCM and fixture
+  transcription/model HTTP transports. It verifies incremental words in the actual
+  composer, zero model calls before Send, Stop, finalisation on Send, exactly one
+  user-triggered request, actual graph proposal application, permission failure,
+  release of tracks and mobile status layout. Browser speech-service/playback
+  accessors deliberately throw if used. Desktop/mobile screenshots inspected.
+- Real local recognizer over authenticated HTTP: generated macOS speech, converted
+  to 16 kHz WAV with ffmpeg, was transcribed by the actual warmed Whisper worker.
+  Initial warmup: 2.52 seconds. Partial clip: 0.51 seconds, returning "created
+  document assistant using." Complete clip: 0.28 seconds, returning "created
+  document assistant using Azure in Australia." The source phrase began "Create";
+  this is wiring/timing evidence on one synthetic phrase, not an accuracy benchmark.
+  No microphone audio, model account or architecture-generation call was involved.
+- The existing isolated real-AtMem browser journey passed again after the local
+  audio changes (discovery, design, scoped memory/history/forget, save/reset and
+  mobile); model/prices remain fixtures. The actual running helper at port 5174
+  also transcribed the generated WAV successfully, and its frontend passed the
+  dictation UI test in a separate browser context.
+- Production build passed; existing non-fatal React Flow directive/bundle-size
+  advisories remain. Source whitespace checks passed.
+
+The existing combined browser gate has an independently reproduced baseline
+failure: `scripts/delivery-smoke.mjs:100` finds horizontal overflow in the mobile
+Outputs view. The same assertion failed unchanged at baseline `661324c`; it has
+not been removed or skipped. Do not describe the combined browser gate as green.
+Two old branding expectations in the memory journey were aligned with the
+already released header/default light theme. Live hardware permission, device
+selection and recognition with the owner's voice remain an operator check.
+
+Test-only generated audio/results are under
+`/private/tmp/architect-local-dictation-evidence/`; logs are
+`/private/tmp/architect-dictation-*.log`, screenshots
+`/private/tmp/atmem-architect-voice/`. These are synthetic operator evidence,
+not production retained audio. The local app at port 5174 requires the updated
+helper; its owned launcher was restarted to load the audio routes.

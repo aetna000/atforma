@@ -1,31 +1,33 @@
-# Guided discovery voice correction plan
+# Guided discovery live dictation plan
 
-Scope: implement FR-008–FR-011 within the existing discovery journey. Keep the
-connected model, memory and proposal contracts unchanged; no new paid service,
-API credentials, audio storage or runtime dependency.
+Owner clarification supersedes the earlier spoken conversation loop. Implement
+FR-008–FR-011: live voice-to-text, editable draft, explicit Send and design output.
+There is no TTS, auto-send or dependency on browser-vendor speech recognition.
 
-Use a framework-free, dependency-injected VoiceConversation state machine for
-starting/listening/reconnecting/thinking/speaking/off/error. The browser owns
-SpeechRecognition and SpeechSynthesis. Final transcripts debounce into the existing
-send path; the returned actual model message is spoken in bounded chunks. Pause
-capture during playback; explicit interruption returns to listening. Generations
-fence late callbacks and every stop cancels timers and capture/playback. Bound
-rapid restart attempts and surface permission, network and playback failures.
+Capture via browser getUserMedia/Web Audio, resample mono PCM to 16 kHz and send
+bounded cumulative WAV snapshots at roughly one-second intervals to the authenticated
+loopback helper. Only one transcription request is active per recorder. A local
+Whisper worker retains a warmed tiny.en model, returns progressive transcript text
+and never writes audio files. Raw PCM crosses only the loopback boundary and worker
+pipes; it does not enter chat/memory. No model download during recording.
 
-React supplies the latest send callback via a ref, displays a persistent live status
-and accessible Start/Stop/Interrupt controls. Consent explains browser-provider
-processing; prefer available on-device recognition and installed local voices.
-Typed input and changing projects stop capture. Avoid async capability probing
-inside the start click, preserving user activation where browser policy requires it.
+Stop stops tracks and flushes pending audio. Send awaits the flush, then posts the
+reviewed transcript through the existing send path once. Typing/project replacement/
+unmount cancels and fences late audio/model results. The sidecar enforces format,
+duration, request limits, process timeout/concurrency and existing session/Host/Origin
+authorisation. One bounded session-token refresh tolerates helper restarts.
 
-Constitution check I–VIII: voice is opt-in and stoppable; real reply only, with
-fixture limitations disclosed; existing project is canonical; browser speech is
-explicitly consented external processing, not a local-only claim; provider and
-browser limits remain visible; memory semantics unchanged; status is accessible;
-state transitions and browser journey have regression tests. No sidecar boundary
-changes or dependency/notice changes.
+Explicit setup reuses a local Whisper installation and downloads checksum-verified
+official tiny.en weights (~72 MiB). No paid API or new mandatory Python dependency.
+Document Whisper/model/CPU requirements and the 60-second recording bound.
 
-Validation: controller tests including stale callbacks and actual React browser
-integration with synthetic speech/architect transports; full node suite, sidecar
-suite, existing browser journeys and production build. Real microphone/OS audio
-and live provider speech quality need an operator check on the running local app.
+Constitution I–VIII: user explicitly posts; no invented output/latency; existing
+project/proposals stay canonical; local-first audio with bounded authenticated
+transport; browser/provider limits explicit; memory semantics unchanged; accessible
+status and microphone control; controller, HTTP boundary and UI regression tests.
+
+Validation: synthetic PCM capture browser fixtures prove progressive drafts, no
+submission/playback until Send and real canvas updates. Real local engine HTTP test
+uses generated speech and records partial/final text and timing separately. Run
+unit/sidecar/build/existing journeys; preserve known baseline delivery-layout failure.
+Physical microphone/OS permissions are not certified by generated or mocked audio.

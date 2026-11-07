@@ -50,26 +50,38 @@ For API access, enter a Claude/OpenAI/Gemini key in the local dialog (sidecar me
 
 Use **Undo / Redo** for board changes (Cmd/Ctrl+Z and Cmd/Ctrl+Shift+Z). A new board edit clears redo; discovery records and estimates stay intact. **Start over** in the top bar offers to save a project file, or cancel, before clearing the board, chat, requirements, decisions and estimates. The model connection stays. Project boundaries start a separate undo history.
 
-## Voice conversation
+## Voice input
 
-In the chat composer, select **Start voice conversation** (the microphone), review
-browser speech processing consent and allow microphone access. Speak, then pause:
-confirmed words are sent automatically through your selected architect. Its reply
-is read aloud and listening starts again. **Interrupt and speak** skips playback;
-**Stop voice conversation** ends capture and playback. Typing also stops voice and
-keeps the text box usable. No raw audio is stored by this app.
+The microphone works as **live dictation**, like a voice input box: speak, watch
+words appear, review/edit them, then press **Send**. The architect works on the
+design and responds in text. There is no spoken playback or automatic submission.
+Press **Stop dictation** to finish the transcript; pressing **Send** during recording
+also finishes the latest words before posting once. Typing cancels recording and
+preserves your edits. Microphone permission is still required by your browser.
 
-This uses browser speech recognition and synthesis, which may use the browser
-vendor's online service; it is not a local-only audio guarantee or a new paid
-model-audio service. Available on-device recognition and local playback voices are
-preferred. Browser/OS permission, network and speech-service support still apply.
-Errors remain visible below the composer, with drafts preserved. This is spoken
-turn-taking, not simultaneous full-duplex audio or voice-activity barge-in; use
-**Interrupt and speak** while the architect is speaking.
+Transcription runs on your computer through the local helper and an optional
+OpenAI Whisper installation, rather than the browser vendor's online speech
+service. Audio is handled in memory and not saved; only text you submit follows
+the selected architect's existing chat/memory path. Prepare local voice once:
 
-Regression check: `npm run test:voice` starts an isolated frontend and uses synthetic
-speech/model transports. It verifies the real UI/send path without microphone
-access, real user data or a model charge; it cannot certify physical audio quality.
+```sh
+# macOS, if Whisper is not already installed:
+brew install openai-whisper
+python3 scripts/setup-voice.py
+```
+
+The setup script reuses Whisper's existing Python installation and downloads the
+checksum-verified official `tiny.en` model (about 72 MiB). It does not use an
+OpenAI API key or paid speech service. The helper warms the model after connecting.
+An operator can select an existing local checkpoint with
+`ATMEM_ARCHITECT_WHISPER_MODEL`. No model is silently downloaded while recording.
+A recording is bounded to 60 seconds; stop and start another to continue.
+
+Words update progressively, normally on roughly one-second capture intervals plus
+local decoding time. This is not a guarantee of ChatGPT's recognition quality or
+latency. Errors remain visible below the composer. See [voice verification](docs/VOICE.md).
+`npm run test:voice` uses an isolated frontend and synthetic audio/model transports;
+the real local engine was checked separately with generated speech over HTTP.
 
 ## AtMem
 

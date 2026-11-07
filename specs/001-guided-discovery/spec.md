@@ -78,27 +78,29 @@ The user lists candidate use cases and marks each Pursue, Park or Rule out with 
 - The discovery question bank is refined by research task R2; topic list above is the starting set.
 - Offline (no model) discovery uses the deterministic listener; a connected model improves wording, not the stored structure.
 
-## Voice conversation correction — 7 November 2026
+## Live dictation correction — 7 November 2026
 
-The microphone previously provided dictation only and switched off on the browser's
-recognition end event. The requested discovery journey is a spoken conversation.
+Owner clarification: one-way voice input, like the ChatGPT/Codex composer. The
+user speaks, sees the transcript appear, then explicitly posts it. The model's
+output belongs on the design and in text; replies must not be read aloud.
 
-- **FR-008**: Explicitly starting voice MUST show its current state, capture a confirmed
-  spoken turn, send it through the existing architect request path after a pause, speak
-  the actual architect reply and reopen listening until stopped.
-- **FR-009**: Normal recognition end/no-speech MUST reconnect with bounded backoff;
-  repeated immediate endings, permission/network/device failures and unsupported
-  browsers MUST show an actionable persistent status. Interim text MUST remain a
-  draft and MUST NOT be sent as a confirmed turn after recognition failure.
-- **FR-010**: Capture MUST stop while awaiting/speaking the reply to prevent echo;
-  the user can interrupt playback and speak, or stop the conversation. Stop, typing,
-  project replacement and unmount MUST cancel pending capture/restarts/playback.
-  Stale callbacks and late model results MUST NOT restart voice or duplicate a turn.
-- **FR-011**: Browser speech transport and possible provider processing MUST be
-  disclosed before first activation. No raw audio is saved by the application or
-  forwarded to the sidecar. Existing project/proposal/approval semantics remain intact.
+- **FR-008**: Starting dictation MUST capture microphone audio and update an editable
+  composer progressively, without calling the architect or submitting a message.
+- **FR-009**: Explicit Stop MUST finalise remaining words. Explicit Send during recording
+  MUST finalise the current transcript and post once through the existing architect
+  path, preserving proposal/undo/approval behaviour. The actual response updates the
+  design; no speech playback or automatic conversational restart is permitted.
+- **FR-010**: Use local transcription rather than the unreachable browser speech service.
+  Show preparation, recording, finishing and actionable errors; cancellation, typed
+  edits and project replacement MUST fence late results and release the microphone.
+- **FR-011**: Disclose local audio processing before first activation. Raw audio MUST
+  remain in memory, never in logs/project files/memory events. Bound clip size and
+  decoding work; require existing loopback Host/Origin/session protections. Model
+  setup is explicit, with no recording-time model download or paid service fallback.
 
-Acceptance: two consecutive spoken turns reach the same existing architect path;
-normal end recovers; blocked microphone/network, repeated rapid ends, playback error,
-interruption, cancellation and unsupported API paths preserve text and show status.
-Browser fixtures qualify event handling, not physical microphone or provider quality.
+Acceptance: progressive partial words stay in the composer; zero architect calls
+before user Send; latest words are finalised and sent once; returned graph proposal
+updates the canvas. Permission/device/helper errors preserve drafts. Raw audio
+routes reject missing auth, foreign origins, invalid/oversized formats. Actual local
+transcription is tested with generated speech; physical microphone quality remains
+an operator check, not inferred from fixtures.

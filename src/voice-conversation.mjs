@@ -1,182 +1,117 @@
-// Browser-owned speech transport. No raw audio is saved or sent to the sidecar.
-export function speechText(text) {
-  return String(text).replace(/```[\s\S]*?```/g, ' Code is available in the chat. ')
-    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/https?:\/\/\S+/g, 'link in the chat')
-    .replace(/[*_#`]/g, '').trim();
+// Local dictation only. Transcripts stay in the composer until the user presses Send.
+export function resample(samples, rate) {
+  if (rate === 16000) return new Float32Array(samples);
+  const ratio = rate / 16000, out = new Float32Array(Math.floor(samples.length / ratio));
+  for (let n=0;n<out.length;n++) {
+    const at=n*ratio, left=Math.floor(at), fraction=at-left;
+    out[n]=samples[left]*(1-fraction)+(samples[Math.min(left+1,samples.length-1)]||0)*fraction;
+  }
+  return out;
 }
-
-export class VoiceConversation {
-  constructor({ Recognition, synthesis, Utterance, onTurn, onDraft = () => {}, onState = () => {},
-    onError = () => {}, local = false, lang = 'en-US', pauseMs = 1100,
-    schedule = (fn, ms) => setTimeout(fn, ms), cancel = id => clearTimeout(id), now = Date.now }) {
-    Object.assign(this, { Recognition, synthesis, Utterance, onTurn, onDraft, onState, onError,
-      local, lang, pauseMs, schedule, cancel, now });
-    this.active = false;
-    this.epoch = 0;
-    this.timers = new Set();
+export function wav(parts, length) {
+  const data=new ArrayBuffer(44+length*2), view=new DataView(data);
+  const text=(at,s)=>{for(let n=0;n<s.length;n++)view.setUint8(at+n,s.charCodeAt(n));};
+  text(0,'RIFF');view.setUint32(4,36+length*2,true);text(8,'WAVE');text(12,'fmt ');
+  view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,1,true);
+  view.setUint32(24,16000,true);view.setUint32(28,32000,true);view.setUint16(32,2,true);
+  view.setUint16(34,16,true);text(36,'data');view.setUint32(40,length*2,true);
+  let at=44;
+  for(const part of parts)for(const sample of part){
+    if(at>=data.byteLength)break;
+    const value=Math.max(-1,Math.min(1,sample));view.setInt16(at,value<0?value*32768:value*32767,true);at+=2;
   }
-  state(value) { this.phase = value; this.onState(value); }
-  later(fn, ms) {
-    const token = this.epoch;
-    const timer = this.schedule(() => {
-      this.timers.delete(timer);
-      if (this.active && token === this.epoch) fn();
-    }, ms);
-    this.timers.add(timer);
-    return timer;
+  return new Blob([data],{type:'audio/wav'});
+}
+export async function microphoneCapture({onSamples}) {
+  let stream, context, processor, source, mute;
+  const stop=()=>{
+    if(processor){processor.onaudioprocess=null;processor.disconnect();}
+    source?.disconnect();mute?.disconnect();stream?.getTracks().forEach(t=>t.stop());
+    if(context && context.state!=='closed')void context.close().catch(()=>{});
+  };
+  try {
+    if(!navigator.mediaDevices?.getUserMedia)throw Error('Microphone capture is not supported in this browser.');
+    stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true}});
+    const Audio=window.AudioContext||window.webkitAudioContext;
+    if(!Audio)throw Error('Audio capture is not supported in this browser.');
+    context=new Audio({sampleRate:16000});await context.resume();
+    source=context.createMediaStreamSource(stream);
+    // Kept for broad Safari/Chromium support. It never sends audio to browser speech services.
+    processor=context.createScriptProcessor(4096,1,1);mute=context.createGain();mute.gain.value=0;
+    processor.onaudioprocess=e=>onSamples(resample(e.inputBuffer.getChannelData(0),context.sampleRate));
+    source.connect(processor);processor.connect(mute);mute.connect(context.destination);
+    return {stop};
+  } catch(error) {stop();throw error;}
+}
+export class VoiceDictation {
+  constructor({capture=microphoneCapture,transcribe,onDraft=()=>{},onState=()=>{},onError=()=>{},base='',
+    intervalMs=1000,schedule=(fn,ms)=>setTimeout(fn,ms),clear=id=>clearTimeout(id)}) {
+    Object.assign(this,{capture,transcribe,onDraft,onState,onError,base,intervalMs,schedule,clear});
+    this.base=base.trim()?base.trim()+' ':'';this.draft=base;this.epoch=0;this.phase='off';
   }
-  clear(timer) { if (timer != null) { this.cancel(timer); this.timers.delete(timer); } }
-  start() {
-    if (this.active) return;
-    if (!this.Recognition || !this.synthesis || !this.Utterance) {
-      this.fail('Voice conversation is not supported in this browser. You can still type your message.');
-      return;
-    }
-    this.active = true;
-    this.epoch++;
-    this.rapidEnds = 0;
-    this.listen();
-  }
-  detach() {
-    const rec = this.rec;
-    this.rec = null;
-    if (rec) {
-      rec.onresult = rec.onerror = rec.onend = rec.onstart = null;
-      try { rec.abort(); } catch {}
-    }
-  }
-  stop() {
-    this.active = false;
-    this.epoch++;
-    for (const timer of this.timers) this.cancel(timer);
-    this.timers.clear();
-    this.detach();
-    this.synthesis?.cancel();
-    this.state('off');
-  }
-  fail(message) {
-    this.stop();
-    this.state('error');
-    this.onError(message);
-  }
-  listen() {
-    if (!this.active) return;
-    let rec;
-    try { rec = new this.Recognition(); } catch {
-      this.fail('Could not open the microphone. Check browser permissions and try again.'); return;
-    }
-    this.rec = rec;
-    const current = () => this.active && this.rec === rec;
-    let final = '', interim = '', turnTimer = null;
-    const started = this.now();
-    rec.lang = this.lang;
-    rec.continuous = true;
-    rec.interimResults = true;
-    if (this.local) rec.processLocally = true;
-    this.state('starting');
-    rec.onstart = () => { if (current()) this.state('listening'); };
-    const submit = () => {
-      if (!current() || !final.trim()) return;
-      const text = final.trim();
-      this.clear(turnTimer);
-      this.detach(); // Disable capture before the architect speaks: never transcribe its reply.
-      this.rapidEnds = 0;
-      void this.turn(text);
-    };
-    rec.onresult = (event) => {
-      if (!current()) return;
-      final = ''; interim = '';
-      for (const result of Array.from(event.results)) {
-        if (result.isFinal) final += result[0].transcript + ' ';
-        else interim += result[0].transcript + ' ';
-      }
-      this.clear(turnTimer);
-      this.onDraft((final + interim).trim());
-      if (final.trim() && !interim.trim()) turnTimer = this.later(submit, this.pauseMs);
-    };
-    rec.onerror = (event) => {
-      if (!current() || event.error === 'no-speech') return;
-      const errors = {
-        'not-allowed': 'Microphone access is blocked. Allow the microphone for this site in your browser settings, then start voice again.',
-        'service-not-allowed': 'Your browser blocked its speech service. Enable speech recognition or use a browser that supports it.',
-        'audio-capture': 'No microphone is available. Check your microphone and system input settings.',
-        network: 'The browser speech service could not connect. Check your network or browser speech settings. Your draft is still in the message box.',
-        'language-not-supported': 'English speech recognition is unavailable. Enable or install an English language pack in your browser.',
-      };
-      this.fail(errors[event.error] || 'Speech recognition was interrupted. Your draft is still in the message box; start voice again or send it as text.');
-    };
-    rec.onend = () => {
-      if (!current()) return;
-      if (final.trim()) { submit(); return; }
-      this.clear(turnTimer);
-      this.rec = null;
-      // Browsers end recognition even with continuous=true. Restart, but never spin.
-      this.rapidEnds = this.now() - started < 1500 ? this.rapidEnds + 1 : 0;
-      if (interim.trim() || this.rapidEnds > 3) {
-        this.fail(interim.trim()
-          ? 'The speech service stopped before confirming your words. Review the draft and send it, or start voice again.'
-          : 'The speech service keeps stopping. Check microphone permissions and browser speech settings, then try again.');
-        return;
-      }
-      this.state('reconnecting');
-      this.later(() => this.listen(), Math.min(500 * 2 ** this.rapidEnds, 4000));
-    };
-    try { rec.start(); } catch {
-      this.fail('Could not start speech recognition. Allow microphone access and start voice again.');
-    }
-  }
-  async turn(text) {
-    const token = this.epoch;
-    this.state('thinking');
+  state(phase){this.phase=phase;this.onState(phase);}
+  async start(){
+    const token=++this.epoch;this.parts=[];this.length=0;this.processed=0;this.heard=false;this.running=true;
+    this.controller=new AbortController();this.state('starting');
     try {
-      const reply = await this.onTurn(text);
-      if (!this.active || token !== this.epoch) return;
-      if (typeof reply !== 'string' || !reply.trim()) {
-        this.fail('The architect could not reply. Check the connection in chat, then start voice again.'); return;
+      const mic=await this.capture({onSamples:part=>{
+        if(!this.running||token!==this.epoch)return;
+        const remaining=960000-this.length;
+        if(remaining<=0)return;
+        const bounded=part.slice(0,remaining);
+        this.parts.push(bounded);this.length+=bounded.length;
+        if(bounded.some(x=>Math.abs(x)>.02))this.heard=true;
+        if(this.length>=960000)void this.finish();
+      }});
+      if(token!==this.epoch||!this.running){mic.stop();return;}
+      this.mic=mic;this.state('listening');this.tick();
+    } catch(error){if(token===this.epoch)this.fail(error?.name==='NotAllowedError'
+      ?'Microphone access is blocked. Allow it for this site in your browser settings.'
+      :'Could not open the microphone. Check your browser and system microphone settings.');}
+  }
+  tick(){
+    this.timer=this.schedule(()=>{
+      if(!this.running)return;
+      void this.update().catch(()=>{});
+      this.tick();
+    },this.intervalMs);
+  }
+  async update(final=false){
+    if(this.pending){await this.pending;if(!final)return;}
+    const token=this.epoch, length=this.length;
+    if(!this.running&&!final)return;
+    if(length<1600||length===this.processed||!this.heard)return;
+    const work=(async()=>{
+      try {
+        const text=await this.transcribe(wav(this.parts,length),this.controller.signal);
+        if(token!==this.epoch)return;
+        this.processed=length;
+        if(typeof text!=='string')throw Error('invalid transcript');
+        this.draft=this.base+text.trim();this.onDraft(this.draft);
+      } catch(error){
+        if(token===this.epoch){this.fail(error.message||'Local transcription failed. Nothing has been sent.');throw error;}
       }
-      this.speak(reply);
-    } catch {
-      if (this.active && token === this.epoch)
-        this.fail('The architect could not reply. Check the connection in chat, then start voice again.');
-    }
+    })();
+    this.pending=work;
+    try{await work;}finally{if(this.pending===work)this.pending=null;}
   }
-  speak(text) {
-    const chunks = speechText(text).match(/.{1,220}(?:\s|$)|\S{1,220}/g) || [];
-    const token = this.epoch;
-    this.state('speaking');
-    const next = () => {
-      if (!this.active || token !== this.epoch) return;
-      const chunk = chunks.shift();
-      if (!chunk) { this.later(() => this.listen(), 250); return; }
-      const utterance = new this.Utterance(chunk.trim());
-      utterance.lang = this.lang;
-      const voices = this.synthesis.getVoices?.() || [];
-      const voice = voices.find(v => v.localService && v.lang.startsWith('en'));
-      if (voice) utterance.voice = voice;
-      this.utterance = utterance; // Keep a strong reference until completion.
-      let settled = false;
-      const timer = this.later(() => {
-        if (!settled) this.fail('Spoken playback stalled. The full reply is in chat. Start voice again to continue.');
-      }, 45000);
-      utterance.onend = () => {
-        if (settled) return;
-        settled = true; this.clear(timer); next();
-      };
-      utterance.onerror = () => {
-        if (settled || !this.active || token !== this.epoch) return;
-        settled = true; this.clear(timer);
-        this.fail('Spoken playback was blocked or interrupted. The full reply is in chat. Start voice again to continue.');
-      };
-      try { this.synthesis.speak(utterance); } catch { utterance.onerror(); }
-    };
-    next();
+  async finish(){
+    if(this.finishing)return this.finishing;
+    if(!this.running)return this.phase==='error'?null:this.draft;
+    this.running=false;this.clear(this.timer);this.mic?.stop();this.state('transcribing');
+    const token=this.epoch;
+    this.finishing=(async()=>{
+      try {
+        await this.update(true);
+        if(token!==this.epoch)return null;
+        this.parts=[];this.state('off');return this.draft;
+      } catch {return null;}finally{this.finishing=null;}
+    })();
+    return this.finishing;
   }
-  interrupt() {
-    if (!this.active || this.phase !== 'speaking') return;
-    for (const timer of this.timers) this.cancel(timer);
-    this.timers.clear();
-    this.epoch++;
-    this.synthesis.cancel();
-    this.listen();
+  cancel(){
+    this.epoch++;this.running=false;this.clear(this.timer);this.controller?.abort();this.mic?.stop();
+    this.parts=[];this.state('off');
   }
+  fail(message){this.cancel();this.state('error');this.onError(message);}
 }

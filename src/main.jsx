@@ -1,4 +1,4 @@
-import { VoiceConversation } from "./voice-conversation.mjs";
+import { VoiceDictation } from "./voice-conversation.mjs";
 import { OutputsView } from "./OutputsView.jsx";
 import { outputBundle } from "./output-bundle.mjs";
 import { TerraformView } from "./TerraformView.jsx";
@@ -647,51 +647,49 @@ function App() {
   const consultationAttempts = useRef(new Set());
   const agentAbort = useRef(null);
   const voice = useRef(null);
-  const sendRef = useRef(null);
-  const localSpeech = useRef(false);
   const [voiceState, setVoiceState] = useState("off");
   const [voiceError, setVoiceError] = useState("");
   const voiceActive = !["off", "error"].includes(voiceState);
-  useEffect(() => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (typeof SR?.available === "function") {
-      Promise.resolve().then(() => SR.available({ langs: ["en-US"], processLocally: true }))
-        .then(status => { localSpeech.current = status === "available"; }).catch(() => {});
-    }
-    return () => voice.current?.stop();
-  }, []);
+  useEffect(() => () => voice.current?.cancel(), []);
   function startVoice() {
-    if (busy || agentBusy) return notify("Wait for the current turn to finish before starting voice.");
-    if (!connection || !session) {
-      notify("Connect your architect before starting a voice conversation.");
-      if (!connection) setModal("welcome");
-      return;
-    }
-    if (input.trim()) return notify("Send or clear your draft before starting voice.");
-    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!Recognition || !window.speechSynthesis || !window.SpeechSynthesisUtterance) {
-      setVoiceError("Voice conversation is not supported in this browser. You can still type your message.");
-      return;
-    }
+    if (busy || agentBusy) return notify("Wait for the architect to finish before recording your next message.");
+    if (!session) return notify("Connect the local helper before starting dictation.");
     let consent = false;
-    try { consent = localStorage.getItem("atforma-voice-conversation") === "yes"; } catch {}
+    try { consent = localStorage.getItem("atmem-local-dictation") === "yes"; } catch {}
     if (!consent) {
-      consent = window.confirm("Start a voice conversation? Your browser may send audio to its speech provider for recognition and reply text for spoken playback. Confirmed words are sent to your connected architect as chat messages. AtMem AI Architect does not store raw audio. You can stop at any time.");
+      consent = window.confirm("Use your microphone for local dictation? Audio is processed on this computer by the local helper and is not saved. Words appear in the message box; only pressing Send posts them to your selected architect.");
       if (!consent) return;
-      try { localStorage.setItem("atforma-voice-conversation", "yes"); } catch {}
+      try { localStorage.setItem("atmem-local-dictation", "yes"); } catch {}
     }
-    setVoiceError("");
-    voice.current?.stop();
-    voice.current = new VoiceConversation({
-      Recognition, synthesis: window.speechSynthesis, Utterance: window.SpeechSynthesisUtterance,
-      local: localSpeech.current, onState: setVoiceState, onError: setVoiceError,
-      onDraft: setInput,
-      onTurn: text => sendRef.current(text, "chat", null, { spoken: true }),
+    setVoiceError("");voice.current?.cancel();
+    let activeSession = session;
+    voice.current = new VoiceDictation({
+      base: input, onState: setVoiceState, onError: setVoiceError, onDraft: setInput,
+      transcribe: async (audio, signal) => {
+        const request = () => fetch("/api/voice/transcribe", {
+          method: "POST", headers: { "Content-Type": "audio/wav", Authorization: `Bearer ${activeSession.token}` },
+          body: audio, signal,
+        });
+        let response = await request();
+        if (response.status === 401 && !signal.aborted) {
+          const fresh = await refreshSession();
+          if (fresh) { activeSession = fresh; response = await request(); }
+        }
+        const result = await response.json();
+        if (!response.ok) throw Error(result.detail || "Local dictation could not finish. Nothing has been sent.");
+        return result.text;
+      },
     });
-    voice.current.start();
+    void voice.current.start();
   }
-  function stopVoice() { voice.current?.stop(); }
-  sendRef.current = send;
+  function stopVoice() { voice.current?.cancel(); }
+  async function postMessage() {
+    if (busy || agentBusy) return;
+    if (voice.current?.running || voice.current?.finishing) {
+      const draft = await voice.current.finish();
+      if (draft !== null) void send(draft);
+    } else void send();
+  }
   const { screenToFlowPosition, fitView, zoomIn, zoomOut } = useReactFlow();
   const fileRef = useRef();
   const chatEnd = useRef();
@@ -729,6 +727,12 @@ function App() {
   useEffect(() => {
     refreshSession();
   }, [refreshSession]);
+  useEffect(() => {
+    if (!session?.token) return;
+    const controller = new AbortController();
+    fetch("/api/voice/prepare", { method: "POST", headers: { Authorization: `Bearer ${session.token}` }, signal: controller.signal }).catch(() => {});
+    return () => controller.abort();
+  }, [session?.token]);
   useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => setToast(""), 3500);
@@ -1060,9 +1064,9 @@ function App() {
     if (next.importReport) notify(next.importReport.notice);
   }
 
-  async function send(text = input, origin = "chat", destination = null, { spoken = false } = {}) {
+  async function send(text = input, origin = "chat", destination = null) {
     if (!text.trim() || busy || agentBusy) return;
-    if (!spoken) stopVoice();
+    stopVoice();
     const message = text.trim();
     if (origin === "chat") {
       setMessages((m) => [...m, { role: "user", text: message }]);
@@ -1094,14 +1098,13 @@ function App() {
       updateEngagement(heard.project);
       const signals = harnessSignals(was, heard.project);
       // The connected architect draws from the user's idea. No local preset blocks.
-      // Dictated text may contain speech-recognition slips; the model reads past them.
       const edits = canvasChanges(projectRef.current);
       seen.current = structuredClone(projectRef.current);
       const result = await requestArchitect({
         extra: [{type:"discovery",id:"active-view",text:`The user is working in ${destination ? (destination.mode === "design" ? destination.view : destination.mode) : mode === "design" ? designView : mode}. Focus help on this view using the shared diagram and conversation; ask one useful question and update the relevant working outputs.`}, ...(edits.length ? [{ type: "discovery", id: "canvas-changes", text: `Since your last reply the user ${edits.join("; ")}. Build on these changes.` }] : [])],
         session,
         connection,
-        message: spoken ? `${message}\n\n(Dictated by voice: interpret obvious speech-recognition errors, e.g. "rang" for "RAG".)` : message,
+        message,
         project: projectRef.current,
         history: messages,
         stage: destination?.mode || mode,
@@ -2124,7 +2127,7 @@ function App() {
             className="composer"
             onSubmit={(e) => {
               e.preventDefault();
-              send();
+              void postMessage();
             }}
           >
             <textarea
@@ -2136,27 +2139,27 @@ function App() {
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
-                  send();
+                  void postMessage();
                 }
               }}
             />
             <button
               type="button"
               className={`mic ${voiceActive ? "on" : ""}`}
-              aria-label={voiceActive ? "Stop voice conversation" : "Start voice conversation"}
+              aria-label={voiceActive ? "Stop dictation" : "Start dictation"}
               aria-pressed={voiceActive}
-              title={voiceActive ? "Stop voice conversation" : "Talk with your architect"}
-              onClick={voiceActive ? stopVoice : startVoice}
+              title={voiceActive ? "Stop dictation and finish the transcript" : "Dictate a message"}
+              disabled={voiceState === "transcribing"}
+              onClick={voiceActive ? () => { void voice.current?.finish(); } : startVoice}
             >
               {voiceActive ? <Square size={13} /> : <Mic size={15} />}
             </button>
-            <button type="submit" className="send" aria-label="Send message" disabled={!input.trim() || busy || agentBusy}>
+            <button type="submit" className="send" aria-label="Send message" disabled={(!input.trim() && !voiceActive) || busy || agentBusy || voiceState === "transcribing"}>
               <ArrowUp size={15} />
             </button>
           </form>
           <div className="voice-status" role="status" aria-live="polite">
-            {voiceError || ({ starting: "Opening microphone…", listening: "Listening — pause when you finish to send your message.", reconnecting: "Reconnecting microphone…", thinking: "Your architect is thinking…", speaking: "Your architect is speaking…" }[voiceState] || "")}
-            {voiceState === "speaking" && <button type="button" onClick={() => voice.current?.interrupt()}>Interrupt and speak</button>}
+            {voiceError || ({ starting: "Opening microphone…", listening: "Dictating locally — review your words, then press Send.", transcribing: "Finishing your transcript…" }[voiceState] || "")}
           </div>
         </aside>
       )}
