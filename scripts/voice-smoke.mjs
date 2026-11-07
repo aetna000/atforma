@@ -58,7 +58,7 @@ try {
   }
   if(url.pathname==='/api/architect'){
    const request=route.request().postDataJSON();requests.push(request);
-   const next={...request.project,nodes:[{id:'voice-assistant',type:'resource',position:{x:100,y:100},data:{label:'Azure document assistant',kind:'agent',provider:'azure',description:'Synthetic voice fixture',origin:'proposed',config:{region:'To be selected',classification:'Internal',timeout:5000}}}],edges:[]};
+   const next={...request.project,nodes:[{id:'voice-assistant',type:'resource',position:{x:100,y:100},data:{label:'Azure document assistant',kind:'agent',provider:'azure',description:`Synthetic voice fixture ${requests.length}`,origin:'proposed',config:{region:'To be selected',classification:'Internal',timeout:5000}}}],edges:[]};
    body={message:'I updated the design.',proposal:{title:'Document assistant',body:'Synthetic architecture proposal',baseRevision:request.project.revision,next}};
   }
   await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body)});
@@ -79,7 +79,13 @@ try {
  await page.getByRole('button',{name:'Start dictation',exact:true}).waitFor();
  await page.getByRole('button',{name:'Send message',exact:true}).click();
  await page.locator('.react-flow__node').filter({hasText:'Azure document assistant'}).waitFor();
+ await page.locator('.react-flow__node.diagram-attention').waitFor();
+ await page.waitForTimeout(850);
+ const zoom = await page.locator('.react-flow__viewport').evaluate(el => new DOMMatrix(getComputedStyle(el).transform).a);
+ assert.ok(zoom > 1.1, 'applied block is zoomed into view');
+ await page.waitForFunction(() => !document.querySelector('.diagram-attention'));
  assert.equal(requests.length,initial+1);assert.equal(requests.at(-1).message,'Build a document assistant using Azure');
+ await page.emulateMedia({reducedMotion:'reduce'});
  // Pressing Send during capture must finalise the pending words before posting once.
  await page.waitForFunction(()=>!document.querySelector('.msg.working'));
  await page.getByRole('button',{name:'Start dictation',exact:true}).click();
@@ -88,6 +94,9 @@ try {
  await page.waitForFunction(()=>!document.querySelector('.msg.working'));
  await page.waitForTimeout(300);
  assert.equal(requests.length,initial+2);assert.ok(requests.at(-1).message.startsWith('Keep data in Australia'));
+ const highlighted = page.locator('.react-flow__node.diagram-attention');
+ await highlighted.waitFor();
+ assert.equal(await highlighted.evaluate(el => getComputedStyle(el).animationName), 'none');
  assert.equal(confirmations,1);
  await page.evaluate(()=>{window.__audio.deny=true;});
  await page.getByRole('button',{name:'Start dictation',exact:true}).click();

@@ -31,3 +31,5 @@ submission/playback until Send and real canvas updates. Real local engine HTTP t
 uses generated speech and records partial/final text and timing separately. Run
 unit/sidecar/build/existing journeys; preserve known baseline delivery-layout failure.
 Physical microphone/OS permissions are not certified by generated or mocked audio.
+
+Diagram change attention: compare node data/position/type and connections before application; keep affected IDs in transient React state, decorate React Flow elements and fit the affected nodes after measurement. Suppress competing whole-canvas fits during the cue, clear timers on replacement/unmount, and respect reduced motion. Verify diff targeting in unit tests and highlight, zoom, expiry and reduced motion in the browser proposal journey.

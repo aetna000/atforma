@@ -22,3 +22,5 @@
 - [x] T012 Add authenticated in-memory audio routes and warmed local Whisper worker/setup.
 - [x] T013 Verify real generated speech, controller/HTTP/UI regressions and existing checks; keep the baseline Outputs mobile failure distinct.
 - [x] T014 Update evidence/limits and the running helper; physical microphone remains unverified.
+
+- [x] T015 Highlight applied diagram changes and focus their area; test targeting, cue expiry, actual viewport zoom and reduced-motion rendering.

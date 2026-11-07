@@ -104,3 +104,5 @@ updates the canvas. Permission/device/helper errors preserve drafts. Raw audio
 routes reject missing auth, foreign origins, invalid/oversized formats. Actual local
 transcription is tested with generated speech; physical microphone quality remains
 an operator check, not inferred from fixtures.
+
+- **FR-012**: Applied architect diagram proposals draw attention to changed blocks and connections with two gentle pulses and a focused viewport. The cue expires without entering saved project data or undo history. Removed connections focus surviving endpoints. Reduced-motion preferences use a steady outline and instant focus.

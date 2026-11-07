@@ -1,3 +1,4 @@
+import { diagramAttention } from "./diagram-attention.mjs";
 import { VoiceDictation } from "./voice-conversation.mjs";
 import { OutputsView } from "./OutputsView.jsx";
 import { outputBundle } from "./output-bundle.mjs";
@@ -691,6 +692,8 @@ function App() {
     } else void send();
   }
   const { screenToFlowPosition, fitView, zoomIn, zoomOut } = useReactFlow();
+  const [attention, setAttention] = useState(null);
+  const attentionRef = useRef(null);
   const fileRef = useRef();
   const chatEnd = useRef();
   const runToken = useRef(0);
@@ -707,12 +710,27 @@ function App() {
       : 0.25;
   const refit = useCallback(
     // Wait a frame or two so newly drawn blocks are measured before fitting them in.
-    (nodes) => setTimeout(() => fitView({ padding, maxZoom: 1.1, duration: 200, ...(nodes ? { nodes } : {}) }), 180),
+    (nodes) => setTimeout(() => {
+      if (!attentionRef.current) fitView({ padding, maxZoom: 1.1, duration: 200, ...(nodes ? { nodes } : {}) });
+    }, 180),
     [fitView, testing, notesShown],
   );
   useEffect(() => {
     refit();
   }, [testing, notesShown, refit, pending]);
+
+  useEffect(() => {
+    if (!attention) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const zoom = setTimeout(() => {
+      if (attention.nodes.length) fitView({ nodes: attention.nodes.map(id => ({ id })), padding: 0.35, maxZoom: 1.4, duration: reduced ? 0 : 550 });
+    }, 180);
+    const clear = setTimeout(() => {
+      attentionRef.current = null;
+      setAttention(null);
+    }, 3200);
+    return () => { clearTimeout(zoom); clearTimeout(clear); };
+  }, [attention, fitView]);
 
   const refreshSession = useCallback(async () => {
     try {
@@ -1034,6 +1052,8 @@ function App() {
   // A project file brings its own records; templates and imports keep the current ones.
   function loadDesign(next, { own = false } = {}) {
     stopVoice();
+    attentionRef.current = null;
+    setAttention(null);
     if (busy) {
       notify("Stop the run before replacing the design.");
       return;
@@ -1179,6 +1199,9 @@ function App() {
       decision: `${live ? "Drawn while talking" : "Applied"} as design revision ${current.revision + 1}.`,
     };
     const change = proposalDiff(current, proposal.next);
+    const emphasis = diagramAttention(current, proposal.next);
+    attentionRef.current = emphasis;
+    setAttention(emphasis);
     // Remember the concept we drew so we can keep evolving it until the user takes over.
     commit({ ...keepEngagement(proposal.next, current), decisions: [...(current.decisions || []), decision], conceptSig: quiet ? conceptSignature(proposal.next) : null });
     seen.current = structuredClone(proposal.next);
@@ -1287,7 +1310,7 @@ function App() {
           ...n,
           type: n.data.kind === "note" ? "note" : n.type,
           measured: measured[n.id],
-          className: previewing ? "preview" : "",
+          className: `${previewing ? "preview" : ""} ${attention?.nodes.includes(n.id) ? "diagram-attention" : ""}`,
           selected: n.id === selected || picked.has(n.id),
           data: { ...n.data, onText: noteText, fresh: n.id === freshNote.current, runState: runStates[n.id], dim: (focusBlocks && !focusBlocks.has(n.id)) || (testing && !n.data.poc && n.data.kind !== "resource" && project.nodes.some((x) => x.data.poc)) },
         }));
@@ -1296,7 +1319,7 @@ function App() {
       ? system.edges.map((e) => ({ ...e, className: wireClass(e.data.sources[0]), markerEnd: { type: "arrowclosed", width: 14, height: 14 } }))
       : shown.edges.map((e) => ({
           ...e,
-          className: `${previewing ? "preview" : ""} ${wireClass(e.source)} ${focusBlocks && !(focusBlocks.has(e.source) || focusBlocks.has(e.target)) ? "dim" : ""}`,
+          className: `${previewing ? "preview" : ""} ${attention?.edges.includes(e.id) ? "diagram-attention" : ""} ${wireClass(e.source)} ${focusBlocks && !(focusBlocks.has(e.source) || focusBlocks.has(e.target)) ? "dim" : ""}`,
           animated: busy && runStates[e.source] === "passed",
           markerEnd: { type: "arrowclosed", width: 14, height: 14 },
         }));
